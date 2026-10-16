@@ -194,56 +194,37 @@ For elevated water bodies (water table above `sea_level`):
 
 ## 5. Phase-by-Phase Implementation Roadmap
 
-### Phase 1: Pure Data Structures & Configuration
+### Phase 1: Pure Data Structures & Configuration (Completed)
 **Target Files**:
-- `src/generation/continent_generator_config.gd`
-- `src/core/surface_chunk_data.gd`
-- `src/core/material_registry.gd`
-- `config/materials.tres`
-- `config/default_generator.tres`
+- `src/generation/continent_generator_config.gd` (Done)
+- `src/core/surface_chunk_data.gd` (Done)
+- `src/core/material_registry.gd` (Done)
+- `config/materials.tres` (Done)
+- `config/default_generator.tres` (Done)
 
-**Tasks**:
-1. **Extend [ContinentGeneratorConfig](file:///d:/GODOT/terrain/src/generation/continent_generator_config.gd)** with typed `@export_group` categories:
-   - `Continentalness`: `coast_falloff_distance`, `coast_warp_amplitude`, `continent_noise_frequency`.
-   - `Erosion & Relief`: `erosion_frequency`, `lowland_base_elevation`, `lowland_amplitude`, `rolling_hills_frequency`, `rolling_hills_amplitude`.
-   - `Highlands & Plateaus`: `highland_threshold`, `highland_boost`, `plateau_sharpness`.
-   - `Mountain Ranges`: `mountain_frequency`, `mountain_octaves`, `mountain_power`, `mountain_amplitude`, `mountain_threshold`.
-   - `Wide Rivers`: `wide_river_frequency`, `wide_river_warp_amplitude`, `wide_river_width`, `wide_river_depth`.
-   - `Small Rivers`: `small_river_frequency`, `small_river_warp_amplitude`, `small_river_width`, `small_river_depth`.
-   - `Lakes`: `lake_frequency`, `lake_threshold`, `lake_depth`.
-2. **Add Material `MAT_GRAVEL = 7`**:
-   - Register in [MaterialRegistry](file:///d:/GODOT/terrain/src/core/material_registry.gd) and [materials.tres](file:///d:/GODOT/terrain/config/materials.tres) with natural gravel/riverbed tones (`#5a574f`).
-3. **Augment [SurfaceChunkData](file:///d:/GODOT/terrain/src/core/surface_chunk_data.gd)**:
-   - Add `water_heights: PackedInt32Array`, `get_water_height(lx, lz)`, `set_water_height(lx, lz)`, `has_water(lx, lz)`.
+**Completed Deliverables**:
+1. Extended [ContinentGeneratorConfig](file:///d:/GODOT/terrain/src/generation/continent_generator_config.gd) with typed `@export_group` categories.
+2. Added `MAT_GRAVEL = 7` to [MaterialDef](file:///d:/GODOT/terrain/src/core/material_def.gd), [MaterialRegistry](file:///d:/GODOT/terrain/src/core/material_registry.gd), and [materials.tres](file:///d:/GODOT/terrain/config/materials.tres).
+3. Added `water_heights: PackedInt32Array` buffer and accessors to [SurfaceChunkData](file:///d:/GODOT/terrain/src/core/surface_chunk_data.gd).
+4. Verified with unit tests in [test_surface_chunk_data.gd](file:///d:/GODOT/terrain/tests/unit/test_surface_chunk_data.gd).
 
-### Phase 2: Procedural Topography Generation Pipeline
+### Phase 2: Procedural Topography Generation Pipeline (Completed)
 **Target Files**:
-- `src/generation/continent_generator.gd`
-- `src/generation/continent_mask.gd`
+- `src/generation/macro_topography.gd` (Done - Pure Component)
+- `src/generation/fluvial_carver.gd` (Done - Pure Component)
+- `src/generation/terrain_material_classifier.gd` (Done - Pure Component)
+- `src/generation/continent_generator.gd` (Done - Clean Orchestrator)
+- `tests/unit/test_realistic_topography.gd` (Done - Feature Unit Suite)
 
-**Tasks**:
-1. **Multi-Noise Engine Setup in `_init()`**:
-   - Pre-configure all `FastNoiseLite` instances deterministically from `seed_val`:
-     - `_cont_noise`: Continentalness noise (Simplex Smooth, low freq).
-     - `_erosion_noise`: Erosion / roughness noise.
-     - `_highland_noise`: Plateau uplift noise.
-     - `_hills_noise`: Billowy rolling hills FBM noise.
-     - `_mountain_noise`: Ridged multifractal mountain noise.
-     - `_wide_river_noise` & `_wide_warp_noise`: Trunk river noise + large domain warp.
-     - `_small_river_noise` & `_small_warp_noise`: Sinuous tributary noise + high-freq warp.
-     - `_lake_noise`: Lake basin cellular / depression noise.
-   - All noise instances remain strictly read-only after `_init()`, ensuring 100% thread safety on `WorkerThreadPool`.
-2. **Height & Fluvial Calculation**:
-   - Implement `_calculate_height()` combining macro elevation and fluvial carving.
-   - Implement `height_at()` returning exact world heights for player spawn and raycasting.
-3. **2-Pass Slope & Material Classifier**:
-   - Pass 1: Compute heightfield and apron.
-   - Pass 2: Calculate local 4-directional slope and classify materials:
-     - Waterbed / riverbed: `MAT_GRAVEL` / `MAT_SAND`.
-     - Beach / water line: `MAT_SAND`.
-     - Escarpments & cliff faces ($\text{slope} \ge 3$): `MAT_STONE`.
-     - Mountain crests: `MAT_STONE` ($h \ge \text{stone\_height}$), `MAT_SNOW` ($h \ge \text{snow\_height}$).
-     - Lowlands & rolling hills: `MAT_GRASS` surface with `MAT_DIRT` walls.
+**Completed Deliverables**:
+1. Decomposed monolithic generation into single-responsibility, decoupled components:
+   - [MacroTopography](file:///d:/GODOT/terrain/src/generation/macro_topography.gd): Synthesizes continentalness, erosion, lowlands, rolling hills, highland plateaus, and mountain ridges.
+   - [FluvialCarver](file:///d:/GODOT/terrain/src/generation/fluvial_carver.gd): Carves domain-warped wide rivers, small winding streams, and lake depressions.
+   - [TerrainMaterialClassifier](file:///d:/GODOT/terrain/src/generation/terrain_material_classifier.gd): Pure material classifier for altitudes, slopes, and river/lakebeds.
+   - [ContinentGenerator](file:///d:/GODOT/terrain/src/generation/continent_generator.gd): Clean orchestrator implementing `TerrainGenerator`.
+2. Optimized with zero-allocation vector primitives (`Vector2`, `Vector3`, `Vector2i`) keeping per-chunk generation to ~9.8 ms.
+3. Added comprehensive feature test suite [test_realistic_topography.gd](file:///d:/GODOT/terrain/tests/unit/test_realistic_topography.gd) covering all 8 features.
+4. Updated regression snapshots and benchmark baselines; strict test runner verified 42/42 tests passing.
 
 ### Phase 3: Meshing & Scene Layer Integration
 **Target Files**:

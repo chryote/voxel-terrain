@@ -53,3 +53,50 @@ func test_array_mesh_creation() -> void:
 	var array_mesh = mesh_data.create_array_mesh()
 	assert_not_null(array_mesh, "ArrayMesh creation should succeed")
 	assert_eq(array_mesh.get_surface_count(), 1, "ArrayMesh should have 1 surface")
+
+func test_water_mesher_null_when_dry_or_at_sea_level() -> void:
+	var c_size = 8
+	var data = SurfaceChunkData.new(c_size)
+	data.fill(10, 1, 2)
+	var reg = MaterialRegistry.create_default_registry()
+	var mesher = SurfaceShellMesher.new()
+	mesher.sea_level = 24
+
+	var mesh_data = mesher.build_mesh(data, reg)
+	assert_null(mesh_data.water_mesh_data, "Water mesh must be null when chunk has no water")
+
+	# Even if water height is at or below sea level, elevated water mesher should return null
+	data.fill(10, 1, 2, 24)
+	var sea_mesh_data = mesher.build_mesh(data, reg)
+	assert_null(sea_mesh_data.water_mesh_data, "Water mesh must be null when water is at sea level (covered by ocean plane)")
+
+func test_elevated_water_greedy_meshing() -> void:
+	var c_size = 16
+	var data = SurfaceChunkData.new(c_size)
+	# Terrain base height 40, water height 48 (elevated lake 8m deep)
+	data.fill(40, 1, 2, 48)
+
+	var reg = MaterialRegistry.create_default_registry()
+	var mesher = SurfaceShellMesher.new()
+	mesher.sea_level = 24
+
+	var mesh_data = mesher.build_mesh(data, reg)
+	assert_not_null(mesh_data.water_mesh_data, "Water mesh must not be null when elevated water is present")
+	assert_false(mesh_data.water_mesh_data.is_empty(), "Water mesh should not be empty")
+
+	# Entire 16x16 chunk with uniform water height should be greedy merged into 1 quad
+	assert_eq(mesh_data.water_mesh_data.get_vertex_count(), 4, "Uniform elevated water should merge into 4 vertices")
+	assert_eq(mesh_data.water_mesh_data.get_triangle_count(), 2, "Uniform elevated water should merge into 2 triangles")
+
+	# Check water vertex elevation
+	for v in mesh_data.water_mesh_data.vertices:
+		assert_almost_eq(v.y, 48.0, 0.001, "Water vertex Y must equal water height 48")
+
+	# Check normals point up
+	for norm in mesh_data.water_mesh_data.normals:
+		assert_vec_almost_eq(norm, Vector3(0.0, 1.0, 0.0), 0.001, "Water normal must point straight up")
+
+	# Check array mesh creation
+	var water_array_mesh = mesh_data.water_mesh_data.create_array_mesh()
+	assert_not_null(water_array_mesh, "Water ArrayMesh creation must succeed")
+	assert_eq(water_array_mesh.get_surface_count(), 1, "Water ArrayMesh should have 1 surface")

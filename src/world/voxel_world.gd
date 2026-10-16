@@ -12,11 +12,14 @@ signal initial_area_ready()
 @export var material_registry: MaterialRegistry
 @export var focus_target: Node3D
 
+const SpawnFinder = preload("res://src/world/spawn_finder.gd")
+
 var bounds: WorldBounds
 var generator: TerrainGenerator
 var mesher: Mesher
 var streamer: ChunkStreamer
 var scheduler: ChunkScheduler
+var _spawn_finder: SpawnFinder = SpawnFinder.new()
 
 var water_plane: WaterPlane
 var world_boundary: WorldBoundary
@@ -37,7 +40,9 @@ func _ready() -> void:
 
 	bounds = world_config.create_world_bounds()
 	generator = ContinentGenerator.new(world_config.world_seed, generator_config)
-	mesher = SurfaceShellMesher.new()
+	var shell_mesher = SurfaceShellMesher.new()
+	shell_mesher.sea_level = world_config.sea_level
+	mesher = shell_mesher
 	streamer = ChunkStreamer.new()
 	scheduler = ChunkScheduler.new()
 
@@ -191,16 +196,9 @@ func get_height_at(world_x: float, world_z: float) -> float:
 	return float(h) * bounds.voxel_size
 
 func get_spawn_point() -> Vector3:
-	# Search outward from center for high dry land
-	for radius in range(0, 100):
-		for dx in range(-radius, radius + 1):
-			for dz in [-radius, radius]:
-				var col = Vector2i(dx, dz)
-				var h = generator.height_at(col, bounds)
-				if h > world_config.sea_level + 2:
-					var wpos = bounds.column_to_world(col, float(h) + 1.0)
-					return wpos
-	return Vector3(0.0, float(world_config.sea_level + 5) * world_config.voxel_size, 0.0)
+	if generator == null or bounds == null or world_config == null:
+		return Vector3(0.0, 30.0, 0.0)
+	return _spawn_finder.find_spawn_point(generator, bounds, world_config.sea_level)
 
 func get_world_bounds() -> WorldBounds:
 	return bounds

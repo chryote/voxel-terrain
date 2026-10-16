@@ -226,17 +226,32 @@ For elevated water bodies (water table above `sea_level`):
 3. Added comprehensive feature test suite [test_realistic_topography.gd](file:///d:/GODOT/terrain/tests/unit/test_realistic_topography.gd) covering all 8 features.
 4. Updated regression snapshots and benchmark baselines; strict test runner verified 42/42 tests passing.
 
-### Phase 3: Meshing & Scene Layer Integration
+### Phase 3: Meshing & Scene Layer Integration (Completed)
 **Target Files**:
+- `src/meshing/mesh_data.gd`
+- `src/meshing/water_surface_mesher.gd` (new)
 - `src/meshing/surface_shell_mesher.gd`
 - `src/world/chunk_node.gd`
+- `src/world/spawn_finder.gd` (new)
 - `src/world/voxel_world.gd`
+- `src/generation/terrain_generator.gd`
+- `src/generation/continent_generator.gd`
+- `tests/unit/test_surface_shell_mesher.gd`
+- `tests/unit/test_spawn_finder.gd` (new)
 
-**Tasks**:
-1. **Water Surface Meshing**:
-   - Extend [SurfaceShellMesher](file:///d:/GODOT/terrain/src/meshing/surface_shell_mesher.gd) to mesh horizontal water quads using 2D greedy merging for columns with elevated water ($H_{\text{water}} > \text{sea\_level}$).
-2. **VoxelWorld Spawn Safety**:
-   - Update `get_spawn_point()` in [VoxelWorld](file:///d:/GODOT/terrain/src/world/voxel_world.gd) to verify that the spawn column is dry land ($H > H_{\text{water}} + 1$) and on a gentle slope ($\le 1$) so the player never spawns submerged in a lake or river.
+**Completed Implementation**:
+1. **Decoupled Elevated Water Mesher ([WaterSurfaceMesher](file:///d:/GODOT/terrain/src/meshing/water_surface_mesher.gd))**:
+   - Pure `RefCounted` component performing 2D greedy quad merging across $H_{\text{water}} > \text{sea\_level}$ and $H_{\text{water}} > H_{\text{terrain}}$.
+   - Integrated into [SurfaceShellMesher](file:///d:/GODOT/terrain/src/meshing/surface_shell_mesher.gd) with zero scene dependencies, outputting to `mesh.water_mesh_data`.
+   - Populated visually in [ChunkNode](file:///d:/GODOT/terrain/src/world/chunk_node.gd) using a dedicated, non-colliding `water_instance: MeshInstance3D` with translucent water shader material (`roughness = 0.1`, `metallic = 0.15`, `cull_mode = CULL_DISABLED`).
+2. **Decoupled Spawn Position Finder ([SpawnFinder](file:///d:/GODOT/terrain/src/world/spawn_finder.gd))**:
+   - Extracted concentric square perimeter search algorithm into a standalone, single-responsibility `SpawnFinder` class.
+   - Enforces dry land ($H \ge \text{effective\_water} + 2$), non-submerged neighborhood, and gentle slope ($\le 1$) across cardinal neighbors ($N, S, E, W$).
+   - [VoxelWorld](file:///d:/GODOT/terrain/src/world/voxel_world.gd) delegates `get_spawn_point()` to `_spawn_finder`, eliminating monolithic logic.
+3. **Automated Unit Tests**:
+   - `test_surface_shell_mesher.gd`: Verified greedy water quad merging (16×16 elevated water merges into 1 quad) and `null` return when dry or at sea level.
+   - `test_spawn_finder.gd`: Verified flat terrain centering, submerged lake basin avoidance, steep cliff avoidance, and integration with `ContinentGenerator`.
+   - All 48 tests pass in strict mode in 1.61 s.
 
 ### Phase 4: Automated Testing, Benchmarking & Golden Verification
 **Target Files**:

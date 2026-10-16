@@ -113,6 +113,31 @@ func height_at(col: Vector2i, bounds: WorldBounds) -> int:
 
 	return clampi(int(round(m_v2.x - f_v3.x)), config.seabed_level, 255)
 
+func water_height_at(col: Vector2i, bounds: WorldBounds) -> int:
+	if not bounds.contains_column(col.x, col.y):
+		return config.sea_level
+
+	var wx = (float(col.x) + 0.5) * bounds.voxel_size
+	var wz = (float(col.y) + 0.5) * bounds.voxel_size
+
+	var m_v2 = macro.sample_macro_v2(wx, wz, bounds)
+	var f_v3 = fluvial.sample_fluvial_v3(wx, wz, m_v2.x, m_v2.y)
+
+	return int(round(f_v3.y))
+
+func is_water_at(col: Vector2i, bounds: WorldBounds) -> bool:
+	if not bounds.contains_column(col.x, col.y):
+		return true
+
+	var wx = (float(col.x) + 0.5) * bounds.voxel_size
+	var wz = (float(col.y) + 0.5) * bounds.voxel_size
+
+	var m_v2 = macro.sample_macro_v2(wx, wz, bounds)
+	var f_v3 = fluvial.sample_fluvial_v3(wx, wz, m_v2.x, m_v2.y)
+
+	var h = m_v2.x - f_v3.x
+	return h < f_v3.y
+
 func sample_world(wx: float, wz: float, bounds: WorldBounds) -> Dictionary:
 	var m_data = macro.sample_macro(wx, wz, bounds)
 	var f_data = fluvial.sample_fluvial(wx, wz, m_data.elevation, m_data.continentalness)

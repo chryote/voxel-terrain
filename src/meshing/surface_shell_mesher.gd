@@ -6,9 +6,12 @@ const WaterSurfaceMesher = preload("res://src/meshing/water_surface_mesher.gd")
 var sea_level: int = 24
 var _water_mesher: WaterSurfaceMesher = WaterSurfaceMesher.new()
 
-func build_mesh(data: SurfaceChunkData, registry: MaterialRegistry) -> MeshData:
+func build_mesh(data: RefCounted, registry: MaterialRegistry) -> MeshData:
 	var mesh = MeshData.new()
-	var n = data.chunk_size
+	var s_data: SurfaceChunkData = data as SurfaceChunkData
+	if s_data == null:
+		return mesh
+	var n = s_data.chunk_size
 
 	var verts = PackedVector3Array()
 	var norms = PackedVector3Array()
@@ -191,6 +194,6 @@ func build_mesh(data: SurfaceChunkData, registry: MaterialRegistry) -> MeshData:
 	mesh.normals = norms
 	mesh.colors = cols
 	mesh.indices = inds
-	mesh.water_mesh_data = _water_mesher.build_water_mesh(data, sea_level)
+	mesh.water_mesh_data = _water_mesher.build_water_mesh(s_data, sea_level)
 
 	return mesh

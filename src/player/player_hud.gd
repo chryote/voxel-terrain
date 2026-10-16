@@ -53,9 +53,12 @@ func _update_debug_text() -> void:
 	var is_aim = false
 	var shoulder = "Right"
 
+	var mode_str = "Walking"
 	if player_motor != null:
 		var p = player_motor.global_position
 		pos_str = "(%.1f, %.1f, %.1f)" % [p.x, p.y, p.z]
+		if player_motor.is_flying():
+			mode_str = "Flying"
 		if player_motor.camera_rig != null:
 			is_aim = player_motor.camera_rig.is_aiming
 			shoulder = "Right" if player_motor.camera_rig.shoulder_side > 0.0 else "Left"
@@ -71,13 +74,13 @@ FPS: %d
 Pos: %s
 Chunk: %s
 Loaded Chunks: %d
-Aiming: %s | Shoulder: %s
+Mode: %s | Aiming: %s | Shoulder: %s
 
 Controls:
-WASD: Move | Shift: Sprint | Space: Jump
-RMB: Aim Zoom | LMB: Fire (Hitscan)
+WASD: Move / 3D Fly (Camera Pitch) | Shift: Sprint / Boost
+F: Toggle Fly | Space: Jump | RMB: Aim Zoom | LMB: Fire
 V: Swap Shoulder | Tab/Esc: Toggle Mouse | F3: Toggle Info""" % [
-		fps, pos_str, chunk_str, loaded_count, str(is_aim), shoulder
+		fps, pos_str, chunk_str, loaded_count, mode_str, str(is_aim), shoulder
 	]
 
 func _draw() -> void:

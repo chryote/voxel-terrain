@@ -12,6 +12,9 @@ var fire_requested: bool = false
 var swap_shoulder_requested: bool = false
 var toggle_mouse_requested: bool = false
 var toggle_debug_requested: bool = false
+var toggle_fly_requested: bool = false
+var fly_up_requested: bool = false
+var fly_down_requested: bool = false
 
 func reset() -> void:
 	move_vector = Vector2.ZERO
@@ -23,3 +26,6 @@ func reset() -> void:
 	swap_shoulder_requested = false
 	toggle_mouse_requested = false
 	toggle_debug_requested = false
+	toggle_fly_requested = false
+	fly_up_requested = false
+	fly_down_requested = false

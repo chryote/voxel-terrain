@@ -1,9 +1,10 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://src/player/player_motor.gd" id="1_motor"]
 [ext_resource type="Script" path="res://src/player/player_input.gd" id="2_input"]
 [ext_resource type="Script" path="res://src/player/third_person_camera.gd" id="3_camera"]
 [ext_resource type="Script" path="res://src/player/player_hud.gd" id="4_hud"]
+[ext_resource type="Script" path="res://src/player/flight_controller.gd" id="5_flight"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.4
@@ -13,12 +14,13 @@ height = 1.8
 radius = 0.4
 height = 1.8
 
-[node name="Player" type="CharacterBody3D" node_paths=PackedStringArray("player_input", "camera_rig")]
+[node name="Player" type="CharacterBody3D" node_paths=PackedStringArray("player_input", "camera_rig", "flight_controller")]
 collision_layer = 2
 collision_mask = 1
 script = ExtResource("1_motor")
 player_input = NodePath("PlayerInput")
 camera_rig = NodePath("ThirdPersonCamera")
+flight_controller = NodePath("FlightController")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
@@ -34,6 +36,9 @@ script = ExtResource("2_input")
 [node name="ThirdPersonCamera" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 0)
 script = ExtResource("3_camera")
+
+[node name="FlightController" type="Node" parent="."]
+script = ExtResource("5_flight")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 

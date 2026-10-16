@@ -42,7 +42,11 @@ func get_intent() -> PlayerIntent:
 			capture_mouse()
 		intent.toggle_mouse_requested = true
 
-	intent.toggle_debug_requested = Input.is_action_just_pressed("toggle_debug")
+	if InputMap.has_action("toggle_debug"):
+		intent.toggle_debug_requested = Input.is_action_just_pressed("toggle_debug")
+
+	if InputMap.has_action("toggle_fly"):
+		intent.toggle_fly_requested = Input.is_action_just_pressed("toggle_fly")
 
 	if _is_mouse_captured:
 		intent.look_delta = _look_delta
@@ -54,5 +58,15 @@ func get_intent() -> PlayerIntent:
 		intent.aim_requested = Input.is_action_pressed("aim")
 		intent.fire_requested = Input.is_action_just_pressed("fire")
 		intent.swap_shoulder_requested = Input.is_action_just_pressed("swap_shoulder")
+
+		var up_pressed = false
+		if InputMap.has_action("fly_up"):
+			up_pressed = Input.is_action_pressed("fly_up")
+		elif InputMap.has_action("jump"):
+			up_pressed = Input.is_action_pressed("jump")
+		intent.fly_up_requested = up_pressed
+
+		if InputMap.has_action("fly_down"):
+			intent.fly_down_requested = Input.is_action_pressed("fly_down")
 
 	return intent

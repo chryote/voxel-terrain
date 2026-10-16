@@ -43,5 +43,9 @@ func test_pure_layers_have_no_scene_node_dependencies() -> void:
 						"%s must not reference VoxelWorld directly" % full_path)
 					assert_false("PlayerMotor" in content,
 						"%s must not reference PlayerMotor directly" % full_path)
+					assert_false("FlightController" in content,
+						"%s must not reference FlightController directly" % full_path)
+					assert_false("FlightMath" in content,
+						"%s must not reference FlightMath directly" % full_path)
 			file_name = dir.get_next()
 		dir.list_dir_end()

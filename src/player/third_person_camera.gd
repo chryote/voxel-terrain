@@ -79,6 +79,12 @@ func apply_intent(intent: PlayerIntent, delta: float) -> void:
 func get_camera_yaw() -> float:
 	return yaw_pivot.global_rotation.y if yaw_pivot != null else 0.0
 
+func get_camera_pitch() -> float:
+	return _current_pitch
+
+func get_camera_forward() -> Vector3:
+	return -camera.global_transform.basis.z if camera != null else Vector3.FORWARD
+
 func get_aim_raycast(max_distance: float = 300.0) -> Dictionary:
 	if camera == null or not is_inside_tree():
 		return {"hit": false}

@@ -39,12 +39,14 @@ Contains zero `Node` dependencies, runs completely thread-safe on `WorkerThreadP
   - `WorldBoundary`: 4 perimeter barrier walls stopping entities at map limits.
   - `WaterPlane`: Continent-wide ocean surface at configured sea level.
 - **`src/player/`**:
-  - `PlayerIntent`: Plain data container of player actions.
+  - `PlayerIntent`: Plain data container of player actions (movement, camera, jump, sprint, aim, fire, flight).
   - `PlayerInput`: Single source of truth for mouse capture and `InputMap` reading.
+  - `FlightController`: Node component managing flight state, toggling, speeds, and velocity calculations.
+  - `FlightMath`: Pure mathematical helpers for 3D flight direction mapping and velocity smoothing.
   - `ThirdPersonCamera`: Yaw/pitch pivots, `SpringArm3D` anti-clipping, aim zoom, shoulder swapping, and center-screen hitscan raycasting.
   - `CameraMath`: Pure helper functions for pitch clamping and smoothing.
-  - `PlayerMotor`: `CharacterBody3D` with camera-relative movement, sprinting, jumping, standard gravity, and 1-block voxel step-assist.
-  - `PlayerHUD`: Dynamic crosshair, hit markers, and debug overlay (FPS, chunk coord, player pos, loaded chunk count).
+  - `PlayerMotor`: `CharacterBody3D` with camera-relative movement, sprinting, jumping, standard gravity, 1-block voxel step-assist, and 3D flight mode.
+  - `PlayerHUD`: Dynamic crosshair, hit markers, and debug overlay (FPS, chunk coord, player pos, loaded chunk count, locomotion mode).
 
 ---
 
@@ -62,14 +64,14 @@ res://
 │   ├── meshing/                     # Greedy meshing & buffer generation
 │   ├── streaming/                   # Chunk streamer & WorkerThreadPool scheduler
 │   ├── world/                       # Composition root, chunk nodes, boundary, water
-│   └── player/                      # Motor, TPS camera, HUD, input & intent
+│   └── player/                      # Motor, flight, TPS camera, HUD, input & intent
 ├── scenes/
 │   ├── main.tscn                    # Main runnable scene
 │   └── player.tscn                  # Player character prefab
 └── tests/
     ├── run_tests.gd                 # Headless test runner entry point
     ├── framework/                   # TestCase, BenchmarkCase, RegressionCase, TestRunner
-    ├── unit/                        # 28 Unit tests (including architecture linter)
+    ├── unit/                        # 30 Unit test suites (57 unit test methods)
     ├── regression/                  # Golden snapshot regression tests
     └── benchmark/                   # Automated performance benchmarks
 ```
@@ -80,9 +82,10 @@ res://
 
 | Action | Key / Input |
 |---|---|
-| **Move** | W, A, S, D |
-| **Sprint** | Left Shift |
+| **Move / 3D Flight** | W, A, S, D (Pitch camera up/down to steer elevation) |
+| **Sprint / Fly Boost** | Left Shift |
 | **Jump** | Space |
+| **Toggle Flight** | F |
 | **Aim Zoom** | Right Mouse Button (Hold) |
 | **Shoot (Hitscan)** | Left Mouse Button |
 | **Swap Shoulder** | V |

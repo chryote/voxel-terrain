@@ -1,7 +1,7 @@
 class_name PlayerMotor
 extends CharacterBody3D
 
-## Character controller with camera-relative movement, sprinting, jumping, and step-assist.
+## Character controller with camera-relative movement, sprinting, jumping, step-assist, and 3D flight.
 
 @export var walk_speed: float = 6.0
 @export var sprint_speed: float = 10.5
@@ -12,6 +12,7 @@ extends CharacterBody3D
 
 @export var player_input: PlayerInput
 @export var camera_rig: ThirdPersonCamera
+@export var flight_controller: FlightController
 
 signal fired(raycast_hit: Dictionary)
 
@@ -19,6 +20,9 @@ func _ready() -> void:
 	floor_snap_length = 0.4
 	floor_constant_speed = true
 	floor_max_angle = deg_to_rad(46.0)
+
+	if flight_controller == null:
+		flight_controller = get_node_or_null("FlightController")
 
 func _physics_process(delta: float) -> void:
 	if player_input == null or camera_rig == null:
@@ -32,8 +36,33 @@ func _physics_process(delta: float) -> void:
 		var hit = camera_rig.get_aim_raycast(300.0)
 		fired.emit(hit)
 
-	# Locomotion direction relative to camera yaw
 	var cam_yaw = camera_rig.get_camera_yaw()
+	var cam_pitch = camera_rig.get_camera_pitch()
+
+	# Handle flight mode toggle / input
+	if flight_controller != null:
+		var was_flying = flight_controller.is_flying
+		flight_controller.handle_intent(intent)
+		if not was_flying and flight_controller.is_flying:
+			if velocity.y < 0.0:
+				velocity.y = 0.0
+
+	# Locomotion branch (Ground vs Flight)
+	if is_flying():
+		velocity = flight_controller.compute_flight_velocity(velocity, intent, cam_yaw, cam_pitch, delta)
+	else:
+		_process_ground_locomotion(intent, cam_yaw, delta)
+
+	move_and_slide()
+
+func is_flying() -> bool:
+	return flight_controller != null and flight_controller.is_flying
+
+func set_flying(value: bool) -> void:
+	if flight_controller != null:
+		flight_controller.set_flying(value)
+
+func _process_ground_locomotion(intent: PlayerIntent, cam_yaw: float, delta: float) -> void:
 	var forward = -Vector3(sin(cam_yaw), 0.0, cos(cam_yaw))
 	var right = Vector3(cos(cam_yaw), 0.0, -sin(cam_yaw))
 	var move_dir = (forward * -intent.move_vector.y + right * intent.move_vector.x)
@@ -64,8 +93,6 @@ func _physics_process(delta: float) -> void:
 	# Step-up assist for 1-block voxel steps
 	if is_on_floor() and move_dir.length_squared() > 0.01 and is_on_wall():
 		_try_step_up(move_dir)
-
-	move_and_slide()
 
 func _try_step_up(move_dir: Vector3) -> void:
 	var space_state = get_world_3d().direct_space_state

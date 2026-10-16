@@ -35,6 +35,10 @@ func sample_carve_density(wx: float, wy: float, wz: float, surface_h: float, sea
 	if wy > surface_h:
 		return 1.0
 
+	# When caves are disabled, underground remains 100% solid rock
+	if not config.enabled:
+		return 0.0
+
 	# 2. Bedrock floor (Y <= 2) is indestructible solid
 	if wy <= 2.0:
 		return 0.0
@@ -94,6 +98,10 @@ func sample_coarse_cell_status(min_p: Vector3, max_p: Vector3, min_surface_h: fl
 	# 1. Completely above surface -> pure air
 	if min_p.y > max_surface_h:
 		return STATUS_AIR
+
+	# When caves are disabled, all subterranean cells are completely solid rock
+	if not config.enabled:
+		return STATUS_SOLID
 
 	# 2. Completely below bedrock -> pure solid
 	if max_p.y <= 2.0:

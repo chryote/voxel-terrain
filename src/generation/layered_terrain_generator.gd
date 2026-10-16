@@ -27,6 +27,8 @@ func generate_surface(coord: ChunkCoord, bounds: WorldBounds) -> SurfaceChunkDat
 
 ## Evaluates whether any column in the chunk contains a cave mouth candidate
 func check_has_cave_mouth(surface_data: SurfaceChunkData, coord: ChunkCoord, bounds: WorldBounds) -> bool:
+	if not cave_config.enabled:
+		return false
 	var c_size = bounds.chunk_size
 	var sea_level = config.sea_level
 	for lz in range(c_size):
@@ -101,6 +103,9 @@ func _carve_subterranean_caves(
 	bounds: WorldBounds,
 	max_h: int
 ) -> void:
+	if not cave_config.enabled:
+		return
+
 	var c_size = bounds.chunk_size
 	var sea_level = config.sea_level
 	var block_size = 4

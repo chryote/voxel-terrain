@@ -12,6 +12,7 @@ enum ChunkSubterraneanState {
 	STATE_SUBTERRANEAN_READY
 }
 
+var enabled: bool = true
 var subterranean_elevation_offset: float = 4.0
 var subterranean_radius_chunks: int = 2
 var mouth_trigger_radius_chunks: int = 1
@@ -68,7 +69,7 @@ func get_chunks_to_promote(
 	mouth_cache: Dictionary # key -> bool
 ) -> Array[ChunkCoord]:
 	var candidates: Array[ChunkCoord] = []
-	if focus_chunk == null:
+	if not enabled or focus_chunk == null:
 		return candidates
 
 	var is_player_subterranean = player_pos.y < (surface_height - subterranean_elevation_offset)

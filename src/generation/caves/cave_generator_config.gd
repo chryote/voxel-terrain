@@ -5,6 +5,9 @@ extends Resource
 ## Controls 2D cave mouth detection, 3D worm tunnels, dead ends,
 ## massive deep chasms, and subterranean water tables.
 
+@export_group("General")
+@export var enabled: bool = true ## Global switch enabling or disabling subterranean cave systems and cave mouths
+
 @export_group("2D Cave Mouth & Portals")
 @export_range(0.0001, 0.01) var mouth_frequency: float = 0.0012 ## Spatial frequency of cave mouth placement
 @export_range(0.5, 0.99) var mouth_threshold: float = 0.76 ## Peak noise threshold required to trigger a cave mouth

@@ -34,8 +34,8 @@ func sample_raw_noise(wx: float, wz: float) -> float:
 	return mouth_noise.get_noise_2d(wx + warp_offset_x, wz + warp_offset_z)
 
 func sample_mouth(wx: float, wz: float, surface_h: float, sea_level: int) -> Dictionary:
-	# Cave mouths only spawn on dry land well above water table
-	if not is_dry_land(surface_h, sea_level):
+	# Cave mouths only spawn on dry land well above water table and when enabled
+	if not config.enabled or not is_dry_land(surface_h, sea_level):
 		return {
 			"is_mouth": false,
 			"intensity": 0.0,
@@ -71,12 +71,14 @@ func sample_mouth(wx: float, wz: float, surface_h: float, sea_level: int) -> Dic
 	}
 
 func is_mouth_candidate(wx: float, wz: float, surface_h: float, sea_level: int) -> bool:
-	if not is_dry_land(surface_h, sea_level):
+	if not config.enabled or not is_dry_land(surface_h, sea_level):
 		return false
 	return sample_raw_noise(wx, wz) >= config.mouth_threshold
 
 func can_mouth_intersect_cell(min_p: Vector3, max_p: Vector3, max_surface_h: float, sea_level: int) -> bool:
 	## Coarse culling: returns true if an entrance funnel could possibly intersect this cell.
+	if not config.enabled:
+		return false
 	if max_p.y < (max_surface_h - config.max_entrance_depth):
 		return false
 	if not is_dry_land(max_surface_h, sea_level):

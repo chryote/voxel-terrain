@@ -12,6 +12,19 @@ signal initial_area_ready()
 @export var cave_config: CaveGeneratorConfig
 @export var material_registry: MaterialRegistry
 @export var focus_target: Node3D
+@export var caves_enabled: bool = true:
+	set(val):
+		caves_enabled = val
+		if cave_config != null:
+			cave_config.enabled = val
+		if subterranean_coordinator != null:
+			subterranean_coordinator.enabled = val
+		if not is_inside_tree():
+			return
+		if not caves_enabled:
+			for node in _loaded_chunks.values():
+				if node is ChunkNode and node.is_subterranean_visible():
+					node.set_subterranean_visible(false)
 
 const SpawnFinder = preload("res://src/world/spawn_finder.gd")
 
@@ -43,6 +56,12 @@ func _ready() -> void:
 		cave_config = CaveGeneratorConfig.new()
 	if material_registry == null:
 		material_registry = MaterialRegistry.create_default_registry()
+
+	# Synchronize caves_enabled master switch across configs and coordinators
+	if not world_config.caves_enabled:
+		caves_enabled = false
+	cave_config.enabled = caves_enabled
+	subterranean_coordinator.enabled = caves_enabled
 
 	bounds = world_config.create_world_bounds()
 	if generator == null:
@@ -176,7 +195,7 @@ func _process_completed_chunks() -> void:
 
 		if phase == ChunkScheduler.GenerationPhase.PHASE_FULL:
 			subterranean_coordinator.mark_subterranean_ready(coord)
-		elif chunk_node.has_cave_mouth:
+		elif chunk_node.has_cave_mouth and caves_enabled:
 			scheduler.schedule_subterranean_chunk(coord, bounds, generator, mesher, material_registry, s_data, true)
 			subterranean_coordinator.mark_subterranean_queued(coord)
 
@@ -198,18 +217,19 @@ func _update_streaming() -> void:
 
 	for coord in to_load:
 		if not scheduler.is_chunk_in_flight(coord):
-			if is_player_subterranean:
+			if is_player_subterranean and caves_enabled:
 				scheduler.schedule_chunk(coord, bounds, generator, mesher, material_registry)
 			else:
 				scheduler.schedule_surface_chunk(coord, bounds, generator, mesher, material_registry)
 
 	# 2. Demand-driven subterranean promotion for surface-only chunks
-	var to_promote = subterranean_coordinator.get_chunks_to_promote(focus_pos, focus_chunk, surf_h, _mouth_cache)
-	for p_coord in to_promote:
-		if not scheduler.is_phase_in_flight(p_coord, ChunkScheduler.GenerationPhase.PHASE_SUBTERRANEAN):
-			var cached_surf = subterranean_coordinator.get_cached_surface_data(p_coord)
-			scheduler.schedule_subterranean_chunk(p_coord, bounds, generator, mesher, material_registry, cached_surf)
-			subterranean_coordinator.mark_subterranean_queued(p_coord)
+	if caves_enabled:
+		var to_promote = subterranean_coordinator.get_chunks_to_promote(focus_pos, focus_chunk, surf_h, _mouth_cache)
+		for p_coord in to_promote:
+			if not scheduler.is_phase_in_flight(p_coord, ChunkScheduler.GenerationPhase.PHASE_SUBTERRANEAN):
+				var cached_surf = subterranean_coordinator.get_cached_surface_data(p_coord)
+				scheduler.schedule_subterranean_chunk(p_coord, bounds, generator, mesher, material_registry, cached_surf)
+				subterranean_coordinator.mark_subterranean_queued(p_coord)
 
 	# 3. Unload chunks out of range
 	var to_unload = streamer.get_chunks_to_unload(
@@ -231,6 +251,12 @@ func _update_streaming() -> void:
 			chunk_unloaded.emit(coord)
 
 func _update_layer_visibility(force: bool = false) -> void:
+	if not caves_enabled:
+		for node in _loaded_chunks.values():
+			if node is ChunkNode and node.is_subterranean_visible():
+				node.set_subterranean_visible(false)
+		return
+
 	var focus_pos = _get_focus_position()
 	var focus_chunk = bounds.world_to_chunk(focus_pos)
 	var surf_h = get_height_at(focus_pos.x, focus_pos.z)

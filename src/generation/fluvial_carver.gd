@@ -53,6 +53,8 @@ func sample_fluvial(wx: float, wz: float, base_elevation: float, continentalness
 			"water_elevation": config.sea_level,
 			"is_water": base_elevation < float(config.sea_level),
 			"is_river": false,
+			"is_wide_river": false,
+			"is_small_river": false,
 			"is_lake": false
 		}
 
@@ -121,6 +123,8 @@ func sample_fluvial(wx: float, wz: float, base_elevation: float, continentalness
 			"water_elevation": config.sea_level,
 			"is_water": base_elevation < float(config.sea_level),
 			"is_river": false,
+			"is_wide_river": false,
+			"is_small_river": false,
 			"is_lake": false
 		}
 
@@ -132,6 +136,8 @@ func sample_fluvial(wx: float, wz: float, base_elevation: float, continentalness
 		"water_elevation": int(round(water_elevation_f)),
 		"is_water": is_water,
 		"is_river": is_wide_river or is_small_river,
+		"is_wide_river": is_wide_river,
+		"is_small_river": is_small_river,
 		"is_lake": is_lake
 	}
 

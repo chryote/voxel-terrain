@@ -152,6 +152,8 @@ func sample_world(wx: float, wz: float, bounds: WorldBounds) -> Dictionary:
 		"is_highland": m_data.is_highland,
 		"is_mountain": m_data.is_mountain,
 		"is_river": f_data.is_river,
+		"is_wide_river": f_data.is_wide_river,
+		"is_small_river": f_data.is_small_river,
 		"is_lake": f_data.is_lake,
 		"is_water": f_data.is_water
 	}

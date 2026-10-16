@@ -79,16 +79,32 @@ func _ensure_nodes_exist() -> void:
 
 		add_child(static_body)
 
+var _cached_prebaked_cave_shape: ConcavePolygonShape3D = null
+
 func setup(
 	p_coord: ChunkCoord,
 	origin: Vector3,
 	mesh_data: MeshData,
-	enable_collision: bool
+	enable_collision: bool,
+	prebaked_surface_shape: ConcavePolygonShape3D = null,
+	prebaked_cave_shape: ConcavePolygonShape3D = null
 ) -> void:
 	coord = p_coord
 	position = origin
 	has_cave_mouth = mesh_data.has_cave_mouth if (mesh_data is DualMeshBundle) else false
 	_ensure_nodes_exist()
+
+	# Assign pre-baked surface shape immediately
+	if prebaked_surface_shape != null:
+		collision_shape.shape = prebaked_surface_shape
+	elif mesh_data is DualMeshBundle and mesh_data.surface_shape != null:
+		collision_shape.shape = mesh_data.surface_shape
+
+	# Cache cave shape; defer binding to PhysicsServer until cave layer is activated
+	if prebaked_cave_shape != null:
+		_cached_prebaked_cave_shape = prebaked_cave_shape
+	elif mesh_data is DualMeshBundle and mesh_data.cave_shape != null:
+		_cached_prebaked_cave_shape = mesh_data.cave_shape
 
 	# 1. Surface Mesh Setup
 	var array_mesh = mesh_data.create_array_mesh() if mesh_data != null else null
@@ -134,8 +150,11 @@ func set_subterranean_visible(visible: bool) -> void:
 		cave_mesh_instance.visible = visible
 	if cave_water_instance != null:
 		cave_water_instance.visible = visible
-	if cave_collision_shape != null and not collision_shape.disabled:
-		cave_collision_shape.disabled = not visible
+	if cave_collision_shape != null:
+		if visible and cave_collision_shape.shape == null and _cached_prebaked_cave_shape != null:
+			cave_collision_shape.shape = _cached_prebaked_cave_shape
+		if not collision_shape.disabled:
+			cave_collision_shape.disabled = not visible
 
 func is_subterranean_visible() -> bool:
 	return cave_mesh_instance != null and cave_mesh_instance.visible
@@ -160,18 +179,25 @@ func set_collision_enabled(enable: bool) -> void:
 		else:
 			collision_shape.disabled = true
 
-		# Cave collision shape (created on demand when collision is enabled and cave mesh exists)
+		# Cave collision shape (bound only if subterranean collision is active)
 		if cave_collision_shape != null and cave_mesh_instance != null and cave_mesh_instance.mesh != null:
-			if cave_collision_shape.shape == null and cave_mesh_instance.mesh.get_surface_count() > 0:
-				var c_shape = cave_mesh_instance.mesh.create_trimesh_shape()
-				if c_shape != null:
-					c_shape.backface_collision = true
-				cave_collision_shape.shape = c_shape
-			cave_collision_shape.disabled = not is_subterranean_visible()
+			if is_subterranean_visible():
+				if cave_collision_shape.shape == null:
+					if _cached_prebaked_cave_shape != null:
+						cave_collision_shape.shape = _cached_prebaked_cave_shape
+					elif cave_mesh_instance.mesh.get_surface_count() > 0:
+						var c_shape = cave_mesh_instance.mesh.create_trimesh_shape()
+						if c_shape != null:
+							c_shape.backface_collision = true
+						cave_collision_shape.shape = c_shape
+				cave_collision_shape.disabled = false
+			else:
+				cave_collision_shape.disabled = true
 	else:
 		collision_shape.disabled = true
 		if cave_collision_shape != null:
 			cave_collision_shape.disabled = true
+
 
 func is_collision_enabled() -> bool:
 	return collision_shape != null and not collision_shape.disabled and collision_shape.shape != null

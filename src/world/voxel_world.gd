@@ -124,7 +124,9 @@ func _load_chunk_sync(coord: ChunkCoord) -> void:
 	_loaded_chunks[key] = chunk_node
 
 	var origin = bounds.chunk_origin(coord)
-	chunk_node.setup(coord, origin, mesh_data, true)
+	var baker = OffThreadCollisionBaker.new()
+	var shapes = baker.bake_shapes_for_bundle(mesh_data)
+	chunk_node.setup(coord, origin, mesh_data, true, shapes.surface_shape, shapes.cave_shape)
 	_mouth_cache[key] = chunk_node.has_cave_mouth
 	chunk_loaded.emit(coord)
 
@@ -151,7 +153,9 @@ func _process_completed_chunks() -> void:
 			_loaded_chunks[key] = chunk_node
 
 		var origin = bounds.chunk_origin(coord)
-		chunk_node.setup(coord, origin, mesh_data, enable_collision)
+		var surf_shape = item.get("surface_shape", null)
+		var cave_shape = item.get("cave_shape", null)
+		chunk_node.setup(coord, origin, mesh_data, enable_collision, surf_shape, cave_shape)
 		_mouth_cache[key] = chunk_node.has_cave_mouth
 		chunk_loaded.emit(coord)
 

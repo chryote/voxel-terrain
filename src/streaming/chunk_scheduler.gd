@@ -60,13 +60,21 @@ func _process_chunk_task(payload: Dictionary) -> void:
 	var chunk_data = generator.generate(coord, bounds)
 	var mesh_data = mesher.build_mesh(chunk_data, registry)
 
+	var collision_baker = OffThreadCollisionBaker.new()
+	var shapes = collision_baker.bake_shapes_for_bundle(mesh_data)
+	if mesh_data is DualMeshBundle:
+		mesh_data.surface_shape = shapes.surface_shape
+		mesh_data.cave_shape = shapes.cave_shape
+
 	var key = coord.to_key()
 	_mutex.lock()
 	if not _canceled_keys.has(key):
 		_completed_results.append({
 			"coord": coord,
 			"data": chunk_data,
-			"mesh_data": mesh_data
+			"mesh_data": mesh_data,
+			"surface_shape": shapes.surface_shape,
+			"cave_shape": shapes.cave_shape
 		})
 	_active_tasks.erase(key)
 	_canceled_keys.erase(key)

@@ -7,6 +7,8 @@ extends MeshData
 
 var cave_mesh_data: MeshData = null
 var has_cave_mouth: bool = false
+var surface_shape: ConcavePolygonShape3D = null
+var cave_shape: ConcavePolygonShape3D = null
 
 var surface_mesh_data: MeshData:
 	get:

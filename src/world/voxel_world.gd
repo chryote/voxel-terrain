@@ -9,6 +9,7 @@ signal initial_area_ready()
 
 @export var world_config: WorldConfig
 @export var generator_config: ContinentGeneratorConfig
+@export var cave_config: CaveGeneratorConfig
 @export var material_registry: MaterialRegistry
 @export var focus_target: Node3D
 
@@ -35,14 +36,18 @@ func _ready() -> void:
 		world_config = WorldConfig.new()
 	if generator_config == null:
 		generator_config = ContinentGeneratorConfig.new()
+	if cave_config == null:
+		cave_config = CaveGeneratorConfig.new()
 	if material_registry == null:
 		material_registry = MaterialRegistry.create_default_registry()
 
 	bounds = world_config.create_world_bounds()
-	generator = ContinentGenerator.new(world_config.world_seed, generator_config)
-	var shell_mesher = SurfaceShellMesher.new()
-	shell_mesher.sea_level = world_config.sea_level
-	mesher = shell_mesher
+	if generator == null:
+		generator = VolumetricTerrainGenerator.new(world_config.world_seed, generator_config, cave_config)
+	if mesher == null:
+		var voxel_mesher = VoxelMesher.new()
+		voxel_mesher.sea_level = world_config.sea_level
+		mesher = voxel_mesher
 	streamer = ChunkStreamer.new()
 	scheduler = ChunkScheduler.new()
 
@@ -81,6 +86,11 @@ func _process(_delta: float) -> void:
 	_update_streaming()
 	_update_chunk_collisions()
 
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		if scheduler != null:
+			scheduler.clear()
 
 func _exit_tree() -> void:
 	if scheduler != null:

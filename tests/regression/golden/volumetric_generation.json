@@ -1,0 +1,12 @@
+{
+  "chunk_0_0": {
+    "center_highest_solid_y": 20,
+    "corner_highest_solid_y": 50,
+    "voxels_hash": "e60f2e22ae5b43a28e5bafa0b683fcb7"
+  },
+  "chunk_4_4": {
+    "center_highest_solid_y": 30,
+    "corner_highest_solid_y": 31,
+    "voxels_hash": "0ead9daf426eced8c9975beb8573f8f6"
+  }
+}

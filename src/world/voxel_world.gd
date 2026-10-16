@@ -11,6 +11,7 @@ signal initial_area_ready()
 @export var generator_config: ContinentGeneratorConfig
 @export var material_registry: MaterialRegistry
 @export var focus_target: Node3D
+@export var use_3d_terrain: bool = true
 
 var bounds: WorldBounds
 var generator: TerrainGenerator
@@ -30,14 +31,27 @@ var _last_collision_chunk: ChunkCoord = null
 func _ready() -> void:
 	if world_config == null:
 		world_config = WorldConfig.new()
-	if generator_config == null:
-		generator_config = ContinentGeneratorConfig.new()
 	if material_registry == null:
 		material_registry = MaterialRegistry.create_default_registry()
 
 	bounds = world_config.create_world_bounds()
-	generator = ContinentGenerator.new(world_config.world_seed, generator_config)
-	mesher = SurfaceShellMesher.new()
+
+	if use_3d_terrain:
+		var vol_config = generator_config as VolumetricGeneratorConfig
+		if vol_config == null:
+			vol_config = VolumetricGeneratorConfig.new()
+			if generator_config != null:
+				vol_config.sea_level = generator_config.sea_level
+				vol_config.seabed_level = generator_config.seabed_level
+		generator_config = vol_config
+		generator = VolumetricContinentGenerator.new(world_config.world_seed, vol_config)
+		mesher = VoxelMesher3D.new()
+	else:
+		if generator_config == null:
+			generator_config = ContinentGeneratorConfig.new()
+		generator = ContinentGenerator.new(world_config.world_seed, generator_config)
+		mesher = SurfaceShellMesher.new()
+
 	streamer = ChunkStreamer.new()
 	scheduler = ChunkScheduler.new()
 
@@ -59,7 +73,10 @@ func _ready() -> void:
 	var spawn_pos = get_spawn_point()
 	var spawn_chunk = bounds.world_to_chunk(spawn_pos)
 	if is_instance_valid(focus_target):
-		focus_target.global_position = spawn_pos
+		if focus_target.is_inside_tree():
+			focus_target.global_position = spawn_pos
+		else:
+			focus_target.position = spawn_pos
 
 	for dz in range(-1, 2):
 		for dx in range(-1, 2):

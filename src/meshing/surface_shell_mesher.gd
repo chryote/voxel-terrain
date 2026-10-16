@@ -4,7 +4,8 @@ extends Mesher
 ## Blocky voxel mesher optimized for surface shells with 2D greedy top-face merging
 ## and exposed vertical cliff wall generation.
 
-func build_mesh(data: SurfaceChunkData, registry: MaterialRegistry) -> MeshData:
+func build_mesh(p_data: RefCounted, registry: MaterialRegistry) -> MeshData:
+	var data = p_data as SurfaceChunkData
 	var mesh = MeshData.new()
 	var n = data.chunk_size
 

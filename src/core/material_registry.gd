@@ -45,4 +45,7 @@ static func create_default_registry() -> MaterialRegistry:
 	reg.register_material(MaterialDef.new(MaterialDef.ID_SNOW, "snow", Color("#f0f4f8"), Color("#d8e2ec")))
 	reg.register_material(MaterialDef.new(MaterialDef.ID_SEABED, "seabed", Color("#3b4e43"), Color("#2e3d34")))
 	reg.register_material(MaterialDef.new(MaterialDef.ID_GRAVEL, "gravel", Color("#5a574f"), Color("#4b4841")))
+	reg.register_material(MaterialDef.new(MaterialDef.ID_CAVE_WALL, "cave_wall", Color("#504e4c"), Color("#42403e")))
+	reg.register_material(MaterialDef.new(MaterialDef.ID_CHASM_BASALT, "chasm_basalt", Color("#26282a"), Color("#1e2022")))
+	reg.register_material(MaterialDef.new(MaterialDef.ID_CAVE_CRYSTAL, "cave_crystal", Color("#42c8d2"), Color("#2ca5af")))
 	return reg

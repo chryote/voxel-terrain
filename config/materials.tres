@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="MaterialRegistry" load_steps=10 format=3]
+[gd_resource type="Resource" script_class="MaterialRegistry" load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://src/core/material_def.gd" id="1_mat"]
 [ext_resource type="Script" path="res://src/core/material_registry.gd" id="2_reg"]
@@ -59,6 +59,27 @@ name = "gravel"
 top_color = Color(0.353, 0.341, 0.310, 1.0)
 side_color = Color(0.294, 0.282, 0.255, 1.0)
 
+[sub_resource type="Resource" id="mat_cave_wall"]
+script = ExtResource("1_mat")
+id = 8
+name = "cave_wall"
+top_color = Color(0.314, 0.306, 0.298, 1.0)
+side_color = Color(0.259, 0.251, 0.243, 1.0)
+
+[sub_resource type="Resource" id="mat_chasm_basalt"]
+script = ExtResource("1_mat")
+id = 9
+name = "chasm_basalt"
+top_color = Color(0.149, 0.157, 0.165, 1.0)
+side_color = Color(0.118, 0.125, 0.133, 1.0)
+
+[sub_resource type="Resource" id="mat_cave_crystal"]
+script = ExtResource("1_mat")
+id = 10
+name = "cave_crystal"
+top_color = Color(0.259, 0.784, 0.824, 1.0)
+side_color = Color(0.173, 0.647, 0.686, 1.0)
+
 [resource]
 script = ExtResource("2_reg")
-materials = [SubResource("mat_air"), SubResource("mat_grass"), SubResource("mat_dirt"), SubResource("mat_stone"), SubResource("mat_sand"), SubResource("mat_snow"), SubResource("mat_seabed"), SubResource("mat_gravel")]
+materials = [SubResource("mat_air"), SubResource("mat_grass"), SubResource("mat_dirt"), SubResource("mat_stone"), SubResource("mat_sand"), SubResource("mat_snow"), SubResource("mat_seabed"), SubResource("mat_gravel"), SubResource("mat_cave_wall"), SubResource("mat_chasm_basalt"), SubResource("mat_cave_crystal")]

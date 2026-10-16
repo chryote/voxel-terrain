@@ -37,11 +37,12 @@ func get_side_color(id: int) -> Color:
 
 static func create_default_registry() -> MaterialRegistry:
 	var reg = MaterialRegistry.new()
-	reg.register_material(MaterialDef.new(0, "air", Color(0, 0, 0, 0), Color(0, 0, 0, 0)))
-	reg.register_material(MaterialDef.new(1, "grass", Color("#567d46"), Color("#6b4f38")))
-	reg.register_material(MaterialDef.new(2, "dirt", Color("#6b4f38"), Color("#593e2b")))
-	reg.register_material(MaterialDef.new(3, "stone", Color("#787878"), Color("#646464")))
-	reg.register_material(MaterialDef.new(4, "sand", Color("#d7c58d"), Color("#c4b179")))
-	reg.register_material(MaterialDef.new(5, "snow", Color("#f0f4f8"), Color("#d8e2ec")))
-	reg.register_material(MaterialDef.new(6, "seabed", Color("#3b4e43"), Color("#2e3d34")))
+	reg.register_material(MaterialDef.new(MaterialDef.ID_AIR, "air", Color(0, 0, 0, 0), Color(0, 0, 0, 0)))
+	reg.register_material(MaterialDef.new(MaterialDef.ID_GRASS, "grass", Color("#567d46"), Color("#6b4f38")))
+	reg.register_material(MaterialDef.new(MaterialDef.ID_DIRT, "dirt", Color("#6b4f38"), Color("#593e2b")))
+	reg.register_material(MaterialDef.new(MaterialDef.ID_STONE, "stone", Color("#787878"), Color("#646464")))
+	reg.register_material(MaterialDef.new(MaterialDef.ID_SAND, "sand", Color("#d7c58d"), Color("#c4b179")))
+	reg.register_material(MaterialDef.new(MaterialDef.ID_SNOW, "snow", Color("#f0f4f8"), Color("#d8e2ec")))
+	reg.register_material(MaterialDef.new(MaterialDef.ID_SEABED, "seabed", Color("#3b4e43"), Color("#2e3d34")))
+	reg.register_material(MaterialDef.new(MaterialDef.ID_GRAVEL, "gravel", Color("#5a574f"), Color("#4b4841")))
 	return reg

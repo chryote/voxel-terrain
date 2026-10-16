@@ -10,6 +10,7 @@ var shell_depth: int = 3
 var heights: PackedInt32Array
 var top_material: PackedByteArray
 var side_material: PackedByteArray
+var water_heights: PackedInt32Array
 
 func _init(p_chunk_size: int = 32, p_shell_depth: int = 3) -> void:
 	chunk_size = p_chunk_size
@@ -23,6 +24,8 @@ func _init(p_chunk_size: int = 32, p_shell_depth: int = 3) -> void:
 	top_material.fill(0)
 	side_material.resize(total_columns)
 	side_material.fill(0)
+	water_heights.resize(total_columns)
+	water_heights.fill(0)
 
 func _to_index(lx: int, lz: int) -> int:
 	return (lx + 1) + (lz + 1) * apron_size
@@ -42,6 +45,21 @@ func set_height(lx: int, lz: int, h: int) -> void:
 	if is_in_apron(lx, lz):
 		heights[_to_index(lx, lz)] = h
 
+func get_water_height(lx: int, lz: int) -> int:
+	if not is_in_apron(lx, lz):
+		return 0
+	return water_heights[_to_index(lx, lz)]
+
+func set_water_height(lx: int, lz: int, h: int) -> void:
+	if is_in_apron(lx, lz):
+		water_heights[_to_index(lx, lz)] = h
+
+func has_water(lx: int, lz: int) -> bool:
+	if not is_in_apron(lx, lz):
+		return false
+	var idx = _to_index(lx, lz)
+	return water_heights[idx] > heights[idx]
+
 func get_top_material(lx: int, lz: int) -> int:
 	if not is_in_apron(lx, lz):
 		return 0
@@ -60,7 +78,8 @@ func set_side_material(lx: int, lz: int, mat: int) -> void:
 	if is_in_apron(lx, lz):
 		side_material[_to_index(lx, lz)] = mat
 
-func fill(h: int, top_mat: int, side_mat: int) -> void:
+func fill(h: int, top_mat: int, side_mat: int, water_h: int = 0) -> void:
 	heights.fill(h)
 	top_material.fill(top_mat)
 	side_material.fill(side_mat)
+	water_heights.fill(water_h)

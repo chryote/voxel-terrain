@@ -8,6 +8,7 @@ var vertices: PackedVector3Array
 var normals: PackedVector3Array
 var colors: PackedColorArray
 var indices: PackedInt32Array
+var water_mesh_data: MeshData = null
 
 func is_empty() -> bool:
 	return vertices.is_empty() or indices.is_empty()

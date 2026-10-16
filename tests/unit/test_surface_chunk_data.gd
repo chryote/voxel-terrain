@@ -40,9 +40,33 @@ func test_height_and_material_access() -> void:
 
 func test_fill() -> void:
 	var data = SurfaceChunkData.new(4, 2)
-	data.fill(20, 1, 2)
+	data.fill(20, 1, 2, 25)
 	for lz in range(-1, 5):
 		for lx in range(-1, 5):
 			assert_eq(data.get_height(lx, lz), 20)
 			assert_eq(data.get_top_material(lx, lz), 1)
 			assert_eq(data.get_side_material(lx, lz), 2)
+			assert_eq(data.get_water_height(lx, lz), 25)
+			assert_true(data.has_water(lx, lz))
+
+func test_water_height_access() -> void:
+	var data = SurfaceChunkData.new(8, 2)
+	assert_false(data.has_water(0, 0))
+	assert_eq(data.get_water_height(0, 0), 0)
+
+	data.set_height(2, 2, 30)
+	data.set_water_height(2, 2, 35)
+	assert_true(data.has_water(2, 2))
+	assert_eq(data.get_water_height(2, 2), 35)
+
+	# When water height <= terrain height, has_water should be false
+	data.set_water_height(2, 2, 30)
+	assert_false(data.has_water(2, 2))
+
+	# Apron access
+	data.set_water_height(-1, 2, 40)
+	assert_eq(data.get_water_height(-1, 2), 40)
+
+	# Out of apron returns safe 0
+	assert_eq(data.get_water_height(-5, 2), 0)
+	assert_false(data.has_water(-5, 2))

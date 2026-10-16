@@ -1,63 +1,104 @@
 class_name ContinentGenerator
 extends TerrainGenerator
 
-## Procedural continent generator with mask falloff, fractal hills, and ridged mountains.
+## Procedural continent generator with realistic multi-noise topography:
+## Coasts, Lowlands, Rolling Hills, Highlands, Mountains, Wide Rivers,
+## Small Winding Rivers, Lakes, and Climate Moisture Simulation.
+##
+## Built with decoupled components:
+## - ContinentMask (boundary falloff)
+## - MacroTopography (macro continentalness, erosion, relief, plateaus, mountains)
+## - FluvialCarver (wide rivers, small winding streams, lake basins)
+## - ClimateModel (climatic moisture and humidity simulation)
+## - TerrainMaterialClassifier (slope, altitude, water table, and moisture classification)
+
+const MacroTopography = preload("res://src/generation/macro_topography.gd")
+const FluvialCarver = preload("res://src/generation/fluvial_carver.gd")
+const ClimateModel = preload("res://src/generation/climate_model.gd")
+const TerrainMaterialClassifier = preload("res://src/generation/terrain_material_classifier.gd")
 
 var config: ContinentGeneratorConfig
 var mask: ContinentMask
-var base_noise: FastNoiseLite
-var mountain_noise: FastNoiseLite
+var macro: MacroTopography
+var fluvial: FluvialCarver
+var climate: ClimateModel
+var classifier: TerrainMaterialClassifier
 
-# Material IDs
-const MAT_AIR: int = 0
-const MAT_GRASS: int = 1
-const MAT_DIRT: int = 2
-const MAT_STONE: int = 3
-const MAT_SAND: int = 4
-const MAT_SNOW: int = 5
-const MAT_SEABED: int = 6
+# Strongly-typed material IDs mapped from MaterialDef
+const MAT_AIR: int = MaterialDef.ID_AIR
+const MAT_GRASS: int = MaterialDef.ID_GRASS
+const MAT_DIRT: int = MaterialDef.ID_DIRT
+const MAT_STONE: int = MaterialDef.ID_STONE
+const MAT_SAND: int = MaterialDef.ID_SAND
+const MAT_SNOW: int = MaterialDef.ID_SNOW
+const MAT_SEABED: int = MaterialDef.ID_SEABED
+const MAT_GRAVEL: int = MaterialDef.ID_GRAVEL
 
 func _init(seed_val: int = 1337, p_config: ContinentGeneratorConfig = null) -> void:
 	config = p_config if p_config != null else ContinentGeneratorConfig.new()
 	mask = ContinentMask.new(seed_val, config)
-
-	base_noise = FastNoiseLite.new()
-	base_noise.seed = seed_val
-	base_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
-	base_noise.frequency = config.base_noise_frequency
-	base_noise.fractal_type = FastNoiseLite.FRACTAL_FBM
-	base_noise.fractal_octaves = config.fractal_octaves
-	base_noise.fractal_lacunarity = config.fractal_lacunarity
-	base_noise.fractal_gain = config.fractal_gain
-
-	mountain_noise = FastNoiseLite.new()
-	mountain_noise.seed = seed_val + 777
-	mountain_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
-	mountain_noise.frequency = config.mountain_frequency
-	mountain_noise.fractal_type = FastNoiseLite.FRACTAL_RIDGED
-	mountain_noise.fractal_octaves = 3
+	macro = MacroTopography.new(seed_val, config, mask)
+	fluvial = FluvialCarver.new(seed_val, config)
+	climate = ClimateModel.new(seed_val, config)
+	classifier = TerrainMaterialClassifier.new(config)
 
 func generate(coord: ChunkCoord, bounds: WorldBounds) -> SurfaceChunkData:
 	var c_size = bounds.chunk_size
 	var data = SurfaceChunkData.new(c_size)
+	var apron_w = c_size + 2
+	var total_columns = apron_w * apron_w
 
-	# Pass 1: compute heights across chunk and 1-column apron
+	# Fluvial flags: bit 0 = is_river, bit 1 = is_lake
+	var fluvial_flags = PackedByteArray()
+	fluvial_flags.resize(total_columns)
+	fluvial_flags.fill(0)
+
+	# Cached moisture samples for column material classification
+	var moisture_samples = PackedFloat32Array()
+	moisture_samples.resize(total_columns)
+	moisture_samples.fill(0.5)
+
+	# -------------------------------------------------------------------------
+	# Pass 1: Calculate raw elevation, water table, moisture, and fluvial channels
+	# -------------------------------------------------------------------------
 	for lz in range(-1, c_size + 1):
 		var gz = coord.z * c_size + lz
 		for lx in range(-1, c_size + 1):
 			var gx = coord.x * c_size + lx
+			var col_idx = (lx + 1) + (lz + 1) * apron_w
+
 			if not bounds.contains_column(gx, gz):
 				data.set_height(lx, lz, config.seabed_level)
+				data.set_water_height(lx, lz, config.sea_level)
 				data.set_top_material(lx, lz, MAT_SEABED)
 				data.set_side_material(lx, lz, MAT_SEABED)
 			else:
-				var h = _calculate_height(gx, gz, bounds)
-				data.set_height(lx, lz, h)
+				var wx = (float(gx) + 0.5) * bounds.voxel_size
+				var wz = (float(gz) + 0.5) * bounds.voxel_size
 
-	# Pass 2: compute materials based on height and local slope
+				var m_v2 = macro.sample_macro_v2(wx, wz, bounds)
+				var f_v3 = fluvial.sample_fluvial_v3(wx, wz, m_v2.x, m_v2.y)
+				var moist = climate.sample_moisture(wx, wz)
+
+				var final_h = clampi(int(round(m_v2.x - f_v3.x)), config.seabed_level, 255)
+				data.set_height(lx, lz, final_h)
+				data.set_water_height(lx, lz, int(f_v3.y))
+				fluvial_flags[col_idx] = int(f_v3.z)
+				moisture_samples[col_idx] = moist
+
+	# -------------------------------------------------------------------------
+	# Pass 2: Calculate local 4-directional slope and classify materials
+	# -------------------------------------------------------------------------
 	for lz in range(-1, c_size + 1):
 		for lx in range(-1, c_size + 1):
+			var col_idx = (lx + 1) + (lz + 1) * apron_w
 			var h = data.get_height(lx, lz)
+			var water_h = data.get_water_height(lx, lz)
+			var flags = fluvial_flags[col_idx]
+			var is_river = (flags & 1) != 0
+			var is_lake = (flags & 2) != 0
+			var moist = moisture_samples[col_idx]
+
 			var slope = 0
 			if lx > -1 and lx < c_size and lz > -1 and lz < c_size:
 				var h_l = data.get_height(lx - 1, lz)
@@ -66,50 +107,69 @@ func generate(coord: ChunkCoord, bounds: WorldBounds) -> SurfaceChunkData:
 				var h_u = data.get_height(lx, lz + 1)
 				slope = maxi(maxi(absi(h - h_l), absi(h - h_r)), maxi(absi(h - h_d), absi(h - h_u)))
 
-			var mats = _determine_materials(h, slope)
-			data.set_top_material(lx, lz, mats.top)
-			data.set_side_material(lx, lz, mats.side)
+			var mats_v2i = classifier.classify_v2i(h, slope, water_h, is_river, is_lake, moist)
+			data.set_top_material(lx, lz, mats_v2i.x)
+			data.set_side_material(lx, lz, mats_v2i.y)
 
 	return data
 
 func height_at(col: Vector2i, bounds: WorldBounds) -> int:
 	if not bounds.contains_column(col.x, col.y):
 		return config.seabed_level
-	return _calculate_height(col.x, col.y, bounds)
 
-func _calculate_height(gx: int, gz: int, bounds: WorldBounds) -> int:
-	var wx = (float(gx) + 0.5) * bounds.voxel_size
-	var wz = (float(gz) + 0.5) * bounds.voxel_size
+	var wx = (float(col.x) + 0.5) * bounds.voxel_size
+	var wz = (float(col.y) + 0.5) * bounds.voxel_size
 
-	var land_factor = mask.get_factor_world(wx, wz, bounds)
-	if land_factor <= 0.001:
-		return config.seabed_level
+	var m_v2 = macro.sample_macro_v2(wx, wz, bounds)
+	var f_v3 = fluvial.sample_fluvial_v3(wx, wz, m_v2.x, m_v2.y)
 
-	var b_noise = (base_noise.get_noise_2d(wx, wz) + 1.0) * 0.5 # 0..1
-	var elevation = config.base_elevation + b_noise * config.base_noise_amplitude
+	return clampi(int(round(m_v2.x - f_v3.x)), config.seabed_level, 255)
 
-	# Mountain ridge layer
-	var m_sample = mountain_noise.get_noise_2d(wx, wz) # -1..1
-	if m_sample > config.mountain_threshold:
-		var m_factor = (m_sample - config.mountain_threshold) / (1.0 - config.mountain_threshold)
-		elevation += m_factor * config.mountain_amplitude
+func water_height_at(col: Vector2i, bounds: WorldBounds) -> int:
+	if not bounds.contains_column(col.x, col.y):
+		return config.sea_level
 
-	var final_h = float(config.seabed_level) + land_factor * (elevation - float(config.seabed_level))
-	return clampi(int(round(final_h)), config.seabed_level, 255)
+	var wx = (float(col.x) + 0.5) * bounds.voxel_size
+	var wz = (float(col.y) + 0.5) * bounds.voxel_size
 
-func _determine_materials(h: int, slope: int) -> Dictionary:
-	if h < config.sea_level:
-		return {"top": MAT_SEABED, "side": MAT_SEABED}
-	elif h <= config.sea_level + config.sand_height_offset:
-		return {"top": MAT_SAND, "side": MAT_SAND}
-	elif h >= config.snow_height:
-		return {"top": MAT_SNOW, "side": MAT_STONE}
-	elif h >= config.stone_height:
-		return {"top": MAT_STONE, "side": MAT_STONE}
-	else:
-		if slope >= 3:
-			return {"top": MAT_STONE, "side": MAT_STONE}
-		elif slope == 2:
-			return {"top": MAT_DIRT, "side": MAT_DIRT}
-		else:
-			return {"top": MAT_GRASS, "side": MAT_DIRT}
+	var m_v2 = macro.sample_macro_v2(wx, wz, bounds)
+	var f_v3 = fluvial.sample_fluvial_v3(wx, wz, m_v2.x, m_v2.y)
+
+	return int(round(f_v3.y))
+
+func is_water_at(col: Vector2i, bounds: WorldBounds) -> bool:
+	if not bounds.contains_column(col.x, col.y):
+		return true
+
+	var wx = (float(col.x) + 0.5) * bounds.voxel_size
+	var wz = (float(col.y) + 0.5) * bounds.voxel_size
+
+	var m_v2 = macro.sample_macro_v2(wx, wz, bounds)
+	var f_v3 = fluvial.sample_fluvial_v3(wx, wz, m_v2.x, m_v2.y)
+
+	var h = m_v2.x - f_v3.x
+	return h < f_v3.y
+
+func sample_world(wx: float, wz: float, bounds: WorldBounds) -> Dictionary:
+	var m_data = macro.sample_macro(wx, wz, bounds)
+	var f_data = fluvial.sample_fluvial(wx, wz, m_data.elevation, m_data.continentalness)
+	var moist = climate.sample_moisture(wx, wz)
+	var final_h = clampi(int(round(m_data.elevation - f_data.carve_depth)), config.seabed_level, 255)
+
+	return {
+		"height": final_h,
+		"water_height": f_data.water_elevation,
+		"carve_depth": f_data.carve_depth,
+		"continentalness": m_data.continentalness,
+		"erosion": m_data.erosion,
+		"moisture": moist,
+		"is_humid": climate.is_humid(moist),
+		"is_arid": climate.is_arid(moist),
+		"is_highland": m_data.is_highland,
+		"is_mountain": m_data.is_mountain,
+		"is_river": f_data.is_river,
+		"is_wide_river": f_data.is_wide_river,
+		"is_small_river": f_data.is_small_river,
+		"is_lake": f_data.is_lake,
+		"is_water": f_data.is_water
+	}

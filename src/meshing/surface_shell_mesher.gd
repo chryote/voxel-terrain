@@ -1,8 +1,10 @@
 class_name SurfaceShellMesher
 extends Mesher
 
-## Blocky voxel mesher optimized for surface shells with 2D greedy top-face merging
-## and exposed vertical cliff wall generation.
+const WaterSurfaceMesher = preload("res://src/meshing/water_surface_mesher.gd")
+
+var sea_level: int = 24
+var _water_mesher: WaterSurfaceMesher = WaterSurfaceMesher.new()
 
 func build_mesh(data: SurfaceChunkData, registry: MaterialRegistry) -> MeshData:
 	var mesh = MeshData.new()
@@ -189,5 +191,6 @@ func build_mesh(data: SurfaceChunkData, registry: MaterialRegistry) -> MeshData:
 	mesh.normals = norms
 	mesh.colors = cols
 	mesh.indices = inds
+	mesh.water_mesh_data = _water_mesher.build_water_mesh(data, sea_level)
 
 	return mesh

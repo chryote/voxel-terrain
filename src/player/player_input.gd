@@ -5,6 +5,7 @@ extends Node
 
 @export var mouse_sensitivity: float = 0.0025
 @export var auto_capture_mouse: bool = true
+var input_enabled: bool = true
 
 var _look_delta: Vector2 = Vector2.ZERO
 var _is_mouse_captured: bool = false
@@ -25,6 +26,9 @@ func is_mouse_captured() -> bool:
 	return _is_mouse_captured
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not input_enabled:
+		return
+
 	if event is InputEventMouseButton and event.pressed:
 		if not _is_mouse_captured:
 			capture_mouse()
@@ -34,6 +38,11 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func get_intent() -> PlayerIntent:
 	var intent = PlayerIntent.new()
+
+	intent.toggle_map_requested = Input.is_action_just_pressed("toggle_map")
+
+	if not input_enabled:
+		return intent
 
 	if Input.is_action_just_pressed("toggle_mouse"):
 		if _is_mouse_captured:

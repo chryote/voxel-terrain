@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="MaterialRegistry" load_steps=9 format=3]
+[gd_resource type="Resource" script_class="MaterialRegistry" load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://src/core/material_def.gd" id="1_mat"]
 [ext_resource type="Script" path="res://src/core/material_registry.gd" id="2_reg"]
@@ -52,6 +52,13 @@ name = "seabed"
 top_color = Color(0.231, 0.306, 0.263, 1.0)
 side_color = Color(0.180, 0.239, 0.204, 1.0)
 
+[sub_resource type="Resource" id="mat_gravel"]
+script = ExtResource("1_mat")
+id = 7
+name = "gravel"
+top_color = Color(0.353, 0.341, 0.310, 1.0)
+side_color = Color(0.294, 0.282, 0.255, 1.0)
+
 [resource]
 script = ExtResource("2_reg")
-materials = [SubResource("mat_air"), SubResource("mat_grass"), SubResource("mat_dirt"), SubResource("mat_stone"), SubResource("mat_sand"), SubResource("mat_snow"), SubResource("mat_seabed")]
+materials = [SubResource("mat_air"), SubResource("mat_grass"), SubResource("mat_dirt"), SubResource("mat_stone"), SubResource("mat_sand"), SubResource("mat_snow"), SubResource("mat_seabed"), SubResource("mat_gravel")]

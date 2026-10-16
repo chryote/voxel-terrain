@@ -65,6 +65,8 @@ func _init(seed_val: int, p_config: ContinentGeneratorConfig, p_mask: ContinentM
 	mountain_noise.frequency = config.mountain_frequency
 	mountain_noise.fractal_type = FastNoiseLite.FRACTAL_RIDGED
 	mountain_noise.fractal_octaves = config.mountain_octaves
+	mountain_noise.fractal_gain = config.mountain_fractal_gain
+	mountain_noise.fractal_lacunarity = config.mountain_lacunarity
 
 func sample_macro(wx: float, wz: float, bounds: WorldBounds) -> Dictionary:
 	var land_factor = mask.get_factor_world(wx, wz, bounds)
@@ -121,7 +123,7 @@ func sample_macro(wx: float, wz: float, bounds: WorldBounds) -> Dictionary:
 
 	# Blend rolling hills into lowlands based on erosion
 	var base_relief = lerpf(h_hills, h_low, erosion)
-	var total_land_h = base_relief + h_highland + h_mountain
+	var total_land_h = base_relief + h_highland + h_mountain + config.inland_elevation_bias
 
 	# Smooth coastal transition: slopes from seabed up through beaches to land
 	var coast_t = clampf(continentalness / 0.12, 0.0, 1.0)
@@ -171,7 +173,7 @@ func sample_macro_v2(wx: float, wz: float, bounds: WorldBounds) -> Vector2:
 		h_mountain = m_ridge * mountain_weight
 
 	var base_relief = lerpf(h_hills, h_low, erosion)
-	var total_land_h = base_relief + h_highland + h_mountain
+	var total_land_h = base_relief + h_highland + h_mountain + config.inland_elevation_bias
 
 	var coast_t = clampf(continentalness / 0.12, 0.0, 1.0)
 	coast_t = coast_t * coast_t * (3.0 - 2.0 * coast_t)

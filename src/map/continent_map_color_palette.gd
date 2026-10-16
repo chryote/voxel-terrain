@@ -29,9 +29,17 @@ func get_water_color(h: int, sea_level: int) -> Color:
 		return color_shallow_ocean.lerp(color_deep_ocean, depth)
 	return color_water_body
 
-func get_land_color(h: int, slope_grade: float, water_h: int, sea_level: int, sand_offset: int, snow_height: int, stone_height: int, is_river_or_lake: bool) -> Color:
-	if h <= (sea_level + sand_offset) or (is_river_or_lake and h <= (water_h + 1)):
-		return color_beach_sand
+func get_land_color(h: int, slope_grade: float, water_h: int, sea_level: int, sand_offset: int, snow_height: int, stone_height: int, is_river_or_lake: bool, moisture: float = 0.5) -> Color:
+	var is_coastal_edge = (h <= (sea_level + sand_offset))
+	var is_inland_water_edge = (is_river_or_lake and h <= (water_h + 1))
+
+	if is_coastal_edge:
+		if moisture < 0.75:
+			return color_beach_sand
+	elif is_inland_water_edge:
+		if moisture < 0.40:
+			return color_beach_sand
+
 	if h >= snow_height:
 		return color_alpine_snow
 	if h >= stone_height:

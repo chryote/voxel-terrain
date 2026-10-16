@@ -3,22 +3,25 @@ extends TerrainGenerator
 
 ## Procedural continent generator with realistic multi-noise topography:
 ## Coasts, Lowlands, Rolling Hills, Highlands, Mountains, Wide Rivers,
-## Small Winding Rivers, and Lakes.
+## Small Winding Rivers, Lakes, and Climate Moisture Simulation.
 ##
 ## Built with decoupled components:
 ## - ContinentMask (boundary falloff)
 ## - MacroTopography (macro continentalness, erosion, relief, plateaus, mountains)
 ## - FluvialCarver (wide rivers, small winding streams, lake basins)
-## - TerrainMaterialClassifier (slope, altitude, and water table classification)
+## - ClimateModel (climatic moisture and humidity simulation)
+## - TerrainMaterialClassifier (slope, altitude, water table, and moisture classification)
 
 const MacroTopography = preload("res://src/generation/macro_topography.gd")
 const FluvialCarver = preload("res://src/generation/fluvial_carver.gd")
+const ClimateModel = preload("res://src/generation/climate_model.gd")
 const TerrainMaterialClassifier = preload("res://src/generation/terrain_material_classifier.gd")
 
 var config: ContinentGeneratorConfig
 var mask: ContinentMask
 var macro: MacroTopography
 var fluvial: FluvialCarver
+var climate: ClimateModel
 var classifier: TerrainMaterialClassifier
 
 # Strongly-typed material IDs mapped from MaterialDef
@@ -36,6 +39,7 @@ func _init(seed_val: int = 1337, p_config: ContinentGeneratorConfig = null) -> v
 	mask = ContinentMask.new(seed_val, config)
 	macro = MacroTopography.new(seed_val, config, mask)
 	fluvial = FluvialCarver.new(seed_val, config)
+	climate = ClimateModel.new(seed_val, config)
 	classifier = TerrainMaterialClassifier.new(config)
 
 func generate(coord: ChunkCoord, bounds: WorldBounds) -> SurfaceChunkData:
@@ -49,8 +53,13 @@ func generate(coord: ChunkCoord, bounds: WorldBounds) -> SurfaceChunkData:
 	fluvial_flags.resize(total_columns)
 	fluvial_flags.fill(0)
 
+	# Cached moisture samples for column material classification
+	var moisture_samples = PackedFloat32Array()
+	moisture_samples.resize(total_columns)
+	moisture_samples.fill(0.5)
+
 	# -------------------------------------------------------------------------
-	# Pass 1: Calculate raw elevation, water table, and fluvial channels
+	# Pass 1: Calculate raw elevation, water table, moisture, and fluvial channels
 	# -------------------------------------------------------------------------
 	for lz in range(-1, c_size + 1):
 		var gz = coord.z * c_size + lz
@@ -69,11 +78,13 @@ func generate(coord: ChunkCoord, bounds: WorldBounds) -> SurfaceChunkData:
 
 				var m_v2 = macro.sample_macro_v2(wx, wz, bounds)
 				var f_v3 = fluvial.sample_fluvial_v3(wx, wz, m_v2.x, m_v2.y)
+				var moist = climate.sample_moisture(wx, wz)
 
 				var final_h = clampi(int(round(m_v2.x - f_v3.x)), config.seabed_level, 255)
 				data.set_height(lx, lz, final_h)
 				data.set_water_height(lx, lz, int(f_v3.y))
 				fluvial_flags[col_idx] = int(f_v3.z)
+				moisture_samples[col_idx] = moist
 
 	# -------------------------------------------------------------------------
 	# Pass 2: Calculate local 4-directional slope and classify materials
@@ -86,6 +97,7 @@ func generate(coord: ChunkCoord, bounds: WorldBounds) -> SurfaceChunkData:
 			var flags = fluvial_flags[col_idx]
 			var is_river = (flags & 1) != 0
 			var is_lake = (flags & 2) != 0
+			var moist = moisture_samples[col_idx]
 
 			var slope = 0
 			if lx > -1 and lx < c_size and lz > -1 and lz < c_size:
@@ -95,7 +107,7 @@ func generate(coord: ChunkCoord, bounds: WorldBounds) -> SurfaceChunkData:
 				var h_u = data.get_height(lx, lz + 1)
 				slope = maxi(maxi(absi(h - h_l), absi(h - h_r)), maxi(absi(h - h_d), absi(h - h_u)))
 
-			var mats_v2i = classifier.classify_v2i(h, slope, water_h, is_river, is_lake)
+			var mats_v2i = classifier.classify_v2i(h, slope, water_h, is_river, is_lake, moist)
 			data.set_top_material(lx, lz, mats_v2i.x)
 			data.set_side_material(lx, lz, mats_v2i.y)
 
@@ -141,6 +153,7 @@ func is_water_at(col: Vector2i, bounds: WorldBounds) -> bool:
 func sample_world(wx: float, wz: float, bounds: WorldBounds) -> Dictionary:
 	var m_data = macro.sample_macro(wx, wz, bounds)
 	var f_data = fluvial.sample_fluvial(wx, wz, m_data.elevation, m_data.continentalness)
+	var moist = climate.sample_moisture(wx, wz)
 	var final_h = clampi(int(round(m_data.elevation - f_data.carve_depth)), config.seabed_level, 255)
 
 	return {
@@ -149,6 +162,9 @@ func sample_world(wx: float, wz: float, bounds: WorldBounds) -> Dictionary:
 		"carve_depth": f_data.carve_depth,
 		"continentalness": m_data.continentalness,
 		"erosion": m_data.erosion,
+		"moisture": moist,
+		"is_humid": climate.is_humid(moist),
+		"is_arid": climate.is_arid(moist),
 		"is_highland": m_data.is_highland,
 		"is_mountain": m_data.is_mountain,
 		"is_river": f_data.is_river,

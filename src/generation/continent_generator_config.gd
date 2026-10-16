@@ -8,6 +8,7 @@ extends Resource
 @export var coast_warp_amplitude: float = 250.0  ## Noise displacement on continent coastline
 @export var coast_warp_frequency: float = 0.0018
 @export var continent_noise_frequency: float = 0.00065 ## Macro continentalness noise frequency
+@export var inland_elevation_bias: float = 8.0 ## Flat elevation lift added to continental landmass to prevent noise dips from dropping below sea level
 
 @export_group("Erosion & Lowlands")
 @export var erosion_frequency: float = 0.0012
@@ -28,8 +29,16 @@ extends Resource
 @export var mountain_amplitude: float = 85.0
 @export var mountain_frequency: float = 0.004
 @export var mountain_threshold: float = 0.45
-@export var mountain_power: float = 2.0
+@export var mountain_power: float = 1.6 ## Power curve exponent to widen mountain base and round peaks
 @export var mountain_octaves: int = 4
+@export var mountain_fractal_gain: float = 0.32 ## Reduced persistence to smooth out secondary noisy spikes and boulders into natural rolling ridges
+@export var mountain_lacunarity: float = 2.0
+
+@export_group("Climate & Moisture")
+@export var moisture_frequency: float = 0.0008 ## Low frequency for macro moisture map
+@export var moisture_octaves: int = 3
+@export var moisture_fractal_gain: float = 0.4
+@export var moisture_beach_threshold: float = 0.40 ## Moisture threshold below which water edges spawn sand, and above which water edges spawn lush grass/dirt
 
 @export_group("Wide Rivers")
 @export var wide_river_frequency: float = 0.00075

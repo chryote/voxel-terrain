@@ -109,6 +109,12 @@ func bake_map(
 			if is_water:
 				pixel_color = palette.get_water_color(h, sea_level)
 			else:
+				var moist = 0.5
+				if is_cont_gen and cont_gen != null and cont_gen.climate != null:
+					var wx = min_x + (float(px) + 0.5) * step_x
+					var wz = min_z + (float(py) + 0.5) * step_z
+					moist = cont_gen.climate.sample_moisture(wx, wz)
+
 				var base_color = palette.get_land_color(
 					h,
 					slope_grade,
@@ -117,7 +123,8 @@ func bake_map(
 					sand_offset,
 					snow_height,
 					stone_height,
-					is_river or is_lake
+					is_river or is_lake,
+					moist
 				)
 				var shade = palette.compute_hillshade(dh_dx, dh_dz)
 				pixel_color = palette.apply_relief(base_color, shade, h, sea_level)

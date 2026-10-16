@@ -1,0 +1,48 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://src/player/player_motor.gd" id="1_motor"]
+[ext_resource type="Script" path="res://src/player/player_input.gd" id="2_input"]
+[ext_resource type="Script" path="res://src/player/third_person_camera.gd" id="3_camera"]
+[ext_resource type="Script" path="res://src/player/player_hud.gd" id="4_hud"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
+radius = 0.4
+height = 1.8
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_player"]
+radius = 0.4
+height = 1.8
+
+[node name="Player" type="CharacterBody3D" node_paths=PackedStringArray("player_input", "camera_rig")]
+collision_layer = 2
+collision_mask = 1
+script = ExtResource("1_motor")
+player_input = NodePath("PlayerInput")
+camera_rig = NodePath("ThirdPersonCamera")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_player")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+mesh = SubResource("CapsuleMesh_player")
+
+[node name="PlayerInput" type="Node" parent="."]
+script = ExtResource("2_input")
+
+[node name="ThirdPersonCamera" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 0)
+script = ExtResource("3_camera")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="PlayerHUD" type="Control" parent="CanvasLayer" node_paths=PackedStringArray("player_motor")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("4_hud")
+player_motor = NodePath("../..")

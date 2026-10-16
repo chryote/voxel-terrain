@@ -1,0 +1,29 @@
+{
+  "generation_chunk_32": {
+    "avg_ms": 6.05233333333333,
+    "iterations": 15,
+    "max_ms": 6.539,
+    "median_ms": 6.027,
+    "min_ms": 5.869,
+    "name": "generation_chunk_32",
+    "p95_ms": 6.193
+  },
+  "meshing_chunk_32": {
+    "avg_ms": 4.98906666666667,
+    "iterations": 15,
+    "max_ms": 5.352,
+    "median_ms": 4.92,
+    "min_ms": 4.84,
+    "name": "meshing_chunk_32",
+    "p95_ms": 5.196
+  },
+  "streamer_evaluation_vd8": {
+    "avg_ms": 1.17742,
+    "iterations": 50,
+    "max_ms": 1.41,
+    "median_ms": 1.1565,
+    "min_ms": 1.124,
+    "name": "streamer_evaluation_vd8",
+    "p95_ms": 1.318
+  }
+}

@@ -1,0 +1,39 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://src/world/main_scene.gd" id="1_main"]
+[ext_resource type="Script" path="res://src/world/voxel_world.gd" id="2_world"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="3_player"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
+sky_top_color = Color(0.384, 0.549, 0.776, 1.0)
+sky_horizon_color = Color(0.686, 0.776, 0.863, 1.0)
+ground_bottom_color = Color(0.180, 0.239, 0.204, 1.0)
+ground_horizon_color = Color(0.686, 0.776, 0.863, 1.0)
+
+[sub_resource type="Sky" id="Sky_env"]
+sky_material = SubResource("ProceduralSkyMaterial_sky")
+
+[sub_resource type="Environment" id="Environment_main"]
+background_mode = 2
+sky = SubResource("Sky_env")
+ambient_light_source = 3
+ambient_light_color = Color(0.65, 0.7, 0.75, 1.0)
+ambient_light_energy = 0.6
+tonemap_mode = 2
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_main")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_main")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.819152, -0.40558, 0.40558, 0, 0.707107, 0.707107, -0.573576, -0.579228, 0.579228, 0, 100, 0)
+shadow_enabled = true
+
+[node name="VoxelWorld" type="Node3D" parent="." node_paths=PackedStringArray("focus_target")]
+script = ExtResource("2_world")
+focus_target = NodePath("../Player")
+
+[node name="Player" parent="." instance=ExtResource("3_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 30, 0)

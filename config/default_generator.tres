@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ContinentGeneratorConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/generation/continent_generator_config.gd" id="1_gen"]
+
+[resource]
+script = ExtResource("1_gen")
+coast_falloff_distance = 600.0
+coast_warp_amplitude = 250.0
+coast_warp_frequency = 0.002
+base_elevation = 22.0
+base_noise_amplitude = 35.0
+base_noise_frequency = 0.004
+fractal_octaves = 4
+fractal_lacunarity = 2.0
+fractal_gain = 0.5
+mountain_amplitude = 85.0
+mountain_frequency = 0.006
+mountain_threshold = 0.45
+sea_level = 24
+seabed_level = 6
+sand_height_offset = 2
+stone_height = 90
+snow_height = 125

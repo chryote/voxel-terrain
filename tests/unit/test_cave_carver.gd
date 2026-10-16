@@ -49,3 +49,53 @@ func test_material_classification() -> void:
 	# Upper cave wall (Y > 22)
 	var mat_upper = carver.classify_subterranean_voxel(0.0, 35.0, 0.0)
 	assert_eq(mat_upper, MaterialDef.ID_CAVE_WALL, "Upper cave wall must be classified as cave_wall")
+
+func test_strata_envelope_culling() -> void:
+	var config = CaveGeneratorConfig.new()
+	var carver = CaveCarver.new(1337, config)
+
+	# 1. Chasm cannot intersect above chasm_max_y (Y >= 22)
+	var chasm_above = carver.chasm_sampler.can_chasm_intersect_cell(Vector3(0, 24, 0), Vector3(4, 28, 4))
+	assert_false(chasm_above, "Cells above chasm_max_y must be culled by chasm envelope")
+
+	# 2. Chasm cannot intersect below chasm_min_y (Y <= 4)
+	var chasm_below = carver.chasm_sampler.can_chasm_intersect_cell(Vector3(0, 0, 0), Vector3(4, 3, 4))
+	assert_false(chasm_below, "Cells below chasm_min_y must be culled by chasm envelope")
+
+	# 3. Mouth cannot intersect deep subterranean cells (> 14m below surface)
+	var mouth_deep = carver.mouth_sampler.can_mouth_intersect_cell(
+		Vector3(0, 10, 0), Vector3(4, 14, 4), 60.0, 24
+	)
+	assert_false(mouth_deep, "Cells deeper than max_entrance_depth must be culled by mouth envelope")
+
+func test_coarse_culling_preserves_cave_cavities() -> void:
+	var config = CaveGeneratorConfig.new()
+	var carver = CaveCarver.new(1337, config)
+	var sea_level = 24
+	var surface_h = 50.0
+
+	# Scan for a known carved voxel
+	var carved_pos = Vector3.ZERO
+	var found = false
+	for rx in range(-20, 20):
+		for rz in range(-20, 20):
+			for ry in range(8, 20):
+				var p = Vector3(float(rx), float(ry), float(rz))
+				if carver.is_carved(p.x, p.y, p.z, surface_h, sea_level):
+					carved_pos = p
+					found = true
+					break
+			if found:
+				break
+		if found:
+			break
+
+	assert_true(found, "A carved voxel must exist within the subterranean test region")
+
+	# Construct a coarse cell around this carved voxel
+	var cell_min = Vector3(floorf(carved_pos.x / 4.0) * 4.0, floorf(carved_pos.y / 4.0) * 4.0, floorf(carved_pos.z / 4.0) * 4.0)
+	var cell_max = cell_min + Vector3(4.0, 4.0, 4.0)
+
+	var status = carver.sample_coarse_cell_status(cell_min, cell_max, surface_h, surface_h, sea_level)
+	assert_ne(status, CaveCarver.STATUS_SOLID, "A cell containing a hollow cave cavity must NEVER be culled as STATUS_SOLID")
+	assert_eq(status, CaveCarver.STATUS_MIXED, "A cell containing hollow voids must be classified as STATUS_MIXED")

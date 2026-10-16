@@ -92,6 +92,37 @@ func sample_tunnel(wx: float, wy: float, wz: float) -> Dictionary:
 		"centerline_dist": centerline_dist
 	}
 
+func can_tunnel_intersect_cell(min_p: Vector3, max_p: Vector3) -> bool:
+	## Coarse culling: evaluates center and 8 corners using calibrated Lipschitz bound (0.12).
+	## Returns false if it is mathematically impossible for a worm tunnel to carve inside this cell.
+	var eff_thresh = config.tunnel_radius_base * 0.05 * 0.85
+	var max_safe_d = eff_thresh + 0.12
+
+	# 1. Fast center check: if center is inside the tunnel, return true immediately
+	var mid_x = (min_p.x + max_p.x) * 0.5
+	var mid_y = (min_p.y + max_p.y) * 0.5
+	var mid_z = (min_p.z + max_p.z) * 0.5
+	var sq_y_m = mid_y * config.tunnel_vertical_squish
+	var na_m = tunnel_noise_a.get_noise_3d(mid_x, sq_y_m, mid_z)
+	var nb_m = tunnel_noise_b.get_noise_3d(mid_x, sq_y_m, mid_z)
+	var mid_d = sqrt(na_m * na_m + nb_m * nb_m)
+	if mid_d <= eff_thresh:
+		return true
+
+	var min_d = mid_d
+	for cx in [min_p.x, max_p.x]:
+		for cy in [min_p.y, max_p.y]:
+			for cz in [min_p.z, max_p.z]:
+				var sq_y = cy * config.tunnel_vertical_squish
+				var na = tunnel_noise_a.get_noise_3d(cx, sq_y, cz)
+				var nb = tunnel_noise_b.get_noise_3d(cx, sq_y, cz)
+				var d = sqrt(na * na + nb * nb)
+				if d <= eff_thresh:
+					return true
+				min_d = minf(min_d, d)
+
+	return min_d <= max_safe_d
+
 func get_tunnel_carve(wx: float, wy: float, wz: float) -> float:
 	var squished_y = wy * config.tunnel_vertical_squish
 	var na = tunnel_noise_a.get_noise_3d(wx, squished_y, wz)

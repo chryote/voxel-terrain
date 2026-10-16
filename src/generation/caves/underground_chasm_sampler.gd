@@ -86,6 +86,28 @@ func sample_chasm(wx: float, wy: float, wz: float) -> Dictionary:
 		"is_pillar": false
 	}
 
+func can_chasm_intersect_cell(min_p: Vector3, max_p: Vector3) -> bool:
+	## Coarse culling: returns true if a deep chasm could possibly carve inside this cell.
+	# 1. Vertical depth strata envelope check
+	if max_p.y <= float(config.chasm_min_y) or min_p.y >= float(config.chasm_max_y):
+		return false
+
+	# 2. Macro noise sample at cell center with conservative margin (wavelength ~285m)
+	var mid_x = (min_p.x + max_p.x) * 0.5
+	var mid_y = (min_p.y + max_p.y) * 0.5
+	var mid_z = (min_p.z + max_p.z) * 0.5
+
+	var raw_chasm = (chasm_noise.get_noise_3d(mid_x, mid_y * 0.7, mid_z) + 1.0) * 0.5
+	if raw_chasm < (config.chasm_threshold - 0.06):
+		return false
+
+	# 3. Solid natural support pillar check
+	var pil_val = (pillar_noise.get_noise_2d(mid_x, mid_z) + 1.0) * 0.5
+	if pil_val > (config.pillar_threshold + 0.06):
+		return false
+
+	return true
+
 func get_chasm_carve(wx: float, wy: float, wz: float) -> float:
 	var envelope = get_depth_envelope(wy)
 	if envelope <= 0.0001:

@@ -28,6 +28,7 @@ func generate(coord: ChunkCoord, bounds: WorldBounds) -> RefCounted:
 	var sea_level = config.sea_level
 
 	# 2. Populate solid columns and surface water from surface data
+	var max_chunk_h: int = 0
 	for lz in range(-1, c_size + 1):
 		for lx in range(-1, c_size + 1):
 			var h = surface_data.get_height(lx, lz)
@@ -37,6 +38,7 @@ func generate(coord: ChunkCoord, bounds: WorldBounds) -> RefCounted:
 			var side_mat = surface_data.get_side_material(lx, lz)
 
 			var clamped_h = mini(h, max_h - 1)
+			max_chunk_h = maxi(max_chunk_h, clamped_h)
 			var clamped_w = mini(water_h, max_h - 1)
 
 			# Bedrock and deep stone
@@ -63,6 +65,8 @@ func generate(coord: ChunkCoord, bounds: WorldBounds) -> RefCounted:
 
 	# 3. 3D Cave Carving Pass with coarse hierarchical culling
 	var block_size = 4
+	var carve_ceiling = mini(max_h, max_chunk_h + 2)
+
 	for bz in range(-1, c_size + 1, block_size):
 		for bx in range(-1, c_size + 1, block_size):
 			# Compute block bounds
@@ -85,9 +89,9 @@ func generate(coord: ChunkCoord, bounds: WorldBounds) -> RefCounted:
 					cell_min_h = minf(cell_min_h, col_h)
 					cell_max_h = maxf(cell_max_h, col_h)
 
-			for by in range(3, max_h - 1, block_size):
+			for by in range(3, carve_ceiling, block_size):
 				var min_wy = float(by) * bounds.voxel_size
-				var max_wy = float(mini(by + block_size, max_h)) * bounds.voxel_size
+				var max_wy = float(mini(by + block_size, carve_ceiling)) * bounds.voxel_size
 
 				var status = cave_carver.sample_coarse_cell_status(
 					Vector3(min_wx, min_wy, min_wz),
@@ -109,7 +113,7 @@ func generate(coord: ChunkCoord, bounds: WorldBounds) -> RefCounted:
 						var wx = (float(gx) + 0.5) * bounds.voxel_size
 						var col_h = float(surface_data.get_height(lx, lz))
 
-						for ly in range(by, mini(by + block_size, max_h)):
+						for ly in range(by, mini(by + block_size, carve_ceiling)):
 							# Bedrock at Y <= 2 is indestructible solid stone
 							if ly <= 2:
 								continue
@@ -129,10 +133,10 @@ func generate(coord: ChunkCoord, bounds: WorldBounds) -> RefCounted:
 								else:
 									v_data.set_voxel(lx, ly, lz, 0)
 									v_data.set_water(lx, ly, lz, false)
-							else:
+							elif ly <= cave_config.chasm_max_y:
 								# If solid subterranean rock is within deep chasm strata, classify as basalt/crystal
 								var current_mat = v_data.get_voxel(lx, ly, lz)
-								if current_mat == MaterialDef.ID_STONE and ly > 2 and ly <= cave_config.chasm_max_y:
+								if current_mat == MaterialDef.ID_STONE:
 									var sub_mat = cave_carver.classify_subterranean_voxel(wx, wy, wz)
 									v_data.set_voxel(lx, ly, lz, sub_mat)
 

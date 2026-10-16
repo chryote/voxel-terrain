@@ -43,13 +43,16 @@ func sample_carve_density(wx: float, wy: float, wz: float, surface_h: float, sea
 	if mouth_sampler.is_crust_sealed(wx, wy, wz, surface_h, sea_level):
 		return 0.0
 
-	# 4. Cave mouth downward funnel check
-	var mouth_carve = mouth_sampler.get_funnel_carve(wx, wy, wz, surface_h, sea_level)
-	if mouth_carve > 0.0:
-		return mouth_carve
+	# 4. Cave mouth downward funnel check (strictly bounded to entrance depth)
+	if wy >= (surface_h - config.max_entrance_depth) and wy <= (surface_h + 1.0):
+		var mouth_carve = mouth_sampler.get_funnel_carve(wx, wy, wz, surface_h, sea_level)
+		if mouth_carve > 0.0:
+			return mouth_carve
 
 	# 5. Deep chasm cavern check (confined strictly to Y: 4-22)
-	var chasm_carve = chasm_sampler.get_chasm_carve(wx, wy, wz)
+	var chasm_carve = 0.0
+	if wy > float(config.chasm_min_y) and wy < float(config.chasm_max_y):
+		chasm_carve = chasm_sampler.get_chasm_carve(wx, wy, wz)
 
 	# 6. 3D worm tunnel check
 	var tunnel_carve = tunnel_sampler.get_tunnel_carve(wx, wy, wz)
@@ -88,25 +91,25 @@ func classify_subterranean_voxel(wx: float, wy: float, wz: float) -> int:
 func sample_coarse_cell_status(min_p: Vector3, max_p: Vector3, min_surface_h: float, max_surface_h: float, sea_level: int) -> int:
 	## Hierarchical performance optimization:
 	## Evaluates whether an entire coarse cell (e.g. 4x4x4 voxels) is definitely pure air or solid rock.
-	# Completely above surface -> pure air
+	# 1. Completely above surface -> pure air
 	if min_p.y > max_surface_h:
 		return STATUS_AIR
 
-	# Completely below bedrock -> pure solid
+	# 2. Completely below bedrock -> pure solid
 	if max_p.y <= 2.0:
 		return STATUS_SOLID
 
-	# Completely inside protected surface crust with no mouths -> pure solid
+	# 3. Completely inside protected surface crust with no mouths -> pure solid
 	if max_p.y <= min_surface_h and min_p.y >= (max_surface_h - config.crust_depth):
-		var has_mouth = false
-		for corner_x in [min_p.x, max_p.x]:
-			for corner_z in [min_p.z, max_p.z]:
-				if mouth_sampler.is_mouth_candidate(corner_x, corner_z, max_surface_h, sea_level):
-					has_mouth = true
-					break
-			if has_mouth:
-				break
-		if not has_mouth:
+		if not mouth_sampler.can_mouth_intersect_cell(min_p, max_p, max_surface_h, sea_level):
 			return STATUS_SOLID
+
+	# 4. Multi-strata culling: check if any subterranean cave feature can intersect this cell
+	var can_mouth = mouth_sampler.can_mouth_intersect_cell(min_p, max_p, max_surface_h, sea_level)
+	var can_chasm = chasm_sampler.can_chasm_intersect_cell(min_p, max_p)
+	var can_tunnel = tunnel_sampler.can_tunnel_intersect_cell(min_p, max_p)
+
+	if not can_mouth and not can_chasm and not can_tunnel:
+		return STATUS_SOLID
 
 	return STATUS_MIXED

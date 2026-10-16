@@ -29,6 +29,8 @@ var _chunks_root: Node3D
 var _loaded_chunks: Dictionary = {} # key -> ChunkNode
 var _initial_ready_emitted: bool = false
 var _last_collision_chunk: ChunkCoord = null
+var visibility_coordinator: LayerVisibilityCoordinator = LayerVisibilityCoordinator.new()
+var _mouth_cache: Dictionary = {} # key -> bool
 
 
 func _ready() -> void:
@@ -80,11 +82,13 @@ func _ready() -> void:
 
 	_update_streaming()
 	_update_chunk_collisions(true)
+	_update_layer_visibility(true)
 
 func _process(_delta: float) -> void:
 	_process_completed_chunks()
 	_update_streaming()
 	_update_chunk_collisions()
+	_update_layer_visibility()
 
 
 func _notification(what: int) -> void:
@@ -121,6 +125,7 @@ func _load_chunk_sync(coord: ChunkCoord) -> void:
 
 	var origin = bounds.chunk_origin(coord)
 	chunk_node.setup(coord, origin, mesh_data, true)
+	_mouth_cache[key] = chunk_node.has_cave_mouth
 	chunk_loaded.emit(coord)
 
 func _process_completed_chunks() -> void:
@@ -147,6 +152,7 @@ func _process_completed_chunks() -> void:
 
 		var origin = bounds.chunk_origin(coord)
 		chunk_node.setup(coord, origin, mesh_data, enable_collision)
+		_mouth_cache[key] = chunk_node.has_cave_mouth
 		chunk_loaded.emit(coord)
 
 func _update_streaming() -> void:
@@ -178,9 +184,23 @@ func _update_streaming() -> void:
 		if _loaded_chunks.has(key):
 			var node = _loaded_chunks[key]
 			_loaded_chunks.erase(key)
+			_mouth_cache.erase(key)
 			if is_instance_valid(node):
 				node.queue_free()
 			chunk_unloaded.emit(coord)
+
+func _update_layer_visibility(force: bool = false) -> void:
+	var focus_pos = _get_focus_position()
+	var focus_chunk = bounds.world_to_chunk(focus_pos)
+	var surf_h = get_height_at(focus_pos.x, focus_pos.z)
+	visibility_coordinator.update_chunk_visibility(
+		focus_pos,
+		focus_chunk,
+		surf_h,
+		_loaded_chunks,
+		_mouth_cache,
+		force
+	)
 
 func _update_chunk_collisions(force: bool = false) -> void:
 	var focus_pos = _get_focus_position()

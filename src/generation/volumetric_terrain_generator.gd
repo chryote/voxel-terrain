@@ -31,6 +31,7 @@ func generate(coord: ChunkCoord, bounds: WorldBounds) -> RefCounted:
 	for lz in range(-1, c_size + 1):
 		for lx in range(-1, c_size + 1):
 			var h = surface_data.get_height(lx, lz)
+			v_data.set_surface_height(lx, lz, h)
 			var water_h = surface_data.get_water_height(lx, lz)
 			var top_mat = surface_data.get_top_material(lx, lz)
 			var side_mat = surface_data.get_side_material(lx, lz)
@@ -120,6 +121,8 @@ func generate(coord: ChunkCoord, bounds: WorldBounds) -> RefCounted:
 								continue
 
 							if cave_carver.is_carved(wx, wy, wz, col_h, sea_level):
+								if not v_data.has_cave_mouth and wy >= (col_h - cave_config.crust_depth) and cave_carver.mouth_sampler.is_mouth_candidate(wx, wz, col_h, sea_level):
+									v_data.has_cave_mouth = true
 								if cave_carver.is_subterranean_water(wx, wy, wz, col_h, sea_level):
 									v_data.set_voxel(lx, ly, lz, 0)
 									v_data.set_water(lx, ly, lz, true)

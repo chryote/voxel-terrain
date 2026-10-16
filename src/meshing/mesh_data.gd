@@ -26,8 +26,10 @@ func create_array_mesh() -> ArrayMesh:
 	var arrays = []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = vertices
-	arrays[Mesh.ARRAY_NORMAL] = normals
-	arrays[Mesh.ARRAY_COLOR] = colors
+	if normals.size() == vertices.size():
+		arrays[Mesh.ARRAY_NORMAL] = normals
+	if colors.size() == vertices.size():
+		arrays[Mesh.ARRAY_COLOR] = colors
 	arrays[Mesh.ARRAY_INDEX] = indices
 
 	var mesh = ArrayMesh.new()

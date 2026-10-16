@@ -12,6 +12,9 @@ var total_voxels: int = 184960
 
 var voxels: PackedByteArray
 var water_voxels: PackedByteArray
+var surface_heights: PackedInt32Array
+var has_surface_heights: bool = false
+var has_cave_mouth: bool = false
 
 func _init(p_chunk_size: int = 32, p_max_height: int = 160) -> void:
 	chunk_size = p_chunk_size
@@ -24,6 +27,28 @@ func _init(p_chunk_size: int = 32, p_max_height: int = 160) -> void:
 	voxels.fill(0)
 	water_voxels.resize(total_voxels)
 	water_voxels.fill(0)
+
+func _to_column_index(lx: int, lz: int) -> int:
+	return (lx + 1) + (lz + 1) * apron_size
+
+func has_surface_data() -> bool:
+	return has_surface_heights and not surface_heights.is_empty()
+
+func get_surface_height(lx: int, lz: int) -> int:
+	if not has_surface_data():
+		return max_height
+	if lx < -1 or lx > chunk_size or lz < -1 or lz > chunk_size:
+		return max_height
+	return surface_heights[_to_column_index(lx, lz)]
+
+func set_surface_height(lx: int, lz: int, h: int) -> void:
+	if surface_heights.is_empty():
+		surface_heights.resize(slice_size)
+		surface_heights.fill(max_height)
+	has_surface_heights = true
+	if lx >= -1 and lx <= chunk_size and lz >= -1 and lz <= chunk_size:
+		surface_heights[_to_column_index(lx, lz)] = h
+
 
 func _to_index(lx: int, ly: int, lz: int) -> int:
 	return (lx + 1) + (lz + 1) * apron_size + ly * slice_size
@@ -61,3 +86,7 @@ func fill_water(val: bool) -> void:
 func clear() -> void:
 	voxels.fill(0)
 	water_voxels.fill(0)
+	has_surface_heights = false
+	has_cave_mouth = false
+	surface_heights.clear()
+

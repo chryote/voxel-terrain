@@ -52,12 +52,26 @@ func setup(
 	var array_mesh = mesh_data.create_array_mesh()
 	mesh_instance.mesh = array_mesh
 
-	if enable_collision and array_mesh != null:
-		var shape = array_mesh.create_trimesh_shape()
-		if shape != null:
-			shape.backface_collision = true
-		collision_shape.shape = shape
-		collision_shape.disabled = false
+	set_collision_enabled(enable_collision)
+
+func set_collision_enabled(enable: bool) -> void:
+	if static_body == null or collision_shape == null:
+		return
+
+	if enable:
+		if collision_shape.shape == null and mesh_instance != null and mesh_instance.mesh != null:
+			if mesh_instance.mesh.get_surface_count() > 0:
+				var shape = mesh_instance.mesh.create_trimesh_shape()
+				if shape != null:
+					shape.backface_collision = true
+				collision_shape.shape = shape
+		if collision_shape.shape != null:
+			collision_shape.disabled = false
+		else:
+			collision_shape.disabled = true
 	else:
 		collision_shape.disabled = true
-		collision_shape.shape = null
+
+func is_collision_enabled() -> bool:
+	return collision_shape != null and not collision_shape.disabled and collision_shape.shape != null
+

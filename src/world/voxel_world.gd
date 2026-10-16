@@ -24,6 +24,8 @@ var _chunks_root: Node3D
 
 var _loaded_chunks: Dictionary = {} # key -> ChunkNode
 var _initial_ready_emitted: bool = false
+var _last_collision_chunk: ChunkCoord = null
+
 
 func _ready() -> void:
 	if world_config == null:
@@ -56,6 +58,9 @@ func _ready() -> void:
 	# Synchronously pre-load spawn chunk and 3x3 neighborhood so collision exists before frame 0 physics
 	var spawn_pos = get_spawn_point()
 	var spawn_chunk = bounds.world_to_chunk(spawn_pos)
+	if is_instance_valid(focus_target):
+		focus_target.global_position = spawn_pos
+
 	for dz in range(-1, 2):
 		for dx in range(-1, 2):
 			_load_chunk_sync(ChunkCoord.new(spawn_chunk.x + dx, spawn_chunk.z + dz))
@@ -64,10 +69,13 @@ func _ready() -> void:
 	initial_area_ready.emit()
 
 	_update_streaming()
+	_update_chunk_collisions(true)
 
 func _process(_delta: float) -> void:
 	_process_completed_chunks()
 	_update_streaming()
+	_update_chunk_collisions()
+
 
 func _exit_tree() -> void:
 	if scheduler != null:
@@ -75,8 +83,11 @@ func _exit_tree() -> void:
 
 func _get_focus_position() -> Vector3:
 	if is_instance_valid(focus_target):
-		return focus_target.global_position
+		if focus_target.is_inside_tree():
+			return focus_target.global_position
+		return focus_target.position
 	return Vector3.ZERO
+
 
 func _load_chunk_sync(coord: ChunkCoord) -> void:
 	if not bounds.contains_chunk(coord):
@@ -155,6 +166,21 @@ func _update_streaming() -> void:
 			if is_instance_valid(node):
 				node.queue_free()
 			chunk_unloaded.emit(coord)
+
+func _update_chunk_collisions(force: bool = false) -> void:
+	var focus_pos = _get_focus_position()
+	var focus_chunk = bounds.world_to_chunk(focus_pos)
+
+	if not force and _last_collision_chunk != null and _last_collision_chunk.equals(focus_chunk):
+		return
+	_last_collision_chunk = focus_chunk
+
+	var col_dist = world_config.collision_distance_chunks
+	for chunk_node in _loaded_chunks.values():
+		if chunk_node is ChunkNode:
+			var dist = focus_chunk.chebyshev_distance_to(chunk_node.coord)
+			chunk_node.set_collision_enabled(dist <= col_dist)
+
 
 # -----------------------------------------------------------------------------
 # TerrainQuery interface implementation

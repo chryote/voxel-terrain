@@ -76,7 +76,7 @@ Aiming: %s | Shoulder: %s
 Controls:
 WASD: Move | Shift: Sprint | Space: Jump
 RMB: Aim Zoom | LMB: Fire (Hitscan)
-V: Swap Shoulder | Tab/Esc: Toggle Mouse | F3: Toggle Info""" % [
+V: Swap Shoulder | Tab/Esc: Toggle Mouse | F3: Toggle Info | M: Map""" % [
 		fps, pos_str, chunk_str, loaded_count, str(is_aim), shoulder
 	]
 

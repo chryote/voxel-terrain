@@ -78,9 +78,11 @@ func sample_macro(wx: float, wz: float, bounds: WorldBounds) -> Dictionary:
 			"is_mountain": false
 		}
 
-	# Continentalness [0.0..1.0]
+	# Continentalness [0.0..1.0] naturally increases towards continent interior
+	var land_raw = mask.get_land_raw(wx, wz, bounds) if mask.has_method("get_land_raw") else land_factor
+	var inland_gradient = clampf(land_raw, 0.0, 1.0)
 	var c_sample = (cont_noise.get_noise_2d(wx, wz) + 1.0) * 0.5
-	var continentalness = land_factor * (0.25 + 0.75 * c_sample)
+	var continentalness = land_factor * (inland_gradient * 0.6 + c_sample * 0.4)
 
 	# Erosion [0.0..1.0] (0 = jagged/mountainous, 1 = flat/smooth)
 	var erosion = (erosion_noise.get_noise_2d(wx, wz) + 1.0) * 0.5
@@ -112,7 +114,7 @@ func sample_macro(wx: float, wz: float, bounds: WorldBounds) -> Dictionary:
 	if m_sample > config.mountain_threshold:
 		var m_norm = (m_sample - config.mountain_threshold) / (1.0 - config.mountain_threshold)
 		var m_ridge = pow(m_norm, config.mountain_power) * config.mountain_amplitude
-		var mountain_weight = (1.0 - erosion) * clampf((continentalness - 0.20) / 0.30, 0.0, 1.0)
+		var mountain_weight = (1.0 - erosion) * clampf((continentalness - 0.25) / 0.35, 0.0, 1.0)
 		h_mountain = m_ridge * mountain_weight
 		if h_mountain > 15.0:
 			is_mountain = true
@@ -122,7 +124,7 @@ func sample_macro(wx: float, wz: float, bounds: WorldBounds) -> Dictionary:
 	var total_land_h = base_relief + h_highland + h_mountain
 
 	# Smooth coastal transition: slopes from seabed up through beaches to land
-	var coast_t = clampf(continentalness / 0.14, 0.0, 1.0)
+	var coast_t = clampf(continentalness / 0.12, 0.0, 1.0)
 	coast_t = coast_t * coast_t * (3.0 - 2.0 * coast_t)
 	var final_h = lerpf(float(config.seabed_level), total_land_h, coast_t)
 
@@ -140,8 +142,10 @@ func sample_macro_v2(wx: float, wz: float, bounds: WorldBounds) -> Vector2:
 	if land_factor <= 0.001:
 		return Vector2(float(config.seabed_level), 0.0)
 
+	var land_raw = mask.get_land_raw(wx, wz, bounds) if mask.has_method("get_land_raw") else land_factor
+	var inland_gradient = clampf(land_raw, 0.0, 1.0)
 	var c_sample = (cont_noise.get_noise_2d(wx, wz) + 1.0) * 0.5
-	var continentalness = land_factor * (0.25 + 0.75 * c_sample)
+	var continentalness = land_factor * (inland_gradient * 0.6 + c_sample * 0.4)
 	var erosion = (erosion_noise.get_noise_2d(wx, wz) + 1.0) * 0.5
 
 	var low_n = (lowland_noise.get_noise_2d(wx, wz) + 1.0) * 0.5
@@ -163,13 +167,13 @@ func sample_macro_v2(wx: float, wz: float, bounds: WorldBounds) -> Vector2:
 	if m_sample > config.mountain_threshold:
 		var m_norm = (m_sample - config.mountain_threshold) / (1.0 - config.mountain_threshold)
 		var m_ridge = pow(m_norm, config.mountain_power) * config.mountain_amplitude
-		var mountain_weight = (1.0 - erosion) * clampf((continentalness - 0.20) / 0.30, 0.0, 1.0)
+		var mountain_weight = (1.0 - erosion) * clampf((continentalness - 0.25) / 0.35, 0.0, 1.0)
 		h_mountain = m_ridge * mountain_weight
 
 	var base_relief = lerpf(h_hills, h_low, erosion)
 	var total_land_h = base_relief + h_highland + h_mountain
 
-	var coast_t = clampf(continentalness / 0.14, 0.0, 1.0)
+	var coast_t = clampf(continentalness / 0.12, 0.0, 1.0)
 	coast_t = coast_t * coast_t * (3.0 - 2.0 * coast_t)
 	var final_h = lerpf(float(config.seabed_level), total_land_h, coast_t)
 

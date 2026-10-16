@@ -6,11 +6,11 @@ extends Resource
 @export_group("Continent Shape & Mask")
 @export var coast_falloff_distance: float = 600.0 ## Distance from map border where land fades to ocean
 @export var coast_warp_amplitude: float = 250.0  ## Noise displacement on continent coastline
-@export var coast_warp_frequency: float = 0.002
-@export var continent_noise_frequency: float = 0.0008 ## Macro continentalness noise frequency
+@export var coast_warp_frequency: float = 0.0018
+@export var continent_noise_frequency: float = 0.00065 ## Macro continentalness noise frequency
 
 @export_group("Erosion & Lowlands")
-@export var erosion_frequency: float = 0.0015
+@export var erosion_frequency: float = 0.0012
 @export var lowland_base_elevation: float = 25.0
 @export var lowland_amplitude: float = 8.0
 @export var lowland_frequency: float = 0.003
@@ -26,27 +26,27 @@ extends Resource
 
 @export_group("Mountains")
 @export var mountain_amplitude: float = 85.0
-@export var mountain_frequency: float = 0.006
+@export var mountain_frequency: float = 0.004
 @export var mountain_threshold: float = 0.45
 @export var mountain_power: float = 2.0
 @export var mountain_octaves: int = 4
 
 @export_group("Wide Rivers")
-@export var wide_river_frequency: float = 0.0009
+@export var wide_river_frequency: float = 0.00075
 @export var wide_river_warp_amplitude: float = 120.0
-@export var wide_river_width_threshold: float = 0.025 ## Controls river channel half-width (~20-30m)
+@export var wide_river_width_threshold: float = 0.020 ## Controls river channel half-width (~20-30m)
 @export var wide_river_depth: float = 12.0
 
 @export_group("Small Winding Rivers")
-@export var small_river_frequency: float = 0.0035
+@export var small_river_frequency: float = 0.0028
 @export var small_river_warp_amplitude: float = 40.0
-@export var small_river_width_threshold: float = 0.030 ## Controls stream channel half-width (~4-6m)
+@export var small_river_width_threshold: float = 0.024 ## Controls stream channel half-width (~4-6m)
 @export var small_river_depth: float = 4.0
 
 @export_group("Lakes")
-@export var lake_frequency: float = 0.0012
-@export var lake_threshold: float = 0.55
-@export var lake_depth: float = 10.0
+@export var lake_frequency: float = 0.00075
+@export var lake_threshold: float = 0.68
+@export var lake_depth: float = 7.0
 
 @export_group("Levels & Materials")
 @export var sea_level: int = 24

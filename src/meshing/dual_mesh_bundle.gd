@@ -6,7 +6,6 @@ extends MeshData
 ## while encapsulating independent subterranean cave geometry.
 
 var cave_mesh_data: MeshData = null
-var has_cave_mouth: bool = false
 var surface_shape: ConcavePolygonShape3D = null
 var cave_shape: ConcavePolygonShape3D = null
 

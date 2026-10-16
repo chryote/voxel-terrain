@@ -31,11 +31,12 @@ func bake_shapes_for_bundle(mesh_data: MeshData) -> Dictionary:
 		"cave_shape": null
 	}
 
-	if mesh_data == null or mesh_data.is_empty():
+	if mesh_data == null:
 		return result
 
 	# 1. Surface shape
-	result.surface_shape = bake_shape(mesh_data)
+	if not mesh_data.is_empty():
+		result.surface_shape = bake_shape(mesh_data)
 
 	# 2. Cave shape (if DualMeshBundle with cave geometry)
 	if mesh_data is DualMeshBundle and mesh_data.has_cave_geometry():

@@ -30,6 +30,7 @@ var _loaded_chunks: Dictionary = {} # key -> ChunkNode
 var _initial_ready_emitted: bool = false
 var _last_collision_chunk: ChunkCoord = null
 var visibility_coordinator: LayerVisibilityCoordinator = LayerVisibilityCoordinator.new()
+var subterranean_coordinator: SubterraneanStreamCoordinator = SubterraneanStreamCoordinator.new()
 var _mouth_cache: Dictionary = {} # key -> bool
 
 
@@ -128,6 +129,8 @@ func _load_chunk_sync(coord: ChunkCoord) -> void:
 	var shapes = baker.bake_shapes_for_bundle(mesh_data)
 	chunk_node.setup(coord, origin, mesh_data, true, shapes.surface_shape, shapes.cave_shape)
 	_mouth_cache[key] = chunk_node.has_cave_mouth
+	subterranean_coordinator.register_surface_chunk(coord, chunk_node.has_cave_mouth)
+	subterranean_coordinator.mark_subterranean_ready(coord)
 	chunk_loaded.emit(coord)
 
 func _process_completed_chunks() -> void:
@@ -139,6 +142,16 @@ func _process_completed_chunks() -> void:
 		var coord: ChunkCoord = item.coord
 		var mesh_data: MeshData = item.mesh_data
 		var key = coord.to_key()
+		var phase: int = item.get("phase", ChunkScheduler.GenerationPhase.PHASE_FULL)
+
+		if phase == ChunkScheduler.GenerationPhase.PHASE_SUBTERRANEAN:
+			if _loaded_chunks.has(key):
+				var node: ChunkNode = _loaded_chunks[key]
+				var cave_shape = item.get("cave_shape", null)
+				node.apply_subterranean_bundle(mesh_data, cave_shape)
+				_mouth_cache[key] = node.has_cave_mouth
+				subterranean_coordinator.mark_subterranean_ready(coord)
+			continue
 
 		var dist_to_focus = focus_chunk.chebyshev_distance_to(coord)
 		var enable_collision = (dist_to_focus <= world_config.collision_distance_chunks)
@@ -157,13 +170,25 @@ func _process_completed_chunks() -> void:
 		var cave_shape = item.get("cave_shape", null)
 		chunk_node.setup(coord, origin, mesh_data, enable_collision, surf_shape, cave_shape)
 		_mouth_cache[key] = chunk_node.has_cave_mouth
+
+		var s_data = item.get("data", null) as SurfaceChunkData
+		subterranean_coordinator.register_surface_chunk(coord, chunk_node.has_cave_mouth, s_data)
+
+		if phase == ChunkScheduler.GenerationPhase.PHASE_FULL:
+			subterranean_coordinator.mark_subterranean_ready(coord)
+		elif chunk_node.has_cave_mouth:
+			scheduler.schedule_subterranean_chunk(coord, bounds, generator, mesher, material_registry, s_data, true)
+			subterranean_coordinator.mark_subterranean_queued(coord)
+
 		chunk_loaded.emit(coord)
 
 func _update_streaming() -> void:
 	var focus_pos = _get_focus_position()
 	var focus_chunk = bounds.world_to_chunk(focus_pos)
+	var surf_h = get_height_at(focus_pos.x, focus_pos.z)
+	var is_player_subterranean = focus_pos.y < (surf_h - 4.0)
 
-	# 1. Enqueue new chunks to load
+	# 1. Enqueue new chunks to load (Phase A surface-first)
 	var to_load = streamer.get_chunks_to_load(
 		focus_chunk,
 		_loaded_chunks,
@@ -173,9 +198,20 @@ func _update_streaming() -> void:
 
 	for coord in to_load:
 		if not scheduler.is_chunk_in_flight(coord):
-			scheduler.schedule_chunk(coord, bounds, generator, mesher, material_registry)
+			if is_player_subterranean:
+				scheduler.schedule_chunk(coord, bounds, generator, mesher, material_registry)
+			else:
+				scheduler.schedule_surface_chunk(coord, bounds, generator, mesher, material_registry)
 
-	# 2. Unload chunks out of range
+	# 2. Demand-driven subterranean promotion for surface-only chunks
+	var to_promote = subterranean_coordinator.get_chunks_to_promote(focus_pos, focus_chunk, surf_h, _mouth_cache)
+	for p_coord in to_promote:
+		if not scheduler.is_phase_in_flight(p_coord, ChunkScheduler.GenerationPhase.PHASE_SUBTERRANEAN):
+			var cached_surf = subterranean_coordinator.get_cached_surface_data(p_coord)
+			scheduler.schedule_subterranean_chunk(p_coord, bounds, generator, mesher, material_registry, cached_surf)
+			subterranean_coordinator.mark_subterranean_queued(p_coord)
+
+	# 3. Unload chunks out of range
 	var to_unload = streamer.get_chunks_to_unload(
 		focus_chunk,
 		_loaded_chunks,
@@ -185,6 +221,7 @@ func _update_streaming() -> void:
 	for coord in to_unload:
 		var key = coord.to_key()
 		scheduler.cancel_chunk(coord)
+		subterranean_coordinator.unregister_chunk(coord)
 		if _loaded_chunks.has(key):
 			var node = _loaded_chunks[key]
 			_loaded_chunks.erase(key)

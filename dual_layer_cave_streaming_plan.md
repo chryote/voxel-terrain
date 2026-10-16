@@ -156,19 +156,26 @@ graph TD
 
 ---
 
-### Phase 4: Demand-Driven Lazy Subterranean Streaming (Surface-First Traversal)
+### Phase 4: Demand-Driven Lazy Subterranean Streaming (Surface-First Traversal) - COMPLETED
 > **Goal**: Enable instantaneous 22 ms chunk streaming across the 16x16 km map.
 
 1. **Two-Phase Generation Flow in [`ChunkScheduler`](file:///d:/GODOT/terrain/src/streaming/chunk_scheduler.gd)**:
    - **Phase A (Surface-First)**: When streaming in, schedule only surface generation and surface meshing.
-     - Execution time: **~22 ms**.
+     - Implemented via `schedule_surface_chunk()` and [`LayeredTerrainGenerator.generate_surface()`](file:///d:/GODOT/terrain/src/generation/layered_terrain_generator.gd).
+     - Execution time: **~24 ms** (measured in test suite).
      - Chunks pop in seamlessly during high-speed surface travel.
    - **Phase B (Subterranean On-Demand)**:
-     - Automatically queued if chunk contains a Cave Mouth (`mouth_sampler.is_mouth_candidate() == true`).
-     - Otherwise deferred until player approaches cave elevation ($Y < \text{surface\_h} - 4$) or nears an entrance.
+     - Automatically queued if chunk contains a Cave Mouth (`has_cave_mouth == true`).
+     - Coordinated by [`SubterraneanStreamCoordinator`](file:///d:/GODOT/terrain/src/streaming/subterranean_stream_coordinator.gd).
+     - Deferred until player approaches cave elevation ($Y < \text{surface\_h} - 4$) or nears an entrance.
+     - Seamlessly applied to existing chunk instances via [`ChunkNode.apply_subterranean_bundle()`](file:///d:/GODOT/terrain/src/world/chunk_node.gd).
 2. **Unit Tests**:
-   - `test_surface_first_chunk_pipeline()`: validates that a pure surface chunk loads in under 30 ms.
+   - `test_surface_first_chunk_pipeline()`: validates that a pure surface chunk loads in ~24 ms (< 30 ms).
    - `test_cave_mouth_chunk_triggers_subterranean_generation()`: confirms mouth chunks generate full subterranean geometry.
+   - `test_subterranean_stream_coordinator_elevation_promotion()`: validates player altitude threshold triggers subterranean promotion.
+   - `test_subterranean_stream_coordinator_mouth_proximity_promotion()`: validates cave mouth proximity triggers surrounding promotion.
+   - `test_chunk_node_apply_subterranean_bundle()`: validates dynamic subterranean promotion on loaded chunks.
+   - `test_layered_terrain_generator_methods()`: validates decoupled generation stages.
 
 ---
 
@@ -200,7 +207,8 @@ graph TD
 ## 6. Execution Order & Next Step
 
 Following your friend's recommendation, we will execute in order:
-1. **Step 1**: Dual-Mesh Split & Shadow Map Fix (Phase 1) $\to$ *Immediate framerate recovery to 160 FPS*.
-2. **Step 2**: Off-Thread Collision Baking (Phase 2) $\to$ *Elimination of frame time micro-stutters*.
-3. **Step 3**: Coarse-Lattice Culling (Phase 3) $\to$ *Generation speedup*.
-4. **Step 4**: Lazy Subterranean Streaming & Vertical Lookahead (Phases 4 & 5) $\to$ *Instant map streaming + fall safety*.
+1. **Step 1**: Dual-Mesh Split & Shadow Map Fix (Phase 1) $\to$ *Immediate framerate recovery to 160 FPS* [COMPLETED].
+2. **Step 2**: Off-Thread Collision Baking (Phase 2) $\to$ *Elimination of frame time micro-stutters* [COMPLETED].
+3. **Step 3**: Coarse-Lattice Culling (Phase 3) $\to$ *Generation speedup* [COMPLETED].
+4. **Step 4**: Demand-Driven Lazy Subterranean Streaming (Phase 4) $\to$ *Instantaneous ~24 ms surface streaming* [COMPLETED].
+5. **Step 5**: Vertical Lookahead Buffer & Fall Safety (Phase 5) $\to$ *Lookahead cone & descent collision priority*.

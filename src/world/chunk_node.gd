@@ -145,6 +145,47 @@ func setup(
 
 	set_collision_enabled(enable_collision)
 
+func apply_subterranean_bundle(
+	mesh_data: MeshData,
+	prebaked_cave_shape: ConcavePolygonShape3D = null
+) -> void:
+	if mesh_data == null:
+		return
+	_ensure_nodes_exist()
+
+	if mesh_data is DualMeshBundle:
+		has_cave_mouth = mesh_data.has_cave_mouth
+		if mesh_data.has_cave_geometry():
+			var c_mesh_data: MeshData = mesh_data.cave_mesh_data
+			cave_mesh_instance.mesh = c_mesh_data.create_array_mesh()
+
+			if c_mesh_data.water_mesh_data != null and not c_mesh_data.water_mesh_data.is_empty():
+				if cave_water_instance == null:
+					cave_water_instance = MeshInstance3D.new()
+					cave_water_instance.name = "CaveWaterInstance"
+					cave_water_instance.material_override = _shared_water_material
+					cave_water_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+					add_child(cave_water_instance)
+				cave_water_instance.mesh = c_mesh_data.water_mesh_data.create_array_mesh()
+			elif cave_water_instance != null:
+				cave_water_instance.visible = false
+
+		if mesh_data.has_cave_mouth and not mesh_data.is_empty():
+			mesh_instance.mesh = mesh_data.create_array_mesh()
+			if mesh_data.surface_shape != null:
+				collision_shape.shape = mesh_data.surface_shape
+
+	if prebaked_cave_shape != null:
+		_cached_prebaked_cave_shape = prebaked_cave_shape
+	elif mesh_data is DualMeshBundle and mesh_data.cave_shape != null:
+		_cached_prebaked_cave_shape = mesh_data.cave_shape
+
+	if is_subterranean_visible() and not collision_shape.disabled:
+		if cave_collision_shape != null:
+			if cave_collision_shape.shape == null and _cached_prebaked_cave_shape != null:
+				cave_collision_shape.shape = _cached_prebaked_cave_shape
+			cave_collision_shape.disabled = false
+
 func set_subterranean_visible(visible: bool) -> void:
 	if cave_mesh_instance != null:
 		cave_mesh_instance.visible = visible

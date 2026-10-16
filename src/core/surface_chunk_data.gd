@@ -11,6 +11,7 @@ var heights: PackedInt32Array
 var top_material: PackedByteArray
 var side_material: PackedByteArray
 var water_heights: PackedInt32Array
+var has_cave_mouth: bool = false
 
 func _init(p_chunk_size: int = 32, p_shell_depth: int = 3) -> void:
 	chunk_size = p_chunk_size
@@ -83,3 +84,4 @@ func fill(h: int, top_mat: int, side_mat: int, water_h: int = 0) -> void:
 	top_material.fill(top_mat)
 	side_material.fill(side_mat)
 	water_heights.fill(water_h)
+	has_cave_mouth = false

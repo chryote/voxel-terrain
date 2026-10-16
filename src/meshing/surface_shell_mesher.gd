@@ -194,6 +194,7 @@ func build_mesh(data: RefCounted, registry: MaterialRegistry) -> MeshData:
 	mesh.normals = norms
 	mesh.colors = cols
 	mesh.indices = inds
+	mesh.has_cave_mouth = s_data.has_cave_mouth
 	mesh.water_mesh_data = _water_mesher.build_water_mesh(s_data, sea_level)
 
 	return mesh

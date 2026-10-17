@@ -155,3 +155,86 @@ func test_ocean_falloff_encasing() -> void:
 
 	assert_true(hit_wall, "Cavern near chunk (33, 57) must hit solid encasing wall towards ocean")
 	assert_true(hit_d <= 5.0, "Wall encasing must seal cave within 5 meters of margin (hit at %.1f m)" % hit_d)
+
+func test_ocean_plane_gating_in_underground_chasm() -> void:
+	var world = VoxelWorld.new()
+	world.world_config = WorldConfig.new()
+	world.world_config.map_size_chunks = Vector2i(256, 256)
+	world.world_config.chunk_size = 16
+	world.world_config.view_distance_chunks = 0
+	world.world_config.collision_distance_chunks = 1
+	world.spawn_on_underground_arena = true
+	world.caves_enabled = true
+
+	world._ready()
+
+	assert_not_null(world.water_plane, "WaterPlane must be present")
+	var spawn_pos = world.get_spawn_point()
+	assert_true(world.is_in_underground_chasm(spawn_pos), "Arena spawn point must be in underground chasm")
+
+	# Verify camera at Y=9.6 (more than 9.0) in chasm is identified as in chasm
+	var camera_in_chasm = Vector3(spawn_pos.x, 9.6, spawn_pos.z)
+	assert_true(world.is_in_underground_chasm(camera_in_chasm), "Camera pos Y > 9.0 in chasm must be identified as in chasm")
+
+	var dummy = Node3D.new()
+	world.add_child(dummy)
+	world.focus_target = dummy
+	dummy.global_position = spawn_pos
+	world._update_layer_visibility(true)
+
+	# When player is in underground chasm, water_plane must NOT be visible
+	assert_false(world.water_plane.visible, "Ocean plane must not be visible inside underground chasm")
+
+	# Move focus to surface above chasm: water_plane must become visible
+	var surf_h = world.get_height_at(spawn_pos.x, spawn_pos.z)
+	dummy.global_position = Vector3(spawn_pos.x, surf_h + 2.0, spawn_pos.z)
+	world._update_layer_visibility(true)
+	assert_true(world.water_plane.visible, "Ocean plane must be visible on the surface")
+
+	if world.scheduler != null:
+		world.scheduler.clear()
+	world.free()
+
+func test_cave_water_table_toggle() -> void:
+	# 1. Sampler toggle validation
+	var cfg = CaveGeneratorConfig.new()
+	cfg.chasm_water_level = 10
+	cfg.cave_water_enabled = false
+	var sampler = UndergroundChasmSampler.new(1337, cfg)
+	assert_false(sampler.is_subterranean_water(0.0, 5.0, 0.0), "Cave water must be disabled when cave_water_enabled is false")
+
+	cfg.cave_water_enabled = true
+	var sampler_enabled = UndergroundChasmSampler.new(1337, cfg)
+	var found_water = false
+	for x in range(0, 300, 20):
+		for z in range(0, 300, 20):
+			if sampler_enabled.is_subterranean_water(float(x), 5.0, float(z)):
+				found_water = true
+				break
+		if found_water:
+			break
+	assert_true(found_water, "Cave water must be present when cave_water_enabled is true")
+
+	# 2. VoxelMesher toggle validation
+	var v_data = VoxelChunkData.new(16, 64)
+	v_data.has_surface_heights = true
+	v_data.surface_heights.resize(v_data.slice_size)
+	v_data.surface_heights.fill(20) # Surface at 20, crust_depth=4 -> cave water is below 16
+	v_data.set_voxel(4, 5, 4, 0)
+	v_data.set_water(4, 5, 4, true)
+	v_data.compute_section_status()
+
+	var reg = MaterialRegistry.create_default_registry()
+	var mesher_disabled = VoxelMesher.new()
+	mesher_disabled.cave_water_enabled = false
+	var bundle_disabled = mesher_disabled.build_mesh(v_data, reg) as DualMeshBundle
+	assert_true(bundle_disabled.cave_mesh_data == null or bundle_disabled.cave_mesh_data.water_mesh_data == null, "Cave water mesh must be null when mesher cave_water_enabled is false")
+
+	var mesher_enabled = VoxelMesher.new()
+	mesher_enabled.cave_water_enabled = true
+	var bundle_enabled = mesher_enabled.build_mesh(v_data, reg) as DualMeshBundle
+	assert_not_null(bundle_enabled.cave_mesh_data, "Cave mesh data must exist when water is present")
+	assert_not_null(bundle_enabled.cave_mesh_data.water_mesh_data, "Cave water mesh must exist when mesher cave_water_enabled is true")
+	assert_false(bundle_enabled.cave_mesh_data.water_mesh_data.is_empty(), "Cave water mesh must have geometry")
+
+

@@ -24,6 +24,10 @@ extends Resource
 
 @export_group("World Features")
 @export var caves_enabled: bool = true ## Master switch for procedural subterranean caves and chasms
+@export var cave_water_enabled: bool = true ## Master switch for subterranean cave water table
+var cave_water_table_enabled: bool:
+	get: return cave_water_enabled
+	set(val): cave_water_enabled = val
 
 func create_world_bounds() -> WorldBounds:
 	return WorldBounds.new(map_size_chunks, chunk_size, voxel_size)

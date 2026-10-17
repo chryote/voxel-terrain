@@ -9,6 +9,7 @@ const SurfaceShellMesher = preload("res://src/meshing/surface_shell_mesher.gd")
 const ChasmChunkData = preload("res://src/core/chasm_chunk_data.gd")
 
 var _surface_mesher: SurfaceShellMesher = SurfaceShellMesher.new()
+var cave_water_enabled: bool = true
 
 func build_mesh(data: RefCounted, registry: MaterialRegistry) -> MeshData:
 	if data is SurfaceChunkData:
@@ -439,6 +440,9 @@ func _mesh_subterranean_chasm(chasm_data: ChasmChunkData, registry: MaterialRegi
 	# -------------------------------------------------------------------------
 	# Pass E: Subterranean Water Table (+Y faces at water_lvl + 1)
 	# -------------------------------------------------------------------------
+	if not cave_water_enabled or not chasm_data.cave_water_enabled:
+		return
+
 	visited.fill(0)
 	for lz in range(n):
 		var row_start = (lz + 1) * apron_w
@@ -449,7 +453,7 @@ func _mesh_subterranean_chasm(chasm_data: ChasmChunkData, registry: MaterialRegi
 
 			var col_idx = (lx + 1) + row_start
 			var flag = flags[col_idx]
-			if (flag & ChasmChunkData.FLAG_CHASM) == 0 or (flag & ChasmChunkData.FLAG_PILLAR) != 0:
+			if (flag & ChasmChunkData.FLAG_CHASM) == 0 or (flag & ChasmChunkData.FLAG_PILLAR) != 0 or (flag & ChasmChunkData.FLAG_ARENA) != 0:
 				continue
 
 			var fl_y = fl_heights[col_idx]
@@ -464,7 +468,7 @@ func _mesh_subterranean_chasm(chasm_data: ChasmChunkData, registry: MaterialRegi
 					break
 				var next_col = (lx + w + 1) + row_start
 				var next_flag = flags[next_col]
-				if (next_flag & ChasmChunkData.FLAG_CHASM) == 0 or (next_flag & ChasmChunkData.FLAG_PILLAR) != 0:
+				if (next_flag & ChasmChunkData.FLAG_CHASM) == 0 or (next_flag & ChasmChunkData.FLAG_PILLAR) != 0 or (next_flag & ChasmChunkData.FLAG_ARENA) != 0:
 					break
 				if fl_heights[next_col] >= water_lvl:
 					break
@@ -481,7 +485,7 @@ func _mesh_subterranean_chasm(chasm_data: ChasmChunkData, registry: MaterialRegi
 						break
 					var exp_col = (check_x + 1) + exp_row
 					var exp_flag = flags[exp_col]
-					if (exp_flag & ChasmChunkData.FLAG_CHASM) == 0 or (exp_flag & ChasmChunkData.FLAG_PILLAR) != 0:
+					if (exp_flag & ChasmChunkData.FLAG_CHASM) == 0 or (exp_flag & ChasmChunkData.FLAG_PILLAR) != 0 or (exp_flag & ChasmChunkData.FLAG_ARENA) != 0:
 						can_expand = false
 						break
 					if fl_heights[exp_col] >= water_lvl:

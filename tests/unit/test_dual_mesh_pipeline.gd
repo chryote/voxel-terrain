@@ -165,5 +165,18 @@ func test_layer_visibility_coordinator_transitions() -> void:
 	assert_true(node_surf.is_subterranean_visible(), "When subterranean, all loaded cave meshes must be visible")
 	assert_true(node_mouth.is_subterranean_visible())
 
+	# 3. Player is on open ocean at (0, 9, 0), seabed surface height is 2.25
+	var ocean_state = coordinator.determine_player_state(Vector3(0, 9, 0), 2.25, false)
+	assert_eq(ocean_state, LayerVisibilityCoordinator.PlayerLayerState.SURFACE, "Player in open ocean must be on SURFACE")
+
+	# 4. Player is on coastal beach at (0, 9.4, 0), beach surface height is 9.375
+	var beach_state = coordinator.determine_player_state(Vector3(0, 9.4, 0), 9.375, false)
+	assert_eq(beach_state, LayerVisibilityCoordinator.PlayerLayerState.SURFACE, "Player on coastal beach must be on SURFACE")
+
+	# 5. Player in underground chasm at (-497, 8, -613), mountain surface height is 35.0
+	var chasm_state = coordinator.determine_player_state(Vector3(-497, 8, -613), 35.0, false)
+	assert_eq(chasm_state, LayerVisibilityCoordinator.PlayerLayerState.SUBTERRANEAN, "Player in underground chasm must be SUBTERRANEAN")
+
 	node_surf.free()
 	node_mouth.free()
+

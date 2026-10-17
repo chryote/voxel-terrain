@@ -18,7 +18,8 @@ var apron_size: int = 34
 var max_height: int = 160
 var slice_size: int = 1156
 var total_voxels: int = 184960
-var chasm_water_level: int = 10
+var chasm_water_level: int = 4
+var cave_water_enabled: bool = true
 
 var surface_data: SurfaceChunkData = null
 var floor_heights: PackedInt32Array

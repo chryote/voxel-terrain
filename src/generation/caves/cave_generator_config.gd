@@ -46,7 +46,8 @@ extends Resource
 @export_range(1.0, 6.0) var chasm_floor_variation: float = 3.0 ## Amplitude of floor height undulations
 @export_range(1.0, 6.0) var chasm_ceil_variation: float = 4.0 ## Amplitude of ceiling height undulations
 @export_range(3.0, 10.0) var min_chasm_height: float = 5.0 ## Guaranteed clearance between floor and ceiling
-@export var chasm_water_level: int = 10 ## Elevation below which cavern voids pool water
+@export var chasm_water_level: int = 4 ## Elevation below which cavern voids pool water
+@export var cave_water_enabled: bool = true ## Enable or disable subterranean cave water table pooling
 @export_range(0.001, 0.02) var pillar_frequency: float = 0.008 ## Frequency of stone support pillars
 @export_range(0.1, 0.9) var pillar_threshold: float = 0.60 ## Density above which pillars remain solid
 
@@ -66,4 +67,8 @@ var chasm_frequency: float:
 var chasm_threshold: float:
 	get: return chasm_rift_threshold
 	set(val): chasm_rift_threshold = val
+
+var cave_water_table_enabled: bool:
+	get: return cave_water_enabled
+	set(val): cave_water_enabled = val
 

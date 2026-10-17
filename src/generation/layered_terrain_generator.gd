@@ -120,6 +120,7 @@ func generate_chasm_data(
 	var c_size = bounds.chunk_size
 	var chasm_data = ChasmChunkDataClass.new(c_size, max_h, surface_data)
 	chasm_data.chasm_water_level = cave_config.chasm_water_level
+	chasm_data.cave_water_enabled = cave_config.cave_water_enabled
 
 	if not cave_config.enabled:
 		return chasm_data
@@ -330,7 +331,7 @@ func _carve_subterranean_caves(
 							# 1. Fast O(1) span check for 2D chasm void
 							if cave_carver.is_chasm_void(wy, chasm_col, col_h):
 								is_void = true
-								is_water = (wy <= float(cave_config.chasm_water_level))
+								is_water = cave_config.cave_water_enabled and (wy <= float(cave_config.chasm_water_level)) and not chasm_col.is_arena
 							elif cell_can_tunnel_or_mouth:
 								# 2. Check 3D worm tunnels and cave mouth funnels
 								var tunnel_or_mouth = 0.0

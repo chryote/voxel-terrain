@@ -26,6 +26,18 @@ signal initial_area_ready()
 			for node in _loaded_chunks.values():
 				if node is ChunkNode and node.is_subterranean_visible():
 					node.set_subterranean_visible(false)
+@export var cave_water_enabled: bool = false:
+	set(val):
+		cave_water_enabled = val
+		if cave_config != null:
+			cave_config.cave_water_enabled = val
+		if mesher != null and "cave_water_enabled" in mesher:
+			mesher.cave_water_enabled = val
+		if not is_inside_tree():
+			return
+		for node in _loaded_chunks.values():
+			if node is ChunkNode and node.cave_water_instance != null:
+				node.cave_water_instance.visible = val and node.is_subterranean_visible()
 
 const SpawnFinder = preload("res://src/world/spawn_finder.gd")
 
@@ -64,6 +76,10 @@ func _ready() -> void:
 	cave_config.enabled = caves_enabled
 	subterranean_coordinator.enabled = caves_enabled
 
+	if not world_config.cave_water_enabled:
+		cave_water_enabled = false
+	cave_config.cave_water_enabled = cave_water_enabled
+
 	bounds = world_config.create_world_bounds()
 	if generator == null:
 		generator = VolumetricTerrainGenerator.new(world_config.world_seed, generator_config, cave_config)
@@ -75,7 +91,10 @@ func _ready() -> void:
 	if mesher == null:
 		var voxel_mesher = VoxelMesher.new()
 		voxel_mesher.sea_level = world_config.sea_level
+		voxel_mesher.cave_water_enabled = cave_water_enabled
 		mesher = voxel_mesher
+	elif "cave_water_enabled" in mesher:
+		mesher.cave_water_enabled = cave_water_enabled
 	streamer = ChunkStreamer.new()
 	scheduler = ChunkScheduler.new()
 
@@ -284,24 +303,71 @@ func _update_streaming() -> void:
 				node.queue_free()
 			chunk_unloaded.emit(coord)
 
+func _get_camera_position() -> Vector3:
+	if is_inside_tree() and get_viewport() != null:
+		var cam = get_viewport().get_camera_3d()
+		if is_instance_valid(cam):
+			return cam.global_position
+	if is_instance_valid(focus_target):
+		if "camera_rig" in focus_target and is_instance_valid(focus_target.camera_rig):
+			if "camera" in focus_target.camera_rig and is_instance_valid(focus_target.camera_rig.camera):
+				return focus_target.camera_rig.camera.global_position
+	return _get_focus_position()
+
+func is_in_underground_chasm(pos: Vector3) -> bool:
+	if not caves_enabled:
+		return false
+	if generator == null or not ("cave_carver" in generator) or generator.cave_carver == null:
+		return false
+	var surf_h = get_height_at(pos.x, pos.z)
+	var col = generator.cave_carver.sample_chasm_column(pos.x, pos.z, null, surf_h)
+	if col == null or not col.is_chasm:
+		return false
+	var chasm_floor = float(col.floor_y)
+	var chasm_ceil = float(col.ceil_y)
+	if pos.y < (surf_h - 2.0) and pos.y >= (chasm_floor - 2.0) and pos.y <= chasm_ceil:
+		return true
+	return false
+
+func is_subterranean_position(pos: Vector3) -> bool:
+	if not caves_enabled:
+		return false
+	var surf_h = get_height_at(pos.x, pos.z)
+	if is_in_underground_chasm(pos):
+		return true
+	var sea_threshold = (float(world_config.sea_level) * world_config.voxel_size + 3.0) if world_config != null else 12.0
+	if surf_h > sea_threshold and pos.y < (surf_h - 3.0):
+		return true
+	return false
+
 func _update_layer_visibility(force: bool = false) -> void:
 	if not caves_enabled:
 		for node in _loaded_chunks.values():
 			if node is ChunkNode and node.is_subterranean_visible():
 				node.set_subterranean_visible(false)
+		if water_plane != null:
+			water_plane.set_ocean_visible(true)
 		return
 
 	var focus_pos = _get_focus_position()
 	var focus_chunk = bounds.world_to_chunk(focus_pos)
 	var surf_h = get_height_at(focus_pos.x, focus_pos.z)
-	visibility_coordinator.update_chunk_visibility(
+	var sea_level_h = float(world_config.sea_level) * world_config.voxel_size if world_config != null else 9.0
+	var current_state = visibility_coordinator.update_chunk_visibility(
 		focus_pos,
 		focus_chunk,
 		surf_h,
 		_loaded_chunks,
 		_mouth_cache,
-		force
+		force,
+		sea_level_h
 	)
+
+	if water_plane != null:
+		var cam_pos = _get_camera_position()
+		var in_chasm = is_in_underground_chasm(focus_pos) or is_in_underground_chasm(cam_pos)
+		var is_subterranean = (current_state == LayerVisibilityCoordinator.PlayerLayerState.SUBTERRANEAN) or in_chasm
+		water_plane.set_ocean_visible(not is_subterranean)
 
 func _update_chunk_collisions(force: bool = false) -> void:
 	var focus_pos = _get_focus_position()

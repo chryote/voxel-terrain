@@ -11,6 +11,7 @@ const ChasmChunkDataClass = preload("res://src/core/chasm_chunk_data.gd")
 
 var sea_level: int = 24
 var crust_depth: int = 3
+var cave_water_enabled: bool = true
 var _shell_mesher: SurfaceShellMesher = SurfaceShellMesher.new()
 var _chasm_mesher: ChasmShellMesher = ChasmShellMesher.new()
 
@@ -21,6 +22,7 @@ func build_mesh(data: RefCounted, registry: MaterialRegistry) -> MeshData:
 
 	# Direct chasm bypass: if passed 2.5D chasm column data, delegate to chasm shell mesher
 	if data is ChasmChunkDataClass:
+		_chasm_mesher.cave_water_enabled = cave_water_enabled and data.cave_water_enabled
 		return _chasm_mesher.build_mesh(data, registry)
 
 	if not (data is VoxelChunkData):
@@ -466,7 +468,7 @@ func _build_dual_water_mesh(v_data: VoxelChunkData, bundle: DualMeshBundle, has_
 						if is_surf:
 							s_mask[idx] = 1
 							has_s_water = true
-						else:
+						elif cave_water_enabled:
 							c_mask[idx] = 1
 							has_c_water = true
 
@@ -485,13 +487,17 @@ func _build_dual_water_mesh(v_data: VoxelChunkData, bundle: DualMeshBundle, has_
 	else:
 		bundle.water_mesh_data = null
 
-	if not c_w_verts.is_empty() and bundle.cave_mesh_data != null:
+	if cave_water_enabled and not c_w_verts.is_empty():
 		var c_water = MeshData.new()
 		c_water.vertices = c_w_verts
 		c_water.normals = c_w_norms
 		c_water.colors = c_w_cols
 		c_water.indices = c_w_inds
+		if bundle.cave_mesh_data == null:
+			bundle.cave_mesh_data = MeshData.new()
 		bundle.cave_mesh_data.water_mesh_data = c_water
+	elif bundle.cave_mesh_data != null:
+		bundle.cave_mesh_data.water_mesh_data = null
 
 func _greedy_merge_water_slice(
 	mask: PackedByteArray, n: int, ly: int,

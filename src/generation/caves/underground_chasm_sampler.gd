@@ -264,7 +264,11 @@ func get_chasm_carve(wx: float, wy: float, wz: float) -> float:
 
 func is_subterranean_water(wx: float, wy: float, wz: float) -> bool:
 	## Returns true if voxel is hollow chasm void at or below the chasm water level.
+	if not config.cave_water_enabled:
+		return false
 	if wy > float(config.chasm_water_level):
+		return false
+	if is_arena(wx, wz):
 		return false
 	return get_chasm_carve(wx, wy, wz) > 0.05
 
@@ -281,6 +285,7 @@ func sample_chasm(wx: float, wy: float, wz: float) -> Dictionary:
 			"is_pillar": false
 		}
 
+	var is_arena_col = config.arena_enabled and raw_rift >= config.arena_rift_threshold
 	var is_pillar_col = is_support_pillar(warped_pos.x, warped_pos.y)
 	if config.arena_enabled and raw_rift >= (config.arena_rift_threshold + 0.02):
 		is_pillar_col = false
@@ -295,7 +300,7 @@ func sample_chasm(wx: float, wy: float, wz: float) -> Dictionary:
 
 	var bounds = calculate_floor_and_ceiling(warped_pos.x, warped_pos.y, raw_rift)
 	var is_void = wy > float(bounds.x) and wy < float(bounds.y)
-	var is_water = is_void and wy <= float(config.chasm_water_level)
+	var is_water = is_void and config.cave_water_enabled and (not is_arena_col) and wy <= float(config.chasm_water_level)
 
 	return {
 		"is_chasm": is_void,

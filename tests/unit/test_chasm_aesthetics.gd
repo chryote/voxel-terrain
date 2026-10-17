@@ -117,15 +117,23 @@ func test_water_table_pooling_and_mouth_leakage_safety() -> void:
 
 	# 1. Scan across chunk grid to locate a cave mouth chunk
 	var mouth_coord: ChunkCoord = null
-	for cz in range(0, 10):
-		for cx in range(0, 10):
-			var c = ChunkCoord.new(cx, cz)
-			var s_data = gen.generate_surface(c, bounds)
-			if s_data.has_cave_mouth:
-				mouth_coord = c
+	var allowed = gen.init_cave_mouths(bounds)
+	if allowed.size() > 0:
+		var target_c = bounds.world_to_chunk(allowed[0].world_pos)
+		var s_data = gen.generate_surface(target_c, bounds)
+		if s_data.has_cave_mouth:
+			mouth_coord = target_c
+
+	if mouth_coord == null:
+		for cz in range(0, 16):
+			for cx in range(0, 16):
+				var c = ChunkCoord.new(cx, cz)
+				var s_data = gen.generate_surface(c, bounds)
+				if s_data.has_cave_mouth:
+					mouth_coord = c
+					break
+			if mouth_coord != null:
 				break
-		if mouth_coord != null:
-			break
 
 	assert_not_null(mouth_coord, "Must locate a chunk containing a surface cave mouth entrance")
 	if mouth_coord == null:

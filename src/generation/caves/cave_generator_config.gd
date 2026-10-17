@@ -17,6 +17,12 @@ extends Resource
 @export_range(1.0, 10.0) var crust_depth: float = 3.0 ## Thickness of solid surface crust protected from accidental subterranean punctures
 @export_range(5.0, 30.0) var max_entrance_depth: float = 14.0 ## Maximum depth of the entrance descent funnel
 
+@export_group("Cave Mouth Generation Limits")
+@export var limit_cave_mouths: bool = true ## Master switch to limit cave mouth generation across continent
+@export var max_chasm_mouths: int = 1 ## Maximum allowed cave mouths leading to underground chasms
+@export var max_tunnel_mouths: int = 2 ## Maximum allowed cave mouths leading to interconnected 3D tunnels
+@export var max_dead_end_mouths: int = 3 ## Maximum allowed shallow dead-end cave mouths
+
 @export_group("3D Worm Tunnels & Navigation")
 @export_range(0.005, 0.05) var tunnel_frequency: float = 0.016 ## Spatial frequency of 3D worm tunnels
 @export_range(1.5, 10.0) var tunnel_radius_base: float = 3.8 ## Base radius of traversable corridors (calibrated for player movement)

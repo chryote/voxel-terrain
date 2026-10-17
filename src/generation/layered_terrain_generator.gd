@@ -11,6 +11,7 @@ var cave_config: CaveGeneratorConfig
 
 var continent_gen: ContinentGenerator
 var cave_carver: CaveCarver
+var _mouths_initialized: bool = false
 
 func _init(seed_val: int = 1337, p_config: ContinentGeneratorConfig = null, p_cave_config: CaveGeneratorConfig = null) -> void:
 	config = p_config if p_config != null else ContinentGeneratorConfig.new()
@@ -19,8 +20,23 @@ func _init(seed_val: int = 1337, p_config: ContinentGeneratorConfig = null, p_ca
 	continent_gen = ContinentGenerator.new(seed_val, config)
 	cave_carver = CaveCarver.new(seed_val, cave_config)
 
+const CaveMouthDetectorClass = preload("res://src/map/cave_mouth_detector.gd")
+
+func init_cave_mouths(bounds: WorldBounds) -> Array:
+	## Discovers and initializes continent-wide allowed cave mouths respecting configured limits.
+	if not cave_config.enabled or not cave_config.limit_cave_mouths or bounds == null:
+		_mouths_initialized = true
+		return []
+	var detector = CaveMouthDetectorClass.new()
+	var mouths = detector.detect_cave_mouths(self, bounds)
+	cave_carver.set_allowed_mouths(mouths)
+	_mouths_initialized = true
+	return mouths
+
 ## Phase A: High-speed surface-only generation (~14 ms)
 func generate_surface(coord: ChunkCoord, bounds: WorldBounds) -> SurfaceChunkData:
+	if not _mouths_initialized and cave_config.enabled and cave_config.limit_cave_mouths and bounds != null:
+		init_cave_mouths(bounds)
 	var surface_data: SurfaceChunkData = continent_gen.generate(coord, bounds)
 	surface_data.has_cave_mouth = check_has_cave_mouth(surface_data, coord, bounds)
 	return surface_data
@@ -29,7 +45,22 @@ func generate_surface(coord: ChunkCoord, bounds: WorldBounds) -> SurfaceChunkDat
 func check_has_cave_mouth(surface_data: SurfaceChunkData, coord: ChunkCoord, bounds: WorldBounds) -> bool:
 	if not cave_config.enabled:
 		return false
+	if not _mouths_initialized and cave_config.limit_cave_mouths and bounds != null:
+		init_cave_mouths(bounds)
+
 	var c_size = bounds.chunk_size
+	# Fast-path: if allowed mouths are active, check if chunk AABB intersects any allowed mouth
+	if cave_carver.mouth_sampler.use_allowed_mouths:
+		var chunk_origin = bounds.chunk_origin(coord)
+		var c_span = float(c_size) * bounds.voxel_size
+		if not cave_carver.mouth_sampler.limiter.can_box_intersect_mouths(
+			chunk_origin.x, chunk_origin.z,
+			chunk_origin.x + c_span, chunk_origin.z + c_span,
+			cave_carver.mouth_sampler.allowed_mouths,
+			cave_carver.config.mouth_radius
+		):
+			return false
+
 	var sea_level = config.sea_level
 	for lz in range(c_size):
 		for lx in range(c_size):
@@ -44,6 +75,8 @@ func check_has_cave_mouth(surface_data: SurfaceChunkData, coord: ChunkCoord, bou
 
 ## Phase B: Subterranean voxel column population and 3D cave carving
 func generate_subterranean(surface_data: SurfaceChunkData, coord: ChunkCoord, bounds: WorldBounds) -> VoxelChunkData:
+	if not _mouths_initialized and cave_config.enabled and cave_config.limit_cave_mouths and bounds != null:
+		init_cave_mouths(bounds)
 	if surface_data == null:
 		surface_data = generate_surface(coord, bounds)
 

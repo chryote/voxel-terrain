@@ -11,6 +11,12 @@ var config: CaveGeneratorConfig
 var mouth_noise: FastNoiseLite
 var mouth_warp: FastNoiseLite
 
+const CaveMouthLimiterClass = preload("res://src/generation/caves/cave_mouth_limiter.gd")
+
+var allowed_mouths: Array = []
+var use_allowed_mouths: bool = false
+var limiter: CaveMouthLimiterClass = CaveMouthLimiterClass.new()
+
 func _init(seed_val: int = 1337, p_config: CaveGeneratorConfig = null) -> void:
 	config = p_config if p_config != null else CaveGeneratorConfig.new()
 
@@ -24,6 +30,14 @@ func _init(seed_val: int = 1337, p_config: CaveGeneratorConfig = null) -> void:
 	mouth_warp.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 	mouth_warp.frequency = config.mouth_frequency * 2.5
 
+func set_allowed_mouths(mouths: Array) -> void:
+	allowed_mouths = mouths if mouths != null else []
+	use_allowed_mouths = (mouths != null)
+
+func clear_allowed_mouths() -> void:
+	allowed_mouths = []
+	use_allowed_mouths = false
+
 func is_dry_land(surface_h: float, sea_level: int) -> bool:
 	return surface_h >= float(sea_level) + config.water_safety_margin
 
@@ -33,7 +47,7 @@ func sample_raw_noise(wx: float, wz: float) -> float:
 	var warp_offset_z = mouth_warp.get_noise_2d(wx + 1234.0, wz + 5678.0) * 12.0
 	return mouth_noise.get_noise_2d(wx + warp_offset_x, wz + warp_offset_z)
 
-func sample_mouth(wx: float, wz: float, surface_h: float, sea_level: int) -> Dictionary:
+func sample_raw_mouth(wx: float, wz: float, surface_h: float, sea_level: int) -> Dictionary:
 	# Cave mouths only spawn on dry land well above water table and when enabled
 	if not config.enabled or not is_dry_land(surface_h, sea_level):
 		return {
@@ -71,9 +85,26 @@ func sample_mouth(wx: float, wz: float, surface_h: float, sea_level: int) -> Dic
 		"effective_radius": eff_radius
 	}
 
+func sample_mouth(wx: float, wz: float, surface_h: float, sea_level: int) -> Dictionary:
+	if use_allowed_mouths:
+		var mouth_data = limiter.find_nearest_mouth(wx, wz, allowed_mouths, config.mouth_radius * 0.5)
+		if mouth_data == null:
+			return {
+				"is_mouth": false,
+				"intensity": 0.0,
+				"carve_depth": 0.0,
+				"bottom_y": surface_h,
+				"effective_radius": 0.0
+			}
+	return sample_raw_mouth(wx, wz, surface_h, sea_level)
+
 func is_mouth_candidate(wx: float, wz: float, surface_h: float, sea_level: int) -> bool:
 	if not config.enabled or not is_dry_land(surface_h, sea_level):
 		return false
+	if use_allowed_mouths:
+		var mouth_data = limiter.find_nearest_mouth(wx, wz, allowed_mouths, config.mouth_radius * 0.5)
+		if mouth_data == null:
+			return false
 	return sample_raw_noise(wx, wz) >= config.mouth_threshold
 
 func can_mouth_intersect_cell(min_p: Vector3, max_p: Vector3, max_surface_h: float, sea_level: int) -> bool:
@@ -84,6 +115,9 @@ func can_mouth_intersect_cell(min_p: Vector3, max_p: Vector3, max_surface_h: flo
 		return false
 	if not is_dry_land(max_surface_h, sea_level):
 		return false
+
+	if use_allowed_mouths:
+		return limiter.can_box_intersect_mouths(min_p.x, min_p.z, max_p.x, max_p.z, allowed_mouths, config.mouth_radius * 1.5)
 
 	var r = config.mouth_radius
 	for mx in [min_p.x - r, min_p.x, max_p.x, max_p.x + r]:

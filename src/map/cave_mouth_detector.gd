@@ -11,11 +11,23 @@ extends RefCounted
 
 const MapCoordinateConverterClass = preload("res://src/map/map_coordinate_converter.gd")
 const CaveMouthDataClass = preload("res://src/map/cave_mouth_data.gd")
+const CaveMouthLimiterClass = preload("res://src/generation/caves/cave_mouth_limiter.gd")
+
+var limiter: CaveMouthLimiterClass = CaveMouthLimiterClass.new()
+
+func detect_all_candidate_mouths(
+	generator: TerrainGenerator,
+	bounds: WorldBounds,
+	resolution: int = 512
+) -> Array:
+	## Scans the continent for all raw candidate cave mouths without applying generation limits.
+	return detect_cave_mouths(generator, bounds, resolution, false)
 
 func detect_cave_mouths(
 	generator: TerrainGenerator,
 	bounds: WorldBounds,
-	resolution: int = 512
+	resolution: int = 512,
+	apply_limits: bool = true
 ) -> Array:
 	var result: Array = []
 	if generator == null or bounds == null or resolution <= 0:
@@ -111,8 +123,9 @@ func detect_cave_mouths(
 		var col = bounds.world_to_column(Vector3(peak_wx, 0.0, peak_wz))
 		var surface_h = float(generator.height_at(col, bounds))
 
-		var mouth_info = mouth_sampler.sample_mouth(peak_wx, peak_wz, surface_h, sea_level)
-		if not mouth_info.is_mouth or mouth_info.carve_depth < 2.5:
+		var mouth_info = mouth_sampler.sample_raw_mouth(peak_wx, peak_wz, surface_h, sea_level)
+		var min_depth = 2.5 if (cave_carver != null and cave_carver.config.mouth_threshold >= 0.45) else 0.5
+		if not mouth_info.is_mouth or mouth_info.carve_depth < min_depth:
 			continue
 
 		var mouth_type = classify_cave_mouth(peak_wx, peak_wz, surface_h, sea_level, cave_carver)
@@ -128,6 +141,9 @@ func detect_cave_mouths(
 			surface_h
 		)
 		result.append(data)
+
+	if apply_limits and cave_carver != null and cave_carver.config != null:
+		result = limiter.limit_mouths(result, cave_carver.config)
 
 	return result
 

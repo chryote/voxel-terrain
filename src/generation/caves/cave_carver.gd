@@ -29,6 +29,15 @@ func _init(seed_val: int = 1337, p_config: CaveGeneratorConfig = null) -> void:
 	crystal_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 	crystal_noise.frequency = 0.04
 
+func set_allowed_mouths(mouths: Array) -> void:
+	mouth_sampler.set_allowed_mouths(mouths)
+
+func get_allowed_mouths() -> Array:
+	return mouth_sampler.allowed_mouths
+
+func clear_allowed_mouths() -> void:
+	mouth_sampler.clear_allowed_mouths()
+
 func sample_chasm_column(wx: float, wz: float, out: ChasmColumnResult = null) -> ChasmColumnResult:
 	## Delegates 2D column chasm evaluation to UndergroundChasmSampler.
 	return chasm_sampler.sample_column(wx, wz, out)

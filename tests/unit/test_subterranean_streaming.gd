@@ -56,15 +56,23 @@ func test_cave_mouth_chunk_triggers_subterranean_generation() -> void:
 
 	# Scan for a chunk that contains a mouth
 	var mouth_coord: ChunkCoord = null
-	for cx in range(0, 5):
-		for cz in range(0, 5):
-			var c = ChunkCoord.new(cx, cz)
-			var s_data = gen.generate_surface(c, bounds)
-			if s_data.has_cave_mouth:
-				mouth_coord = c
+	var allowed = gen.init_cave_mouths(bounds)
+	if allowed.size() > 0:
+		var target_c = bounds.world_to_chunk(allowed[0].world_pos)
+		var target_s = gen.generate_surface(target_c, bounds)
+		if target_s.has_cave_mouth:
+			mouth_coord = target_c
+
+	if mouth_coord == null:
+		for cx in range(0, 10):
+			for cz in range(0, 10):
+				var c = ChunkCoord.new(cx, cz)
+				var s_data = gen.generate_surface(c, bounds)
+				if s_data.has_cave_mouth:
+					mouth_coord = c
+					break
+			if mouth_coord != null:
 				break
-		if mouth_coord != null:
-			break
 
 	assert_not_null(mouth_coord, "Must find a chunk with a cave mouth candidate")
 

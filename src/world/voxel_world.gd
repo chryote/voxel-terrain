@@ -66,6 +66,8 @@ func _ready() -> void:
 	bounds = world_config.create_world_bounds()
 	if generator == null:
 		generator = VolumetricTerrainGenerator.new(world_config.world_seed, generator_config, cave_config)
+	if generator is LayeredTerrainGenerator:
+		generator.init_cave_mouths(bounds)
 	if mesher == null:
 		var voxel_mesher = VoxelMesher.new()
 		voxel_mesher.sea_level = world_config.sea_level

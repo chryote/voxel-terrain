@@ -96,11 +96,19 @@ func generate_subterranean(surface_data: SurfaceChunkData, coord: ChunkCoord, bo
 		var min_wz = float(coord.z * c_size) * bounds.voxel_size
 		var max_wx = float((coord.x + 1) * c_size) * bounds.voxel_size
 		var max_wz = float((coord.z + 1) * c_size) * bounds.voxel_size
-		var cell_min_p = Vector3(min_wx, 0.0, min_wz)
-		var cell_max_p = Vector3(max_wx, float(max_h) * bounds.voxel_size, max_wz)
+
+		# Clamp vertical bounds to strata where subterranean caves and tunnels can actually exist (Y=3..surface)
+		var max_surf_h = 0
+		for lz in range(c_size):
+			for lx in range(c_size):
+				max_surf_h = maxi(max_surf_h, surface_data.get_height(lx, lz))
+		var carve_ceiling = float(mini(max_h, max_surf_h + 2)) * bounds.voxel_size
+
+		var cell_min_p = Vector3(min_wx, 3.0 * bounds.voxel_size, min_wz)
+		var cell_max_p = Vector3(max_wx, carve_ceiling, max_wz)
 
 		var can_tunnel = cave_config.enabled and cave_carver.tunnel_sampler.can_tunnel_intersect_cell(cell_min_p, cell_max_p)
-		var can_mouth = cave_config.enabled and cave_carver.mouth_sampler.can_mouth_intersect_cell(cell_min_p, cell_max_p, 255.0, config.sea_level)
+		var can_mouth = cave_config.enabled and cave_carver.mouth_sampler.can_mouth_intersect_cell(cell_min_p, cell_max_p, float(max_surf_h), config.sea_level)
 
 		if not can_tunnel and not can_mouth:
 			return generate_chasm_data(surface_data, coord, bounds, max_h)

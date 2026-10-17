@@ -93,35 +93,70 @@ func sample_tunnel(wx: float, wy: float, wz: float) -> Dictionary:
 	}
 
 func can_tunnel_intersect_cell(min_p: Vector3, max_p: Vector3) -> bool:
-	## Coarse culling: evaluates center and 8 corners using calibrated Lipschitz bound (0.12).
+	## Coarse culling: evaluates center and corners using calibrated Lipschitz bounds.
 	## Returns false if it is mathematically impossible for a worm tunnel to carve inside this cell.
+	if max_p.y <= min_p.y or max_p.x <= min_p.x or max_p.z <= min_p.z:
+		return false
+
 	var eff_thresh = config.tunnel_radius_base * 0.05 * 0.85
-	var max_safe_d = eff_thresh + 0.12
 
-	# 1. Fast center check: if center is inside the tunnel, return true immediately
-	var mid_x = (min_p.x + max_p.x) * 0.5
-	var mid_y = (min_p.y + max_p.y) * 0.5
-	var mid_z = (min_p.z + max_p.z) * 0.5
-	var sq_y_m = mid_y * config.tunnel_vertical_squish
-	var na_m = tunnel_noise_a.get_noise_3d(mid_x, sq_y_m, mid_z)
-	var nb_m = tunnel_noise_b.get_noise_3d(mid_x, sq_y_m, mid_z)
-	var mid_d = sqrt(na_m * na_m + nb_m * nb_m)
-	if mid_d <= eff_thresh:
-		return true
+	var span_x = max_p.x - min_p.x
+	var span_y = max_p.y - min_p.y
+	var span_z = max_p.z - min_p.z
 
-	var min_d = mid_d
-	for cx in [min_p.x, max_p.x]:
-		for cy in [min_p.y, max_p.y]:
-			for cz in [min_p.z, max_p.z]:
-				var sq_y = cy * config.tunnel_vertical_squish
-				var na = tunnel_noise_a.get_noise_3d(cx, sq_y, cz)
-				var nb = tunnel_noise_b.get_noise_3d(cx, sq_y, cz)
+	# Fast-path for small coarse cells (e.g. 4x4x4 block inside _carve_subterranean_caves)
+	if span_x <= 4.1 and span_y <= 4.1 and span_z <= 4.1:
+		var max_safe_d = eff_thresh + 0.12
+
+		# 1. Fast center check: if center is inside the tunnel, return true immediately
+		var mid_x = (min_p.x + max_p.x) * 0.5
+		var mid_y = (min_p.y + max_p.y) * 0.5
+		var mid_z = (min_p.z + max_p.z) * 0.5
+		var sq_y_m = mid_y * config.tunnel_vertical_squish
+		var na_m = tunnel_noise_a.get_noise_3d(mid_x, sq_y_m, mid_z)
+		var nb_m = tunnel_noise_b.get_noise_3d(mid_x, sq_y_m, mid_z)
+		var mid_d = sqrt(na_m * na_m + nb_m * nb_m)
+		if mid_d <= eff_thresh:
+			return true
+
+		var min_d = mid_d
+		for cx in [min_p.x, max_p.x]:
+			for cy in [min_p.y, max_p.y]:
+				for cz in [min_p.z, max_p.z]:
+					var sq_y = cy * config.tunnel_vertical_squish
+					var na = tunnel_noise_a.get_noise_3d(cx, sq_y, cz)
+					var nb = tunnel_noise_b.get_noise_3d(cx, sq_y, cz)
+					var d = sqrt(na * na + nb * nb)
+					if d <= eff_thresh:
+						return true
+					min_d = minf(min_d, d)
+
+		return min_d <= max_safe_d
+
+	# General bounding box path for multi-block volumes or full chunk AABBs:
+	# Steps in increments of <= 8.0m with calibrated 0.25 margin to eliminate false negatives.
+	var step_x = minf(8.0, span_x)
+	var step_y = minf(8.0, span_y)
+	var step_z = minf(8.0, span_z)
+	var max_safe_d = eff_thresh + 0.25
+
+	var y = min_p.y
+	while y <= max_p.y:
+		var sq_y = y * config.tunnel_vertical_squish
+		var z = min_p.z
+		while z <= max_p.z:
+			var x = min_p.x
+			while x <= max_p.x:
+				var na = tunnel_noise_a.get_noise_3d(x, sq_y, z)
+				var nb = tunnel_noise_b.get_noise_3d(x, sq_y, z)
 				var d = sqrt(na * na + nb * nb)
-				if d <= eff_thresh:
+				if d <= max_safe_d:
 					return true
-				min_d = minf(min_d, d)
+				x += step_x
+			z += step_z
+		y += step_y
 
-	return min_d <= max_safe_d
+	return false
 
 func get_tunnel_carve(wx: float, wy: float, wz: float) -> float:
 	var squished_y = wy * config.tunnel_vertical_squish

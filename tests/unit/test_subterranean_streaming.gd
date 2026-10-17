@@ -210,3 +210,27 @@ func test_layered_terrain_generator_methods() -> void:
 	assert_not_null(v_data)
 	assert_eq(v_data.chunk_size, 16)
 	assert_eq(v_data.get_voxel(0, 0, 0), MaterialDef.ID_STONE, "Bedrock must be solid stone")
+
+func test_chunk_negative_17_negative_23_subterranean_generation() -> void:
+	## Regression test: validates that chunk (-17, -23) properly detects worm tunnels and
+	## generates subterranean geometry rather than failing to load / leaving open void.
+	var world_config = WorldConfig.new()
+	var bounds = world_config.create_world_bounds()
+	var gen = VolumetricTerrainGenerator.new(world_config.world_seed)
+	if gen.cave_carver != null and gen.continent_gen != null:
+		gen.cave_carver.set_continent_mask(gen.continent_gen.mask, bounds)
+
+	var coord = ChunkCoord.new(-17, -23)
+	var surf_data = gen.generate_surface(coord, bounds)
+	var sub_data = gen.generate_subterranean(surf_data, coord, bounds)
+
+	assert_not_null(sub_data, "Subterranean data for (-17, -23) must not be null")
+
+	var mesher = VoxelMesher.new()
+	var reg = MaterialRegistry.create_default_registry()
+	var bundle = mesher.build_mesh(sub_data, reg)
+
+	assert_true(bundle is DualMeshBundle, "Meshed chunk must produce a DualMeshBundle")
+	assert_true(bundle.has_cave_geometry(), "Chunk (-17, -23) must contain cave geometry")
+	assert_true(bundle.cave_mesh_data.vertices.size() > 1000, "Chunk (-17, -23) must generate comprehensive cave mesh (got %d vertices)" % bundle.cave_mesh_data.vertices.size())
+

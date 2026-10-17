@@ -73,3 +73,26 @@ func test_dead_end_pinch_off() -> void:
 			break
 
 	assert_true(found_dead_end, "Must find at least one dead-end point with dead_end_threshold=0.2")
+
+func test_can_tunnel_intersect_cell_bounding_box() -> void:
+	var config = CaveGeneratorConfig.new()
+	var sampler = SubterraneanTunnelSampler.new(1337, config)
+
+	# 1. Invalid degenerate boxes must return false
+	assert_false(sampler.can_tunnel_intersect_cell(Vector3(10, 10, 10), Vector3(10, 10, 10)), "Degenerate box must return false")
+	assert_false(sampler.can_tunnel_intersect_cell(Vector3(20, 20, 20), Vector3(10, 10, 10)), "Inverted box must return false")
+
+	# 2. Large chunk volume (-17, -23) known to contain tunnels must return true
+	var min_p = Vector3(-544.0, 3.0, -736.0)
+	var max_p = Vector3(-512.0, 43.0, -704.0)
+	assert_true(sampler.can_tunnel_intersect_cell(min_p, max_p), "Chunk (-17, -23) volume containing 3D worm tunnels must return true")
+
+	# 3. Solid rock block away from tunnel zero-crossings must cull to false
+	var void_cell_found = false
+	for x in range(0, 500, 20):
+		var b_min = Vector3(float(x), 20.0, 0.0)
+		var b_max = Vector3(float(x) + 4.0, 24.0, 4.0)
+		if not sampler.can_tunnel_intersect_cell(b_min, b_max):
+			void_cell_found = true
+			break
+	assert_true(void_cell_found, "Solid rock cell far from tunnel zero-crossings must cull to false")

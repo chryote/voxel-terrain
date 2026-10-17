@@ -140,7 +140,6 @@ Worker threads must bake two separate complex `ConcavePolygonShape3D` instances 
 | :---: | :--- | :--- | :--- |
 | [x] | **1. Unwarped Rift Early Exit** | `underground_chasm_sampler.gd` | ~30% faster sampling |
 | [x] | **2. Inland Continent Mask Bypass** | `underground_chasm_sampler.gd` | ~50% faster inland sampling |
-| [ ] | **3. Suppress Worm Tunnels in Arena** | `layered_terrain_generator.gd` | Forces fast 2.5D bypass for arenas |
 | [ ] | **4. Clamped $Y$ Bounds on 3D Carving** | `layered_terrain_generator.gd` | ~60% faster fallback carving |
 | [ ] | **5. Greedy Curtain Wall Meshing** | `chasm_shell_mesher.gd` | 40% fewer vertices, ~3–5 ms meshing |
 | [ ] | **6. Ceiling Collision Exclusion** | `chasm_shell_mesher.gd` / baker | ~50% faster cave collision baking |

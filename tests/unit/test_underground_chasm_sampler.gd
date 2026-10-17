@@ -64,3 +64,74 @@ func test_support_pillars() -> void:
 			break
 
 	assert_true(found_pillar, "Must locate natural support pillars")
+
+func test_early_exit_warp_margin_calibration() -> void:
+	var config = CaveGeneratorConfig.new()
+	config.chasm_wall_warp_amplitude = 4.0
+	config.chasm_rift_frequency = 0.003
+	var sampler = UndergroundChasmSampler.new(1337, config)
+
+	var margin = sampler.get_wall_warp_margin()
+	# Expected margin = 4.0 * 1.4142 * 0.003 * 2.0 ~= 0.03394
+	assert_almost_eq(margin, 4.0 * 1.4142 * 0.003 * 2.0, 0.0001, "Warp margin must scale with amplitude and frequency")
+
+	# Zero amplitude warp must yield 0 margin
+	config.chasm_wall_warp_amplitude = 0.0
+	assert_eq(sampler.get_wall_warp_margin(), 0.0, "Zero amplitude warp must yield zero margin")
+
+func test_fast_early_exit_corridor_masking() -> void:
+	var config = CaveGeneratorConfig.new()
+	var sampler = UndergroundChasmSampler.new(1337, config)
+
+	var col = ChasmColumnResult.new()
+	var early_exits = 0
+	var total_samples = 0
+	var early_exit_threshold = config.chasm_rift_threshold - (sampler.get_wall_warp_margin() + UndergroundChasmSampler.WALL_MARGIN)
+
+	for x in range(-50, 50, 2):
+		for z in range(-50, 50, 2):
+			total_samples += 1
+			var wx = float(x) * 8.0
+			var wz = float(z) * 8.0
+			var unwarped_rift = sampler.sample_unwarped_rift(wx, wz)
+
+			sampler.sample_column(wx, wz, col)
+
+			if unwarped_rift < early_exit_threshold:
+				early_exits += 1
+				assert_false(col.is_chasm, "Early-exited column must have is_chasm = false")
+				assert_false(col.is_wall, "Early-exited column must have is_wall = false")
+				assert_false(col.is_pillar, "Early-exited column must have is_pillar = false")
+				assert_false(col.is_arena, "Early-exited column must have is_arena = false")
+				assert_eq(col.floor_y, 0, "Early-exited column floor_y must be 0")
+				assert_eq(col.ceil_y, 0, "Early-exited column ceil_y must be 0")
+				assert_false(sampler.can_column_contain_chasm(wx, wz), "can_column_contain_chasm must be false")
+				assert_eq(sampler.get_chasm_carve(wx, 10.0, wz), 0.0, "Point carve query must return 0.0")
+
+	assert_true(early_exits > 500, "Early exit must prune void columns (pruned %d / %d)" % [early_exits, total_samples])
+
+func test_no_false_negatives_in_corridor() -> void:
+	## Validates that every column with is_chasm or is_wall has unwarped_rift >= early_exit_threshold.
+	var config = CaveGeneratorConfig.new()
+	var sampler = UndergroundChasmSampler.new(1337, config)
+
+	var col = ChasmColumnResult.new()
+	var early_exit_threshold = config.chasm_rift_threshold - (sampler.get_wall_warp_margin() + UndergroundChasmSampler.WALL_MARGIN)
+
+	var chasm_columns_found = 0
+	for x in range(-40, 40, 2):
+		for z in range(-40, 40, 2):
+			var wx = float(x) * 6.0
+			var wz = float(z) * 6.0
+			sampler.sample_column(wx, wz, col)
+
+			if col.is_chasm or col.is_wall:
+				chasm_columns_found += 1
+				var unwarped_rift = sampler.sample_unwarped_rift(wx, wz)
+				assert_true(
+					unwarped_rift >= early_exit_threshold,
+					"Active chasm or wall at (%f, %f) must never be culled: unwarped_rift was %f (threshold: %f)" % [wx, wz, unwarped_rift, early_exit_threshold]
+				)
+
+	assert_true(chasm_columns_found > 100, "Must validate across active chasm and wall columns (found %d)" % chasm_columns_found)
+

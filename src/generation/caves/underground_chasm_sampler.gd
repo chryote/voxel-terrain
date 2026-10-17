@@ -5,6 +5,7 @@ extends RefCounted
 ## Replaces volumetric 3D Simplex noise with two 2D heightfield noise maps (floor and ceiling)
 ## bounded laterally by a domain-warped 2D tectonic rift corridor mask with vertical walls.
 ## Guarantees minimum vertical clearance and indestructible bedrock protection.
+const WALL_MARGIN: float = 0.03
 
 var config: CaveGeneratorConfig
 
@@ -52,6 +53,33 @@ func _init_noises(seed_val: int) -> void:
 	pillar_noise.seed = seed_val + 1011
 	pillar_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 	pillar_noise.frequency = config.pillar_frequency
+
+func sample_unwarped_rift(wx: float, wz: float) -> float:
+	## Fast normalized [0.0, 1.0] 2D rift corridor density without domain warping or continental mask evaluation.
+	return (rift_noise.get_noise_2d(wx, wz) + 1.0) * 0.5
+
+func get_wall_warp_margin() -> float:
+	## Conservative margin for unwarped rift early-exit.
+	## Accounts for maximum horizontal displacement under 2D domain warping
+	## (sqrt(2) * amplitude) scaled by rift noise frequency and noise gradient factor.
+	var max_reach = config.chasm_wall_warp_amplitude * 1.4142
+	return max_reach * config.chasm_rift_frequency * 2.0
+
+func can_column_contain_chasm(wx: float, wz: float) -> bool:
+	## Fast unwarped query to determine if (wx, wz) could possibly be within a chasm void.
+	var unwarped_rift = sample_unwarped_rift(wx, wz)
+	return unwarped_rift >= (config.chasm_rift_threshold - get_wall_warp_margin())
+
+func _reset_column_to_empty(out: ChasmColumnResult, p_raw_rift: float) -> void:
+	out.raw_rift = p_raw_rift
+	out.is_chasm = false
+	out.is_pillar = false
+	out.is_wall = false
+	out.is_arena = false
+	out.is_arena_ledge = false
+	out.is_basalt_column = false
+	out.floor_y = 0
+	out.ceil_y = 0
 
 func get_warped_coordinates(wx: float, wz: float) -> Vector2:
 	## Domain-warps horizontal sampling coordinates using decorrelated offsets
@@ -127,6 +155,9 @@ func is_arena(wx: float, wz: float) -> bool:
 	## Returns true if world position falls within a subterranean battle arena.
 	if not config.arena_enabled:
 		return false
+	var unwarped_rift = sample_unwarped_rift(wx, wz)
+	if unwarped_rift < (config.arena_rift_threshold - get_wall_warp_margin()):
+		return false
 	var warped_pos = get_warped_coordinates(wx, wz)
 	return sample_rift_mask(warped_pos.x, warped_pos.y) >= config.arena_rift_threshold
 
@@ -136,20 +167,21 @@ func sample_column(wx: float, wz: float, out: ChasmColumnResult = null, surface_
 	if out == null:
 		out = ChasmColumnResult.new()
 
+	# Fast Early-Exit Corridor Masking (Task 1.1)
+	# Check unwarped rift noise first. If outside conservative corridor boundary,
+	# bypass domain warping, continent mask, floor, ceiling, and pillar noise evaluations.
+	var unwarped_rift = sample_unwarped_rift(wx, wz)
+	var early_exit_margin = get_wall_warp_margin() + WALL_MARGIN
+	if unwarped_rift < (config.chasm_rift_threshold - early_exit_margin):
+		_reset_column_to_empty(out, unwarped_rift)
+		return out
+
 	var warped_pos = get_warped_coordinates(wx, wz)
 	var raw_rift = sample_rift_mask(warped_pos.x, warped_pos.y)
 	out.raw_rift = raw_rift
 
-	var wall_margin = 0.03
-	if raw_rift < (config.chasm_rift_threshold - wall_margin):
-		out.is_chasm = false
-		out.is_pillar = false
-		out.is_wall = false
-		out.is_arena = false
-		out.is_arena_ledge = false
-		out.is_basalt_column = false
-		out.floor_y = 0
-		out.ceil_y = 0
+	if raw_rift < (config.chasm_rift_threshold - WALL_MARGIN):
+		_reset_column_to_empty(out, raw_rift)
 		return out
 
 	var is_arena_zone = config.arena_enabled and raw_rift >= config.arena_rift_threshold
@@ -244,6 +276,9 @@ func get_chasm_carve(wx: float, wy: float, wz: float) -> float:
 	if wy <= 2.0 or wy >= effective_max_y:
 		return 0.0
 
+	if not can_column_contain_chasm(wx, wz):
+		return 0.0
+
 	var warped_pos = get_warped_coordinates(wx, wz)
 	var raw_rift = sample_rift_mask(warped_pos.x, warped_pos.y)
 	if raw_rift < config.chasm_rift_threshold:
@@ -274,6 +309,14 @@ func is_subterranean_water(wx: float, wy: float, wz: float) -> bool:
 
 func sample_chasm(wx: float, wy: float, wz: float) -> Dictionary:
 	## Structured point-query compatibility method.
+	if not can_column_contain_chasm(wx, wz):
+		return {
+			"is_chasm": false,
+			"density": 0.0,
+			"is_water": false,
+			"is_pillar": false
+		}
+
 	var warped_pos = get_warped_coordinates(wx, wz)
 	var raw_rift = sample_rift_mask(warped_pos.x, warped_pos.y)
 

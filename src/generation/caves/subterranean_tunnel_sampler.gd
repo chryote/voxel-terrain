@@ -147,3 +147,31 @@ func get_tunnel_carve(wx: float, wy: float, wz: float) -> float:
 
 func is_dead_end_zone(wx: float, wy: float, wz: float) -> bool:
 	return continuity_noise.get_noise_3d(wx, wy * 0.8, wz) <= config.dead_end_threshold
+
+func sample_trilinear_cell_corners(min_p: Vector3, max_p: Vector3) -> PackedFloat32Array:
+	## Evaluates tunnel carve densities at the 8 corners of a 3D cell [min_p, max_p].
+	## Corner ordering: [c000, c100, c010, c110, c001, c101, c011, c111]
+	var corners = PackedFloat32Array()
+	corners.resize(8)
+	corners[0] = get_tunnel_carve(min_p.x, min_p.y, min_p.z)
+	corners[1] = get_tunnel_carve(max_p.x, min_p.y, min_p.z)
+	corners[2] = get_tunnel_carve(min_p.x, max_p.y, min_p.z)
+	corners[3] = get_tunnel_carve(max_p.x, max_p.y, min_p.z)
+	corners[4] = get_tunnel_carve(min_p.x, min_p.y, max_p.z)
+	corners[5] = get_tunnel_carve(max_p.x, min_p.y, max_p.z)
+	corners[6] = get_tunnel_carve(min_p.x, max_p.y, max_p.z)
+	corners[7] = get_tunnel_carve(max_p.x, max_p.y, max_p.z)
+	return corners
+
+func evaluate_trilinear(corners: PackedFloat32Array, u: float, v: float, w: float) -> float:
+	## Trilinearly interpolates corner densities for normalized coordinates (u, v, w) in [0.0, 1.0].
+	var c00 = lerpf(corners[0], corners[1], u)
+	var c01 = lerpf(corners[4], corners[5], u)
+	var c10 = lerpf(corners[2], corners[3], u)
+	var c11 = lerpf(corners[6], corners[7], u)
+
+	var c0 = lerpf(c00, c10, v)
+	var c1 = lerpf(c01, c11, v)
+
+	return lerpf(c0, c1, w)
+

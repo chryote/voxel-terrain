@@ -279,6 +279,22 @@ func _carve_subterranean_caves(
 				var cell_can_mouth = cave_carver.mouth_sampler.can_mouth_intersect_cell(cell_min_p, cell_max_p, cell_max_h, sea_level)
 				var cell_can_tunnel_or_mouth = cell_can_tunnel or cell_can_mouth
 
+				# Item 3.3: Trilinear density interpolation for 3D worm tunnels
+				var use_trilinear = cave_config.use_trilinear_tunnel_grid and cell_can_tunnel
+				var tunnel_corners: PackedFloat32Array
+				var has_tunnel_density = false
+				if use_trilinear:
+					tunnel_corners = cave_carver.tunnel_sampler.sample_trilinear_cell_corners(cell_min_p, cell_max_p)
+					var max_c = maxf(
+						maxf(maxf(tunnel_corners[0], tunnel_corners[1]), maxf(tunnel_corners[2], tunnel_corners[3])),
+						maxf(maxf(tunnel_corners[4], tunnel_corners[5]), maxf(tunnel_corners[6], tunnel_corners[7]))
+					)
+					if max_c > 0.0:
+						has_tunnel_density = true
+					else:
+						var mid_c = cave_carver.tunnel_sampler.get_tunnel_carve((cell_min_p.x + cell_max_p.x) * 0.5, (cell_min_p.y + cell_max_p.y) * 0.5, (cell_min_p.z + cell_max_p.z) * 0.5)
+						has_tunnel_density = (mid_c > 0.0)
+
 				# Fine per-voxel evaluation within active boundary block
 				for lz in range(bz, mini(bz + block_size, c_size + 1)):
 					var gz = coord.z * c_size + lz
@@ -311,9 +327,21 @@ func _carve_subterranean_caves(
 								is_void = true
 								is_water = (wy <= float(cave_config.chasm_water_level))
 							elif cell_can_tunnel_or_mouth:
-								# 2. Check 3D worm tunnels and cave mouth funnels only if cell allows them
-								var tunnel_or_mouth = cave_carver.sample_tunnel_or_mouth_carve(wx, wy, wz, col_h, sea_level, chasm_col)
-								if tunnel_or_mouth > 0.05:
+								# 2. Check 3D worm tunnels and cave mouth funnels
+								var tunnel_or_mouth = 0.0
+								if cell_can_mouth and wy <= (col_h + 1.0):
+									tunnel_or_mouth = cave_carver.get_mouth_descent_carve(wx, wy, wz, col_h, sea_level, chasm_col)
+								if tunnel_or_mouth <= 0.05 and cell_can_tunnel:
+									if use_trilinear:
+										if has_tunnel_density:
+											var u = clampf((wx - cell_min_p.x) / (cell_max_p.x - cell_min_p.x), 0.0, 1.0)
+											var v = clampf((wy - cell_min_p.y) / (cell_max_p.y - cell_min_p.y), 0.0, 1.0)
+											var w = clampf((wz - cell_min_p.z) / (cell_max_p.z - cell_min_p.z), 0.0, 1.0)
+											tunnel_or_mouth = cave_carver.tunnel_sampler.evaluate_trilinear(tunnel_corners, u, v, w)
+									else:
+										tunnel_or_mouth = cave_carver.tunnel_sampler.get_tunnel_carve(wx, wy, wz)
+
+								if tunnel_or_mouth > 0.05 and not cave_carver.mouth_sampler.is_crust_sealed(wx, wy, wz, col_h, sea_level):
 									is_void = true
 									if not v_data.has_cave_mouth and wy >= (col_h - cave_config.crust_depth) and cave_carver.mouth_sampler.is_mouth_candidate(wx, wz, col_h, sea_level):
 										v_data.has_cave_mouth = true

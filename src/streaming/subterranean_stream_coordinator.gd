@@ -59,31 +59,47 @@ func is_subterranean_queued(coord: ChunkCoord) -> bool:
 func is_surface_only(coord: ChunkCoord) -> bool:
 	return _chunk_states.get(coord.to_key(), -1) == ChunkSubterraneanState.STATE_SURFACE_ONLY
 
+const TIER_1_IMMEDIATE: int = 1
+const TIER_2_NEARBY_ENTRANCE: int = 2
+const TIER_3_DEFERRED_PERIPHERAL: int = 3
+
+var max_tier3_promotions_per_frame: int = 2
+
 ## Evaluates whether the player's current elevation or proximity to a cave mouth warrants
-## triggering subterranean generation for surface-only chunks.
-## Returns an array of ChunkCoord sorted by proximity to focus_chunk.
-func get_chunks_to_promote(
+## triggering subterranean generation for surface-only chunks, categorizing them into priority tiers:
+## - Tier 1 (Immediate): Current player chunk, chunk moving toward, and chunks with active mouths.
+## - Tier 2 (Nearby Entrance): Chunks adjacent to mouths facing player camera / forward cone.
+## - Tier 3 (Deferred Peripheral): Distant / peripheral chunks within subterranean radius.
+func get_tiered_chunks_to_promote(
 	player_pos: Vector3,
 	focus_chunk: ChunkCoord,
 	surface_height: float,
-	mouth_cache: Dictionary # key -> bool
-) -> Array[ChunkCoord]:
-	var candidates: Array[ChunkCoord] = []
+	mouth_cache: Dictionary, # key -> bool
+	look_dir: Vector3 = Vector3.ZERO
+) -> Dictionary:
+	var tiers = {
+		"tier1": [] as Array[ChunkCoord],
+		"tier2": [] as Array[ChunkCoord],
+		"tier3": [] as Array[ChunkCoord]
+	}
 	if not enabled or focus_chunk == null:
-		return candidates
+		return tiers
 
 	var is_player_subterranean = player_pos.y < (surface_height - subterranean_elevation_offset)
 
 	# Check if player is near any known cave mouth
 	var is_player_near_mouth = false
+	var nearby_mouths: Array[ChunkCoord] = []
 	for dz in range(-mouth_trigger_radius_chunks, mouth_trigger_radius_chunks + 1):
 		for dx in range(-mouth_trigger_radius_chunks, mouth_trigger_radius_chunks + 1):
 			var n_coord = ChunkCoord.new(focus_chunk.x + dx, focus_chunk.z + dz)
 			if mouth_cache.get(n_coord.to_key(), false):
 				is_player_near_mouth = true
-				break
-		if is_player_near_mouth:
-			break
+				nearby_mouths.append(n_coord)
+
+	# 2D horizontal normalized forward vector
+	var has_dir = (look_dir.x != 0.0 or look_dir.z != 0.0)
+	var forward2d = Vector2(look_dir.x, look_dir.z).normalized() if has_dir else Vector2.ZERO
 
 	for key in _chunk_states:
 		if _chunk_states[key] != ChunkSubterraneanState.STATE_SURFACE_ONLY:
@@ -93,25 +109,89 @@ func get_chunks_to_promote(
 		var has_mouth = mouth_cache.get(key, false)
 		var dist_to_focus = focus_chunk.chebyshev_distance_to(coord)
 
-		# Promotion rules:
-		# 1. Any chunk containing a cave mouth must generate subterranean geometry
-		# 2. When player descends toward cave elevation, promote chunks in subterranean radius
-		# 3. When player is near a cave mouth, promote chunks in subterranean radius
+		# Promotion eligibility
 		var should_promote = false
 		if has_mouth:
 			should_promote = true
 		elif (is_player_subterranean or is_player_near_mouth) and dist_to_focus <= subterranean_radius_chunks:
 			should_promote = true
 
-		if should_promote:
-			candidates.append(coord)
+		if not should_promote:
+			continue
 
-	# Sort candidates by Euclidean distance to focus_chunk (closest first)
-	candidates.sort_custom(func(a: ChunkCoord, b: ChunkCoord) -> bool:
+		# Directional scoring
+		var offset = Vector2(float(coord.x - focus_chunk.x), float(coord.z - focus_chunk.z))
+		var offset_len = offset.length()
+		var dot = (offset / offset_len).dot(forward2d) if (has_dir and offset_len > 0.0) else 0.0
+
+		# Tier Classification:
+		# Tier 1 (Immediate):
+		# - Chunk the player is standing on
+		# - Any chunk containing an active cave mouth
+		# - Immediate neighbor in direct forward movement direction (dot > 0.707)
+		if coord.equals(focus_chunk) or has_mouth or (dist_to_focus == 1 and dot > 0.707):
+			tiers["tier1"].append(coord)
+		# Tier 2 (Nearby Entrance & Forward View):
+		# - Chunks adjacent to any nearby cave mouth
+		# - Chunks within distance 1 in forward 180-degree view cone (dot >= 0.0)
+		elif _is_adjacent_to_any_mouth(coord, nearby_mouths) or (dist_to_focus <= 1 and (dot >= 0.0 or not has_dir)):
+			tiers["tier2"].append(coord)
+		# Tier 3 (Deferred Peripheral):
+		# - All other eligible peripheral chunks
+		else:
+			tiers["tier3"].append(coord)
+
+	# Sort each tier
+	tiers["tier1"].sort_custom(func(a: ChunkCoord, b: ChunkCoord) -> bool:
+		return focus_chunk.euclidean_distance_to(a) < focus_chunk.euclidean_distance_to(b)
+	)
+	tiers["tier2"].sort_custom(func(a: ChunkCoord, b: ChunkCoord) -> bool:
+		return focus_chunk.euclidean_distance_to(a) < focus_chunk.euclidean_distance_to(b)
+	)
+	tiers["tier3"].sort_custom(func(a: ChunkCoord, b: ChunkCoord) -> bool:
 		return focus_chunk.euclidean_distance_to(a) < focus_chunk.euclidean_distance_to(b)
 	)
 
-	return candidates
+	return tiers
+
+func _is_adjacent_to_any_mouth(coord: ChunkCoord, mouths: Array[ChunkCoord]) -> bool:
+	for m in mouths:
+		if coord.chebyshev_distance_to(m) <= 1:
+			return true
+	return false
+
+## Evaluates whether the player's current elevation or proximity to a cave mouth warrants
+## triggering subterranean generation for surface-only chunks.
+## Returns an array of ChunkCoord ordered by priority tiers (Tier 1 -> Tier 2 -> Tier 3).
+## When rate_limit_tier3 is true, Tier 3 peripheral chunks are throttled to max_tier3_count.
+func get_chunks_to_promote(
+	player_pos: Vector3,
+	focus_chunk: ChunkCoord,
+	surface_height: float,
+	mouth_cache: Dictionary, # key -> bool
+	look_dir: Vector3 = Vector3.ZERO,
+	rate_limit_tier3: bool = false,
+	max_tier3_count: int = -1
+) -> Array[ChunkCoord]:
+	var tiered = get_tiered_chunks_to_promote(player_pos, focus_chunk, surface_height, mouth_cache, look_dir)
+	var result: Array[ChunkCoord] = []
+
+	# Tier 1 (Immediate) - always scheduled in full
+	result.append_array(tiered["tier1"])
+
+	# Tier 2 (Nearby Entrance) - always scheduled in full
+	result.append_array(tiered["tier2"])
+
+	# Tier 3 (Deferred Peripheral) - optionally rate-limited to avoid thread pool storms
+	var tier3: Array[ChunkCoord] = tiered["tier3"]
+	if rate_limit_tier3:
+		var limit = max_tier3_count if max_tier3_count >= 0 else max_tier3_promotions_per_frame
+		for i in range(mini(limit, tier3.size())):
+			result.append(tier3[i])
+	else:
+		result.append_array(tier3)
+
+	return result
 
 func clear() -> void:
 	_chunk_states.clear()

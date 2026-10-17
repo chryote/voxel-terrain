@@ -46,6 +46,34 @@ func build_mesh(data: RefCounted, registry: MaterialRegistry) -> MeshData:
 	# If synthetic/test chunk data without surface_heights, treat all voxels as surface
 	var has_heights = v_data.has_surface_data()
 
+	# Ensure section status bitmasks are computed
+	if not v_data.has_section_status:
+		v_data.compute_section_status()
+
+	# Compute active horizontal layers and mixed sections for 70%+ meshing bypass
+	var sec_count = v_data.get_section_count()
+	var mixed_sections: Array[int] = []
+	var active_h_layers: Array[int] = []
+
+	for sec in range(sec_count):
+		var status = v_data.get_section_status(sec)
+		var sec_start_y = sec * VoxelChunkData.SECTION_HEIGHT
+		var sec_end_y = mini((sec + 1) * VoxelChunkData.SECTION_HEIGHT, max_h)
+
+		if status == VoxelChunkData.SECTION_EMPTY:
+			continue
+		elif status == VoxelChunkData.SECTION_SOLID:
+			var above_solid = (sec + 1 < sec_count) and (v_data.get_section_status(sec + 1) == VoxelChunkData.SECTION_SOLID)
+			var below_solid = (sec - 1 >= 0) and (v_data.get_section_status(sec - 1) == VoxelChunkData.SECTION_SOLID)
+			if not below_solid:
+				active_h_layers.append(sec_start_y)
+			if not above_solid and (sec_end_y - 1) != sec_start_y:
+				active_h_layers.append(sec_end_y - 1)
+		else: # SECTION_MIXED
+			mixed_sections.append(sec)
+			for ly in range(sec_start_y, sec_end_y):
+				active_h_layers.append(ly)
+
 	# -------------------------------------------------------------------------
 	# 1. Top (+Y) and Bottom (-Y) faces: horizontal slices (X, Z)
 	# -------------------------------------------------------------------------
@@ -58,7 +86,7 @@ func build_mesh(data: RefCounted, registry: MaterialRegistry) -> MeshData:
 	c_top_mask.resize(n * n)
 	c_bot_mask.resize(n * n)
 
-	for ly in range(max_h):
+	for ly in active_h_layers:
 		s_top_mask.fill(0)
 		s_bot_mask.fill(0)
 		c_top_mask.fill(0)
@@ -131,35 +159,38 @@ func build_mesh(data: RefCounted, registry: MaterialRegistry) -> MeshData:
 		var has_c_west = false
 		var has_c_east = false
 
-		for ly in range(max_h):
-			for lz in range(n):
-				var mat = v_data.get_voxel(lx, ly, lz)
-				if mat == 0:
-					continue
-				var idx = lz + ly * n
+		for sec in mixed_sections:
+			var sec_start_y = sec * VoxelChunkData.SECTION_HEIGHT
+			var sec_end_y = mini((sec + 1) * VoxelChunkData.SECTION_HEIGHT, max_h)
+			for ly in range(sec_start_y, sec_end_y):
+				for lz in range(n):
+					var mat = v_data.get_voxel(lx, ly, lz)
+					if mat == 0:
+						continue
+					var idx = lz + ly * n
 
-				var is_surf = true
-				if has_heights:
-					var boundary_y = v_data.get_surface_height(lx, lz) - crust_depth
-					is_surf = (ly >= boundary_y)
+					var is_surf = true
+					if has_heights:
+						var boundary_y = v_data.get_surface_height(lx, lz) - crust_depth
+						is_surf = (ly >= boundary_y)
 
-				var w_air = (v_data.get_voxel(lx - 1, ly, lz) == 0)
-				var e_air = (v_data.get_voxel(lx + 1, ly, lz) == 0)
+					var w_air = (v_data.get_voxel(lx - 1, ly, lz) == 0)
+					var e_air = (v_data.get_voxel(lx + 1, ly, lz) == 0)
 
-				if is_surf:
-					if w_air:
-						s_west_mask[idx] = mat
-						has_s_west = true
-					if e_air:
-						s_east_mask[idx] = mat
-						has_s_east = true
-				else:
-					if w_air:
-						c_west_mask[idx] = mat
-						has_c_west = true
-					if e_air:
-						c_east_mask[idx] = mat
-						has_c_east = true
+					if is_surf:
+						if w_air:
+							s_west_mask[idx] = mat
+							has_s_west = true
+						if e_air:
+							s_east_mask[idx] = mat
+							has_s_east = true
+					else:
+						if w_air:
+							c_west_mask[idx] = mat
+							has_c_west = true
+						if e_air:
+							c_east_mask[idx] = mat
+							has_c_east = true
 
 		if has_s_west:
 			_greedy_merge_x_aligned(s_west_mask, n, max_h, lx, false, registry, s_verts, s_norms, s_cols, s_inds)
@@ -192,35 +223,38 @@ func build_mesh(data: RefCounted, registry: MaterialRegistry) -> MeshData:
 		var has_c_south = false
 		var has_c_north = false
 
-		for ly in range(max_h):
-			for lx in range(n):
-				var mat = v_data.get_voxel(lx, ly, lz)
-				if mat == 0:
-					continue
-				var idx = lx + ly * n
+		for sec in mixed_sections:
+			var sec_start_y = sec * VoxelChunkData.SECTION_HEIGHT
+			var sec_end_y = mini((sec + 1) * VoxelChunkData.SECTION_HEIGHT, max_h)
+			for ly in range(sec_start_y, sec_end_y):
+				for lx in range(n):
+					var mat = v_data.get_voxel(lx, ly, lz)
+					if mat == 0:
+						continue
+					var idx = lx + ly * n
 
-				var is_surf = true
-				if has_heights:
-					var boundary_y = v_data.get_surface_height(lx, lz) - crust_depth
-					is_surf = (ly >= boundary_y)
+					var is_surf = true
+					if has_heights:
+						var boundary_y = v_data.get_surface_height(lx, lz) - crust_depth
+						is_surf = (ly >= boundary_y)
 
-				var s_air = (v_data.get_voxel(lx, ly, lz - 1) == 0)
-				var n_air = (v_data.get_voxel(lx, ly, lz + 1) == 0)
+					var s_air = (v_data.get_voxel(lx, ly, lz - 1) == 0)
+					var n_air = (v_data.get_voxel(lx, ly, lz + 1) == 0)
 
-				if is_surf:
-					if s_air:
-						s_south_mask[idx] = mat
-						has_s_south = true
-					if n_air:
-						s_north_mask[idx] = mat
-						has_s_north = true
-				else:
-					if s_air:
-						c_south_mask[idx] = mat
-						has_c_south = true
-					if n_air:
-						c_north_mask[idx] = mat
-						has_c_north = true
+					if is_surf:
+						if s_air:
+							s_south_mask[idx] = mat
+							has_s_south = true
+						if n_air:
+							s_north_mask[idx] = mat
+							has_s_north = true
+					else:
+						if s_air:
+							c_south_mask[idx] = mat
+							has_c_south = true
+						if n_air:
+							c_north_mask[idx] = mat
+							has_c_north = true
 
 		if has_s_south:
 			_greedy_merge_z_aligned(s_south_mask, n, max_h, lz, false, registry, s_verts, s_norms, s_cols, s_inds)

@@ -134,6 +134,13 @@ func _get_focus_position() -> Vector3:
 		return _spawn_point
 	return Vector3.ZERO
 
+func _get_focus_forward() -> Vector3:
+	if is_instance_valid(focus_target):
+		if focus_target.is_inside_tree():
+			return -focus_target.global_transform.basis.z.normalized()
+		return -focus_target.transform.basis.z.normalized()
+	return Vector3.FORWARD
+
 
 func _load_chunk_sync(coord: ChunkCoord) -> void:
 	if not bounds.contains_chunk(coord):
@@ -231,7 +238,8 @@ func _update_streaming() -> void:
 
 	# 2. Demand-driven subterranean promotion for surface-only chunks
 	if caves_enabled:
-		var to_promote = subterranean_coordinator.get_chunks_to_promote(focus_pos, focus_chunk, surf_h, _mouth_cache)
+		var look_dir = _get_focus_forward()
+		var to_promote = subterranean_coordinator.get_chunks_to_promote(focus_pos, focus_chunk, surf_h, _mouth_cache, look_dir, true)
 		var is_near_mouth = false
 		for dz in range(-1, 2):
 			for dx in range(-1, 2):

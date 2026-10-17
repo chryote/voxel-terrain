@@ -38,13 +38,18 @@ func get_allowed_mouths() -> Array:
 func clear_allowed_mouths() -> void:
 	mouth_sampler.clear_allowed_mouths()
 
-func sample_chasm_column(wx: float, wz: float, out: ChasmColumnResult = null) -> ChasmColumnResult:
-	## Delegates 2D column chasm evaluation to UndergroundChasmSampler.
-	return chasm_sampler.sample_column(wx, wz, out)
+func set_continent_mask(p_mask, p_bounds: WorldBounds) -> void:
+	chasm_sampler.set_continent_mask(p_mask, p_bounds)
 
-func is_chasm_void(wy: float, chasm_col: ChasmColumnResult) -> bool:
+func sample_chasm_column(wx: float, wz: float, out: ChasmColumnResult = null, surface_h: float = -1.0) -> ChasmColumnResult:
+	## Delegates 2D column chasm evaluation to UndergroundChasmSampler.
+	return chasm_sampler.sample_column(wx, wz, out, surface_h)
+
+func is_chasm_void(wy: float, chasm_col: ChasmColumnResult, surface_h: float = -1.0) -> bool:
 	## Fast O(1) integer span check: returns true if elevation wy falls strictly inside the chasm cavern void.
 	if chasm_col == null or not chasm_col.is_chasm:
+		return false
+	if surface_h >= 0.0 and wy > (surface_h - float(config.crust_depth)):
 		return false
 	return wy > float(chasm_col.floor_y) and wy < float(chasm_col.ceil_y)
 
@@ -116,11 +121,12 @@ func sample_carve_density(wx: float, wy: float, wz: float, surface_h: float, sea
 	if mouth_sampler.is_crust_sealed(wx, wy, wz, surface_h, sea_level):
 		return 0.0
 
-	# 4. Deep chasm cavern check (strictly above bedrock Y > 2.0 and below chasm_max_y)
+	# 4. Deep chasm cavern check (strictly above bedrock Y > 2.0 and below chasm_max_y / arena dome)
 	var chasm_carve = 0.0
-	if wy > 2.0 and wy < float(config.chasm_max_y):
+	var effective_max_y = float(config.arena_ceiling_y if config.arena_enabled else config.chasm_max_y)
+	if wy > 2.0 and wy < effective_max_y:
 		if chasm_col != null:
-			if is_chasm_void(wy, chasm_col):
+			if is_chasm_void(wy, chasm_col, surface_h):
 				chasm_carve = 1.0
 		else:
 			chasm_carve = chasm_sampler.get_chasm_carve(wx, wy, wz)
@@ -144,7 +150,7 @@ func is_subterranean_water(wx: float, wy: float, wz: float, surface_h: float, se
 	if wy > float(config.chasm_water_level):
 		return false
 	if chasm_col != null:
-		return is_chasm_void(wy, chasm_col)
+		return is_chasm_void(wy, chasm_col, surface_h)
 	if not is_carved(wx, wy, wz, surface_h, sea_level):
 		return false
 	return chasm_sampler.is_subterranean_water(wx, wy, wz)
@@ -152,8 +158,9 @@ func is_subterranean_water(wx: float, wy: float, wz: float, surface_h: float, se
 
 func classify_subterranean_voxel(wx: float, wy: float, wz: float) -> int:
 	## Assigns geological material for solid voxels exposed to cave/chasm voids.
-	# Deep chasm strata (Y <= chasm_max_y)
-	if wy <= float(config.chasm_max_y):
+	var effective_max_y = float(config.arena_ceiling_y if config.arena_enabled else config.chasm_max_y)
+	# Deep chasm strata (Y <= effective_max_y)
+	if wy <= effective_max_y:
 		# Basalt lining for submerged chasm basin and cavern floors
 		if wy <= float(config.chasm_water_level + 1):
 			return MaterialDef.ID_CHASM_BASALT

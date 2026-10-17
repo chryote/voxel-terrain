@@ -61,9 +61,25 @@ func get_warped_coordinates(wx: float, wz: float) -> Vector2:
 	return Vector2(wx + warp_x, wz + warp_z)
 
 
+var continent_mask = null
+var world_bounds: WorldBounds = null
+
+func set_continent_mask(p_mask, p_bounds: WorldBounds) -> void:
+	continent_mask = p_mask
+	world_bounds = p_bounds
+
 func sample_rift_mask(sample_x: float, sample_z: float) -> float:
 	## Normalized [0.0, 1.0] 2D rift corridor density.
-	return (rift_noise.get_noise_2d(sample_x, sample_z) + 1.0) * 0.5
+	var rift = (rift_noise.get_noise_2d(sample_x, sample_z) + 1.0) * 0.5
+	if continent_mask != null and world_bounds != null:
+		var land_raw = continent_mask.get_land_raw(sample_x, sample_z, world_bounds)
+		# Encase subterranean chasms and arenas in solid land before ocean falloff:
+		# Ocean falloff slope starts at land_raw ~ 0.12 and reaches sea level at land_raw ~ 0.065.
+		# Fading between 0.08 and 0.12 guarantees rock walls encase the cave while surface elevation >= 35.
+		var ocean_fade = clampf((land_raw - 0.08) / 0.04, 0.0, 1.0)
+		ocean_fade = ocean_fade * ocean_fade * (3.0 - 2.0 * ocean_fade)
+		rift *= ocean_fade
+	return rift
 
 func is_support_pillar(sample_x: float, sample_z: float) -> bool:
 	## Returns true if the 2D column falls inside a solid vertical stone support pillar.
@@ -114,7 +130,7 @@ func is_arena(wx: float, wz: float) -> bool:
 	var warped_pos = get_warped_coordinates(wx, wz)
 	return sample_rift_mask(warped_pos.x, warped_pos.y) >= config.arena_rift_threshold
 
-func sample_column(wx: float, wz: float, out: ChasmColumnResult = null) -> ChasmColumnResult:
+func sample_column(wx: float, wz: float, out: ChasmColumnResult = null, surface_h: float = -1.0) -> ChasmColumnResult:
 	## Evaluates the dual-2D heightmap chasm column at world coordinates (wx, wz).
 	## Populates 'out' to avoid per-column heap allocations in hot chunk-carving loops.
 	if out == null:
@@ -142,6 +158,23 @@ func sample_column(wx: float, wz: float, out: ChasmColumnResult = null) -> Chasm
 	out.is_arena_ledge = is_arena_zone and raw_rift < core_arena_threshold
 
 	var bounds = calculate_floor_and_ceiling(warped_pos.x, warped_pos.y, raw_rift)
+
+	# Enforce surface crust barrier: subterranean voids cannot pierce outer terrain crust
+	if surface_h >= 0.0:
+		var max_allowed_ceil = int(surface_h) - int(config.crust_depth)
+		if bounds.y > max_allowed_ceil:
+			if max_allowed_ceil - bounds.x < int(config.min_chasm_height):
+				out.is_chasm = false
+				out.is_pillar = false
+				out.is_wall = true
+				out.is_arena = false
+				out.is_arena_ledge = false
+				out.is_basalt_column = false
+				out.floor_y = bounds.x
+				out.ceil_y = bounds.y
+				return out
+			else:
+				bounds.y = max_allowed_ceil
 
 	if raw_rift < config.chasm_rift_threshold:
 		out.is_chasm = false

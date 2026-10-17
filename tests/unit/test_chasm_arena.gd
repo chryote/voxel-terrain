@@ -108,3 +108,50 @@ func test_arena_disabled_toggle() -> void:
 			sampler.sample_column(wx, wz, col)
 			assert_false(col.is_arena, "Arena flags must be false when arena_enabled is false")
 			assert_false(sampler.is_arena(wx, wz), "is_arena must return false when arena_enabled is false")
+
+func test_ocean_falloff_encasing() -> void:
+	## Validates that chasms and arenas are 100% encased with solid rock curtain walls
+	## facing the continental ocean fall-off and never puncture the ocean plane.
+	var world_config = WorldConfig.new()
+	var gen_config = ContinentGeneratorConfig.new()
+	var cave_config = CaveGeneratorConfig.new()
+	var bounds = world_config.create_world_bounds()
+	var cont_gen = ContinentGenerator.new(1337, gen_config)
+	var sampler = UndergroundChasmSampler.new(1337, cave_config)
+	sampler.set_continent_mask(cont_gen.mask, bounds)
+
+	var col = ChasmColumnResult.new()
+
+	# 1. Verify that ocean columns (land_raw < 0.08) have zero chasm density and zero carve
+	var ocean_samples = 0
+	for cz in range(bounds.min_chunk_z + 2, bounds.max_chunk_z - 2, 8):
+		for cx in range(bounds.min_chunk_x + 2, bounds.max_chunk_x - 2, 8):
+			var wx = float(cx * bounds.chunk_size + 16) * bounds.voxel_size
+			var wz = float(cz * bounds.chunk_size + 16) * bounds.voxel_size
+			var land = cont_gen.mask.get_land_raw(wx, wz, bounds)
+			if land < 0.08:
+				ocean_samples += 1
+				var rift = sampler.sample_rift_mask(wx, wz)
+				assert_eq(rift, 0.0, "Ocean rift density must be 0.0 at land=%.3f" % land)
+				sampler.sample_column(wx, wz, col)
+				assert_false(col.is_chasm, "Chasm must be false in ocean falloff")
+				assert_false(col.is_arena, "Arena must be false in ocean falloff")
+				assert_eq(sampler.get_chasm_carve(wx, 10.0, wz), 0.0, "Carve density must be 0.0 in ocean")
+
+	assert_true(ocean_samples > 20, "Should have tested at least 20 ocean samples")
+
+	# 2. Verify encasing at chunk (33, 57) boundary facing ocean chunk (33, 58)
+	var start_p = Vector3(1073.1, 4.0, 1851.2)
+	var dir = Vector3(-0.5, 0.0, 0.866).normalized()
+	var hit_wall = false
+	var hit_d = 0.0
+	for d in range(1, 20):
+		var p = start_p + dir * float(d)
+		sampler.sample_column(p.x, p.z, col)
+		if not col.is_chasm:
+			hit_wall = true
+			hit_d = float(d)
+			break
+
+	assert_true(hit_wall, "Cavern near chunk (33, 57) must hit solid encasing wall towards ocean")
+	assert_true(hit_d <= 5.0, "Wall encasing must seal cave within 5 meters of margin (hit at %.1f m)" % hit_d)

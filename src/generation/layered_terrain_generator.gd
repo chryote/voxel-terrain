@@ -25,6 +25,8 @@ const ChasmChunkDataClass = preload("res://src/core/chasm_chunk_data.gd")
 
 func init_cave_mouths(bounds: WorldBounds) -> Array:
 	## Discovers and initializes continent-wide allowed cave mouths respecting configured limits.
+	if bounds != null:
+		cave_carver.set_continent_mask(continent_gen.mask, bounds)
 	if not cave_config.enabled or not cave_config.limit_cave_mouths or bounds == null:
 		_mouths_initialized = true
 		return []
@@ -36,6 +38,8 @@ func init_cave_mouths(bounds: WorldBounds) -> Array:
 
 ## Phase A: High-speed surface-only generation (~14 ms)
 func generate_surface(coord: ChunkCoord, bounds: WorldBounds) -> SurfaceChunkData:
+	if bounds != null:
+		cave_carver.set_continent_mask(continent_gen.mask, bounds)
 	if not _mouths_initialized and cave_config.enabled and cave_config.limit_cave_mouths and bounds != null:
 		init_cave_mouths(bounds)
 	var surface_data: SurfaceChunkData = continent_gen.generate(coord, bounds)
@@ -76,6 +80,8 @@ func check_has_cave_mouth(surface_data: SurfaceChunkData, coord: ChunkCoord, bou
 
 ## Phase B: Subterranean voxel column population and 3D cave carving
 func generate_subterranean(surface_data: SurfaceChunkData, coord: ChunkCoord, bounds: WorldBounds) -> RefCounted:
+	if bounds != null:
+		cave_carver.set_continent_mask(continent_gen.mask, bounds)
 	if not _mouths_initialized and cave_config.enabled and cave_config.limit_cave_mouths and bounds != null:
 		init_cave_mouths(bounds)
 	if surface_data == null:
@@ -140,8 +146,8 @@ func generate_chasm_data(
 			var gx = coord.x * c_size + lx
 			var wx = (float(gx) + 0.5) * bounds.voxel_size
 			var col_idx = (lx + 1) + row_start
-
-			cave_carver.sample_chasm_column(wx, wz, chasm_col)
+			var col_h = float(surface_data.get_height(lx, lz))
+			cave_carver.sample_chasm_column(wx, wz, chasm_col, col_h)
 
 			chasm_data.floor_heights[col_idx] = chasm_col.floor_y
 			chasm_data.ceil_heights[col_idx] = chasm_col.ceil_y
@@ -306,7 +312,7 @@ func _carve_subterranean_caves(
 
 						# 2D Chasm column sampled ONCE outside the inner Y loop
 						if cell_can_chasm:
-							cave_carver.sample_chasm_column(wx, wz, chasm_col)
+							cave_carver.sample_chasm_column(wx, wz, chasm_col, col_h)
 						else:
 							chasm_col.reset()
 
@@ -322,7 +328,7 @@ func _carve_subterranean_caves(
 							var is_water = false
 
 							# 1. Fast O(1) span check for 2D chasm void
-							if cave_carver.is_chasm_void(wy, chasm_col):
+							if cave_carver.is_chasm_void(wy, chasm_col, col_h):
 								is_void = true
 								is_water = (wy <= float(cave_config.chasm_water_level))
 							elif cell_can_tunnel_or_mouth:

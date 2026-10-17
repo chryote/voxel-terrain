@@ -67,6 +67,9 @@ func _ready() -> void:
 	bounds = world_config.create_world_bounds()
 	if generator == null:
 		generator = VolumetricTerrainGenerator.new(world_config.world_seed, generator_config, cave_config)
+	if "cave_carver" in generator and generator.cave_carver != null:
+		if "continent_gen" in generator and generator.continent_gen != null and generator.continent_gen.mask != null:
+			generator.cave_carver.set_continent_mask(generator.continent_gen.mask, bounds)
 	if generator is LayeredTerrainGenerator:
 		generator.init_cave_mouths(bounds)
 	if mesher == null:

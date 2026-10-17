@@ -90,6 +90,11 @@ func find_underground_arena_spawn_point(
 	if not ("cave_carver" in generator) or generator.cave_carver == null:
 		return find_spawn_point(generator, bounds, sea_level)
 
+	if "continent_gen" in generator and generator.continent_gen != null and generator.continent_gen.mask != null:
+		generator.cave_carver.set_continent_mask(generator.continent_gen.mask, bounds)
+	elif "topography" in generator and generator.topography != null and generator.topography.continent_mask != null:
+		generator.cave_carver.set_continent_mask(generator.topography.continent_mask, bounds)
+
 	var col = ChasmColumnResultClass.new()
 	var best_score = 999999.0
 	var best_pos = Vector3.ZERO
@@ -106,18 +111,25 @@ func find_underground_arena_spawn_point(
 		for cx in range(min_cx + 4, max_cx - 4, 2):
 			var wx = float(cx * c_size + (c_size / 2)) * bounds.voxel_size
 			var wz = float(cz * c_size + (c_size / 2)) * bounds.voxel_size
-			generator.cave_carver.sample_chasm_column(wx, wz, col)
+
+			var surf_h = 40.0
+			if generator.has_method("height_at"):
+				var column_coord = bounds.world_to_column(Vector3(wx, 0.0, wz))
+				surf_h = float(generator.height_at(column_coord, bounds)) * bounds.voxel_size
+
+			generator.cave_carver.sample_chasm_column(wx, wz, col, surf_h)
 			if col.is_arena and not col.is_pillar:
 				var clearance = col.ceil_y - col.floor_y
-				if clearance >= 5:
+				if clearance >= 5 and surf_h >= float(col.ceil_y + 3) and surf_h >= float(sea_level + 5):
 					var land = 0.5
-					if "continent_gen" in generator and generator.continent_gen.mask != null:
+					if "continent_gen" in generator and generator.continent_gen != null and generator.continent_gen.mask != null:
 						land = generator.continent_gen.mask.get_land_raw(wx, wz, bounds)
-					elif "topography" in generator and generator.topography.continent_mask != null:
+					elif "topography" in generator and generator.topography != null and generator.topography.continent_mask != null:
 						land = generator.topography.continent_mask.get_land_raw(wx, wz, bounds)
 
-					# Score: prefer land factor close to ocean falloff (~0.05), prefer core combat arena (raw_rift >= 0.82)
-					var land_penalty = absf(land - 0.05) * 10.0
+					# Score: prefer land factor near continental margin (~0.12) where arenas border ocean falloff,
+					# but are completely encased and protected from ocean puncture.
+					var land_penalty = absf(land - 0.12) * 10.0
 					var rift_bonus = 5.0 if col.raw_rift >= 0.82 else 0.0
 					var score = land_penalty - rift_bonus
 
@@ -136,8 +148,12 @@ func find_underground_arena_spawn_point(
 			for dx in range(-12, 13, 2):
 				var wx = center_wx + float(dx)
 				var wz = center_wz + float(dz)
-				generator.cave_carver.sample_chasm_column(wx, wz, col)
-				if col.is_arena and not col.is_pillar and (col.ceil_y - col.floor_y) >= 5:
+				var surf_h = 40.0
+				if generator.has_method("height_at"):
+					var column_coord = bounds.world_to_column(Vector3(wx, 0.0, wz))
+					surf_h = float(generator.height_at(column_coord, bounds)) * bounds.voxel_size
+				generator.cave_carver.sample_chasm_column(wx, wz, col, surf_h)
+				if col.is_arena and not col.is_pillar and (col.ceil_y - col.floor_y) >= 5 and surf_h >= float(col.ceil_y + 3):
 					if col.raw_rift > best_local_rift:
 						best_local_rift = col.raw_rift
 						fine_pos = Vector3(wx, float(col.floor_y + 1), wz)

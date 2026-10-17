@@ -69,7 +69,8 @@ func schedule_subterranean_chunk(
 	mesher: Mesher,
 	registry: MaterialRegistry,
 	cached_surface_data: SurfaceChunkData = null,
-	high_priority: bool = false
+	high_priority: bool = false,
+	bake_cave_collision: bool = true
 ) -> void:
 	_schedule_task_internal(
 		coord,
@@ -79,7 +80,8 @@ func schedule_subterranean_chunk(
 		mesher,
 		registry,
 		cached_surface_data,
-		high_priority
+		high_priority,
+		bake_cave_collision
 	)
 
 ## Monolithic full generation (Phase A + Phase B combined)
@@ -98,7 +100,8 @@ func schedule_chunk(
 		mesher,
 		registry,
 		null,
-		false
+		false,
+		true
 	)
 
 func _schedule_task_internal(
@@ -109,7 +112,8 @@ func _schedule_task_internal(
 	mesher: Mesher,
 	registry: MaterialRegistry,
 	surface_data: SurfaceChunkData = null,
-	high_priority: bool = false
+	high_priority: bool = false,
+	bake_cave_collision: bool = true
 ) -> void:
 	var task_key = _make_task_key(coord, phase)
 	var base_key = str(coord.to_key())
@@ -131,6 +135,7 @@ func _schedule_task_internal(
 		"mesher": mesher,
 		"registry": registry,
 		"surface_data": surface_data,
+		"bake_cave_collision": bake_cave_collision,
 		"task_key": task_key,
 		"base_key": base_key
 	}
@@ -196,7 +201,8 @@ func _process_chunk_task(payload: Dictionary) -> void:
 
 	# Off-thread collision baking (ConcavePolygonShape3D created on worker thread)
 	var collision_baker = OffThreadCollisionBaker.new()
-	var shapes = collision_baker.bake_shapes_for_bundle(mesh_data)
+	var bake_cave = payload.get("bake_cave_collision", true)
+	var shapes = collision_baker.bake_shapes_for_bundle(mesh_data, bake_cave)
 	if mesh_data is DualMeshBundle:
 		mesh_data.surface_shape = shapes.surface_shape
 		mesh_data.cave_shape = shapes.cave_shape

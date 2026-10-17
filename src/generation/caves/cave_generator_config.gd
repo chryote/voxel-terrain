@@ -29,6 +29,7 @@ extends Resource
 @export_range(0.0, 3.0) var tunnel_radius_variation: float = 0.8 ## High-frequency perturbation on tunnel walls
 @export_range(0.5, 2.0) var tunnel_vertical_squish: float = 1.15 ## Vertical squish factor (>1 compresses vertically for flatter floors)
 @export_range(1.5, 4.0) var min_clearance: float = 2.2 ## Guaranteed minimum vertical clearance for player movement
+@export var use_trilinear_tunnel_grid: bool = true ## Evaluate 3D worm tunnels via trilinear density interpolation for 8x faster carving
 
 @export_group("Continuity & Dead Ends")
 @export_range(0.001, 0.03) var continuity_frequency: float = 0.006 ## Frequency of modulation noise controlling tunnel continuity
@@ -48,6 +49,14 @@ extends Resource
 @export var chasm_water_level: int = 10 ## Elevation below which cavern voids pool water
 @export_range(0.001, 0.02) var pillar_frequency: float = 0.008 ## Frequency of stone support pillars
 @export_range(0.1, 0.9) var pillar_threshold: float = 0.60 ## Density above which pillars remain solid
+
+@export_group("Chasm Battle Arenas & POIs")
+@export var arena_enabled: bool = true ## Enable procedural subterranean battle arenas
+@export_range(0.70, 0.95) var arena_rift_threshold: float = 0.80 ## Rift corridor density threshold to anchor arenas
+@export var arena_floor_y: int = 6 ## Flattened arena combat elevation (elevated above water level)
+@export var arena_ceiling_y: int = 28 ## Vaulted ceiling dome elevation in battle arenas
+@export var arena_ledge_step_height: int = 2 ## Height delta for stepped spectator ledges along perimeter
+@export var bypass_chasm_voxelization: bool = true ## Bypass 3D voxel allocation for pure chasm chunks
 
 ## Backward compatibility properties for 3D legacy callers
 var chasm_frequency: float:

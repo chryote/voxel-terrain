@@ -21,6 +21,7 @@ func _init(seed_val: int = 1337, p_config: ContinentGeneratorConfig = null, p_ca
 	cave_carver = CaveCarver.new(seed_val, cave_config)
 
 const CaveMouthDetectorClass = preload("res://src/map/cave_mouth_detector.gd")
+const ChasmChunkDataClass = preload("res://src/core/chasm_chunk_data.gd")
 
 func init_cave_mouths(bounds: WorldBounds) -> Array:
 	## Discovers and initializes continent-wide allowed cave mouths respecting configured limits.
@@ -74,16 +75,99 @@ func check_has_cave_mouth(surface_data: SurfaceChunkData, coord: ChunkCoord, bou
 	return false
 
 ## Phase B: Subterranean voxel column population and 3D cave carving
-func generate_subterranean(surface_data: SurfaceChunkData, coord: ChunkCoord, bounds: WorldBounds) -> VoxelChunkData:
+func generate_subterranean(surface_data: SurfaceChunkData, coord: ChunkCoord, bounds: WorldBounds) -> RefCounted:
 	if not _mouths_initialized and cave_config.enabled and cave_config.limit_cave_mouths and bounds != null:
 		init_cave_mouths(bounds)
 	if surface_data == null:
 		surface_data = generate_surface(coord, bounds)
 
 	var max_h = 160
+
+	# 2.1 Bypass 3D Voxelization Pattern for pure chasm / non-tunnel chunks
+	if cave_config.bypass_chasm_voxelization and not surface_data.has_cave_mouth:
+		var c_size = bounds.chunk_size
+		var min_wx = float(coord.x * c_size) * bounds.voxel_size
+		var min_wz = float(coord.z * c_size) * bounds.voxel_size
+		var max_wx = float((coord.x + 1) * c_size) * bounds.voxel_size
+		var max_wz = float((coord.z + 1) * c_size) * bounds.voxel_size
+		var cell_min_p = Vector3(min_wx, 0.0, min_wz)
+		var cell_max_p = Vector3(max_wx, float(max_h) * bounds.voxel_size, max_wz)
+
+		var can_tunnel = cave_config.enabled and cave_carver.tunnel_sampler.can_tunnel_intersect_cell(cell_min_p, cell_max_p)
+		var can_mouth = cave_config.enabled and cave_carver.mouth_sampler.can_mouth_intersect_cell(cell_min_p, cell_max_p, 255.0, config.sea_level)
+
+		if not can_tunnel and not can_mouth:
+			return generate_chasm_data(surface_data, coord, bounds, max_h)
+
 	var v_data = _populate_voxel_columns(surface_data, bounds, max_h)
 	_carve_subterranean_caves(v_data, surface_data, coord, bounds, max_h)
 	return v_data
+
+func generate_chasm_data(
+	surface_data: SurfaceChunkData,
+	coord: ChunkCoord,
+	bounds: WorldBounds,
+	max_h: int = 160
+) -> RefCounted:
+	## High-speed 2.5D chasm generation bypassing 3D voxel arrays (185k voxels).
+	## Evaluates floor, ceiling, and wall boundary flags column-by-column in O(N^2) time.
+	var c_size = bounds.chunk_size
+	var chasm_data = ChasmChunkDataClass.new(c_size, max_h, surface_data)
+	chasm_data.chasm_water_level = cave_config.chasm_water_level
+
+	if not cave_config.enabled:
+		return chasm_data
+
+	var min_wx = float(coord.x * c_size) * bounds.voxel_size
+	var min_wz = float(coord.z * c_size) * bounds.voxel_size
+	var max_wx = float((coord.x + 1) * c_size) * bounds.voxel_size
+	var max_wz = float((coord.z + 1) * c_size) * bounds.voxel_size
+	var cell_min_p = Vector3(min_wx, 0.0, min_wz)
+	var cell_max_p = Vector3(max_wx, float(max_h) * bounds.voxel_size, max_wz)
+
+	if not cave_carver.chasm_sampler.can_chasm_intersect_cell(cell_min_p, cell_max_p):
+		return chasm_data
+
+	var chasm_col = ChasmColumnResult.new()
+	var apron_w = chasm_data.apron_size
+
+	for lz in range(-1, c_size + 1):
+		var gz = coord.z * c_size + lz
+		var wz = (float(gz) + 0.5) * bounds.voxel_size
+		var row_start = (lz + 1) * apron_w
+
+		for lx in range(-1, c_size + 1):
+			var gx = coord.x * c_size + lx
+			var wx = (float(gx) + 0.5) * bounds.voxel_size
+			var col_idx = (lx + 1) + row_start
+
+			cave_carver.sample_chasm_column(wx, wz, chasm_col)
+
+			chasm_data.floor_heights[col_idx] = chasm_col.floor_y
+			chasm_data.ceil_heights[col_idx] = chasm_col.ceil_y
+
+			var flag = 0
+			if chasm_col.is_chasm:
+				flag |= ChasmChunkDataClass.FLAG_CHASM
+				chasm_data.has_chasm = true
+			if chasm_col.is_pillar:
+				flag |= ChasmChunkDataClass.FLAG_PILLAR
+			if chasm_col.is_wall:
+				flag |= ChasmChunkDataClass.FLAG_WALL
+			if chasm_col.is_arena:
+				flag |= ChasmChunkDataClass.FLAG_ARENA
+			if chasm_col.is_arena_ledge:
+				flag |= ChasmChunkDataClass.FLAG_ARENA_LEDGE
+			if chasm_col.is_basalt_column:
+				flag |= ChasmChunkDataClass.FLAG_BASALT_COLUMN
+
+			chasm_data.chasm_flags[col_idx] = flag
+
+			if chasm_col.is_chasm or chasm_col.is_pillar or chasm_col.is_wall:
+				var mat = cave_carver.classify_subterranean_voxel(wx, float(chasm_col.floor_y), wz)
+				chasm_data.materials[col_idx] = mat
+
+	return chasm_data
 
 ## Combined full generation (implements TerrainGenerator polymorphism)
 func generate(coord: ChunkCoord, bounds: WorldBounds) -> RefCounted:
@@ -102,29 +186,29 @@ func _populate_voxel_columns(surface_data: SurfaceChunkData, bounds: WorldBounds
 			var top_mat = surface_data.get_top_material(lx, lz)
 			var side_mat = surface_data.get_side_material(lx, lz)
 
-			var clamped_h = mini(h, max_h - 1)
-			var clamped_w = mini(water_h, max_h - 1)
+			var clamped_h = mini(h, max_h)
+			var clamped_w = mini(water_h, max_h)
 
 			# Bedrock (Y=0..2)
-			for ly in range(0, mini(3, clamped_h + 1)):
+			for ly in range(0, mini(3, clamped_h)):
 				v_data.set_voxel(lx, ly, lz, MaterialDef.ID_STONE)
 
 			# Mid stone
-			var rock_top = max(3, clamped_h - 3)
+			var rock_top = max(3, clamped_h - 4)
 			for ly in range(3, rock_top):
 				v_data.set_voxel(lx, ly, lz, MaterialDef.ID_STONE)
 
 			# Sub-surface soil/side material
-			for ly in range(rock_top, clamped_h):
+			for ly in range(rock_top, clamped_h - 1):
 				v_data.set_voxel(lx, ly, lz, side_mat)
 
-			# Surface top material
-			if clamped_h >= 0:
-				v_data.set_voxel(lx, clamped_h, lz, top_mat)
+			# Surface top material (sits at ly = clamped_h - 1, top face at Y = clamped_h.0)
+			if clamped_h > 0:
+				v_data.set_voxel(lx, clamped_h - 1, lz, top_mat)
 
-			# Surface water
+			# Surface water (sits directly on terrain at clamped_h up to clamped_w - 1, top face at clamped_w.0)
 			if clamped_w > clamped_h:
-				for ly in range(clamped_h + 1, clamped_w + 1):
+				for ly in range(clamped_h, clamped_w):
 					v_data.set_water(lx, ly, lz, true)
 
 	return v_data
@@ -195,6 +279,22 @@ func _carve_subterranean_caves(
 				var cell_can_mouth = cave_carver.mouth_sampler.can_mouth_intersect_cell(cell_min_p, cell_max_p, cell_max_h, sea_level)
 				var cell_can_tunnel_or_mouth = cell_can_tunnel or cell_can_mouth
 
+				# Item 3.3: Trilinear density interpolation for 3D worm tunnels
+				var use_trilinear = cave_config.use_trilinear_tunnel_grid and cell_can_tunnel
+				var tunnel_corners: PackedFloat32Array
+				var has_tunnel_density = false
+				if use_trilinear:
+					tunnel_corners = cave_carver.tunnel_sampler.sample_trilinear_cell_corners(cell_min_p, cell_max_p)
+					var max_c = maxf(
+						maxf(maxf(tunnel_corners[0], tunnel_corners[1]), maxf(tunnel_corners[2], tunnel_corners[3])),
+						maxf(maxf(tunnel_corners[4], tunnel_corners[5]), maxf(tunnel_corners[6], tunnel_corners[7]))
+					)
+					if max_c > 0.0:
+						has_tunnel_density = true
+					else:
+						var mid_c = cave_carver.tunnel_sampler.get_tunnel_carve((cell_min_p.x + cell_max_p.x) * 0.5, (cell_min_p.y + cell_max_p.y) * 0.5, (cell_min_p.z + cell_max_p.z) * 0.5)
+						has_tunnel_density = (mid_c > 0.0)
+
 				# Fine per-voxel evaluation within active boundary block
 				for lz in range(bz, mini(bz + block_size, c_size + 1)):
 					var gz = coord.z * c_size + lz
@@ -227,9 +327,21 @@ func _carve_subterranean_caves(
 								is_void = true
 								is_water = (wy <= float(cave_config.chasm_water_level))
 							elif cell_can_tunnel_or_mouth:
-								# 2. Check 3D worm tunnels and cave mouth funnels only if cell allows them
-								var tunnel_or_mouth = cave_carver.sample_tunnel_or_mouth_carve(wx, wy, wz, col_h, sea_level, chasm_col)
-								if tunnel_or_mouth > 0.05:
+								# 2. Check 3D worm tunnels and cave mouth funnels
+								var tunnel_or_mouth = 0.0
+								if cell_can_mouth and wy <= (col_h + 1.0):
+									tunnel_or_mouth = cave_carver.get_mouth_descent_carve(wx, wy, wz, col_h, sea_level, chasm_col)
+								if tunnel_or_mouth <= 0.05 and cell_can_tunnel:
+									if use_trilinear:
+										if has_tunnel_density:
+											var u = clampf((wx - cell_min_p.x) / (cell_max_p.x - cell_min_p.x), 0.0, 1.0)
+											var v = clampf((wy - cell_min_p.y) / (cell_max_p.y - cell_min_p.y), 0.0, 1.0)
+											var w = clampf((wz - cell_min_p.z) / (cell_max_p.z - cell_min_p.z), 0.0, 1.0)
+											tunnel_or_mouth = cave_carver.tunnel_sampler.evaluate_trilinear(tunnel_corners, u, v, w)
+									else:
+										tunnel_or_mouth = cave_carver.tunnel_sampler.get_tunnel_carve(wx, wy, wz)
+
+								if tunnel_or_mouth > 0.05 and not cave_carver.mouth_sampler.is_crust_sealed(wx, wy, wz, col_h, sea_level):
 									is_void = true
 									if not v_data.has_cave_mouth and wy >= (col_h - cave_config.crust_depth) and cave_carver.mouth_sampler.is_mouth_candidate(wx, wz, col_h, sea_level):
 										v_data.has_cave_mouth = true

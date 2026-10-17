@@ -79,10 +79,24 @@ func test_chunk_node_dual_instances_and_shadow_isolation() -> void:
 	bundle.cave_mesh_data.indices.append(1)
 	bundle.cave_mesh_data.indices.append(2)
 
+	# 1 cave water triangle
+	bundle.cave_mesh_data.water_mesh_data = MeshData.new()
+	bundle.cave_mesh_data.water_mesh_data.vertices.append(Vector3(0, -12, 0))
+	bundle.cave_mesh_data.water_mesh_data.vertices.append(Vector3(1, -12, 0))
+	bundle.cave_mesh_data.water_mesh_data.vertices.append(Vector3(0, -12, 1))
+	bundle.cave_mesh_data.water_mesh_data.indices.append(0)
+	bundle.cave_mesh_data.water_mesh_data.indices.append(1)
+	bundle.cave_mesh_data.water_mesh_data.indices.append(2)
+
 	chunk_node.setup(ChunkCoord.new(0, 0), Vector3.ZERO, bundle, true)
 
 	assert_not_null(chunk_node.mesh_instance.mesh, "Surface mesh must be assigned")
 	assert_not_null(chunk_node.cave_mesh_instance.mesh, "Cave mesh must be assigned")
+	assert_not_null(chunk_node.cave_water_instance, "Cave water instance must be created")
+	var c_water_mat: StandardMaterial3D = chunk_node.cave_water_instance.material_override as StandardMaterial3D
+	assert_not_null(c_water_mat, "Cave water material must be assigned")
+	assert_eq(c_water_mat.transparency, BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR, "Subterranean water must use alpha scissor to prevent deep depth-sorting stalls")
+	assert_eq(c_water_mat.depth_draw_mode, BaseMaterial3D.DEPTH_DRAW_ALWAYS, "Subterranean water must write to depth buffer to prevent overdraw behind rock")
 
 	# Shadow isolation check: surface must cast shadows, cave must NOT cast shadows
 	assert_eq(chunk_node.mesh_instance.cast_shadow, GeometryInstance3D.SHADOW_CASTING_SETTING_ON, "Surface mesh must cast shadows")

@@ -52,6 +52,11 @@ func test_bake_shapes_for_dual_bundle() -> void:
 	assert_eq(shapes.surface_shape.get_faces().size(), 3)
 	assert_eq(shapes.cave_shape.get_faces().size(), 3)
 
+	# Deferred subterranean baking: when bake_cave is false, cave_shape must be null
+	var shapes_deferred = baker.bake_shapes_for_bundle(bundle, false)
+	assert_not_null(shapes_deferred.surface_shape, "Surface shape must still be compiled when cave is deferred")
+	assert_null(shapes_deferred.cave_shape, "Cave shape must be null when cave collision baking is deferred")
+
 func test_worker_thread_pool_execution() -> void:
 	var payload = {
 		"baker": OffThreadCollisionBaker.new(),

@@ -4,6 +4,11 @@ extends RefCounted
 ## Stores 3D volumetric voxel material IDs and water states for a chunk,
 ## including a 1-voxel apron across horizontal boundaries for zero-lock multithreaded meshing.
 
+const SECTION_HEIGHT: int = 16
+const SECTION_MIXED: int = 0
+const SECTION_EMPTY: int = 1
+const SECTION_SOLID: int = 2
+
 var chunk_size: int = 32
 var apron_size: int = 34
 var max_height: int = 160
@@ -16,6 +21,10 @@ var surface_heights: PackedInt32Array
 var has_surface_heights: bool = false
 var has_cave_mouth: bool = false
 
+var section_count: int = 10
+var section_status: PackedByteArray
+var has_section_status: bool = false
+
 func _init(p_chunk_size: int = 32, p_max_height: int = 160) -> void:
 	chunk_size = p_chunk_size
 	apron_size = chunk_size + 2
@@ -27,6 +36,11 @@ func _init(p_chunk_size: int = 32, p_max_height: int = 160) -> void:
 	voxels.fill(0)
 	water_voxels.resize(total_voxels)
 	water_voxels.fill(0)
+
+	section_count = ceili(float(max_height) / float(SECTION_HEIGHT))
+	section_status.resize(section_count)
+	section_status.fill(SECTION_EMPTY)
+	has_section_status = true
 
 func _to_column_index(lx: int, lz: int) -> int:
 	return (lx + 1) + (lz + 1) * apron_size
@@ -67,6 +81,7 @@ func get_voxel(lx: int, ly: int, lz: int) -> int:
 func set_voxel(lx: int, ly: int, lz: int, mat: int) -> void:
 	if is_in_apron(lx, ly, lz):
 		voxels[_to_index(lx, ly, lz)] = mat
+		has_section_status = false
 
 func has_water(lx: int, ly: int, lz: int) -> bool:
 	if not is_in_apron(lx, ly, lz):
@@ -79,9 +94,54 @@ func set_water(lx: int, ly: int, lz: int, val: bool) -> void:
 
 func fill_material(mat: int) -> void:
 	voxels.fill(mat)
+	section_status.fill(SECTION_EMPTY if mat == 0 else SECTION_SOLID)
+	has_section_status = true
 
 func fill_water(val: bool) -> void:
 	water_voxels.fill(1 if val else 0)
+
+func get_section_count() -> int:
+	return section_count
+
+func get_section_status(s: int) -> int:
+	if not has_section_status:
+		compute_section_status()
+	if s >= 0 and s < section_count:
+		return section_status[s]
+	return SECTION_EMPTY
+
+func set_section_status(s: int, status: int) -> void:
+	if s >= 0 and s < section_count:
+		section_status[s] = status
+
+func is_section_empty(s: int) -> bool:
+	return get_section_status(s) == SECTION_EMPTY
+
+func is_section_solid(s: int) -> bool:
+	return get_section_status(s) == SECTION_SOLID
+
+func compute_section_status() -> void:
+	if section_count <= 0:
+		section_count = ceili(float(max_height) / float(SECTION_HEIGHT))
+	if section_status.size() != section_count:
+		section_status.resize(section_count)
+
+	for s in range(section_count):
+		var start_ly = s * SECTION_HEIGHT
+		var end_ly = mini((s + 1) * SECTION_HEIGHT, max_height)
+		var start_idx = start_ly * slice_size
+		var end_idx = end_ly * slice_size
+		var sec_slice = voxels.slice(start_idx, end_idx)
+		var zero_count = sec_slice.count(0)
+
+		if zero_count == sec_slice.size():
+			section_status[s] = SECTION_EMPTY
+		elif zero_count == 0:
+			section_status[s] = SECTION_SOLID
+		else:
+			section_status[s] = SECTION_MIXED
+
+	has_section_status = true
 
 func clear() -> void:
 	voxels.fill(0)
@@ -89,4 +149,6 @@ func clear() -> void:
 	has_surface_heights = false
 	has_cave_mouth = false
 	surface_heights.clear()
+	section_status.fill(SECTION_EMPTY)
+	has_section_status = true
 

@@ -70,19 +70,35 @@ func is_support_pillar(sample_x: float, sample_z: float) -> bool:
 	var pil_val = (pillar_noise.get_noise_2d(sample_x, sample_z) + 1.0) * 0.5
 	return pil_val > config.pillar_threshold
 
-func calculate_floor_and_ceiling(sample_x: float, sample_z: float) -> Vector2i:
+func calculate_floor_and_ceiling(sample_x: float, sample_z: float, raw_rift: float = 0.0) -> Vector2i:
 	## Evaluates floor and ceiling elevations, strictly enforcing bedrock protection and clearance.
 	var floor_offset = floor_noise.get_noise_2d(sample_x, sample_z) * config.chasm_floor_variation
 	var ceil_offset = ceil_noise.get_noise_2d(sample_x, sample_z) * config.chasm_ceil_variation
 
-	var fl_y = int(round(float(config.chasm_min_y) + floor_offset))
+	var raw_fl_y = float(config.chasm_min_y) + floor_offset
+	var fl_y = int(round(raw_fl_y))
 	var cl_y = int(round(float(config.chasm_max_y) + ceil_offset))
+
+	# Arena POI feature: wide, flat battle amphitheater floor with perimeter stepped ledges
+	if config.arena_enabled and raw_rift >= config.arena_rift_threshold:
+		var target_floor = float(config.arena_floor_y)
+		var blend = clampf((raw_rift - config.arena_rift_threshold) / 0.02, 0.0, 1.0)
+		if blend >= 1.0:
+			# Combat Pit / Arena Center: flat floor
+			fl_y = int(target_floor)
+			cl_y = maxi(cl_y, config.arena_ceiling_y)
+		else:
+			# Perimeter spectator ledges: stepped tiers overlooking the battle floor
+			var ledge_elev = float(config.arena_ledge_step_height) * sin(blend * PI)
+			fl_y = int(round(lerpf(raw_fl_y, target_floor, blend) + ledge_elev))
+			cl_y = maxi(cl_y, int(lerpf(float(cl_y), float(config.arena_ceiling_y), blend)))
 
 	# Bedrock protection: bedrock is Y=0..2, so floor must never drop below Y=3
 	fl_y = maxi(fl_y, 3)
 
-	# Ceiling boundary: ensure ceiling never exceeds configured maximum elevation
-	cl_y = mini(cl_y, config.chasm_max_y)
+	# Ceiling boundary: ensure ceiling never exceeds configured maximum elevation (unless arena dome)
+	if not (config.arena_enabled and raw_rift >= config.arena_rift_threshold):
+		cl_y = mini(cl_y, config.chasm_max_y)
 
 	# Enforce minimum vertical clearance invariant (prevent player/camera trap crevices)
 	var min_clearance = int(config.min_chasm_height)
@@ -90,6 +106,13 @@ func calculate_floor_and_ceiling(sample_x: float, sample_z: float) -> Vector2i:
 		cl_y = fl_y + min_clearance
 
 	return Vector2i(fl_y, cl_y)
+
+func is_arena(wx: float, wz: float) -> bool:
+	## Returns true if world position falls within a subterranean battle arena.
+	if not config.arena_enabled:
+		return false
+	var warped_pos = get_warped_coordinates(wx, wz)
+	return sample_rift_mask(warped_pos.x, warped_pos.y) >= config.arena_rift_threshold
 
 func sample_column(wx: float, wz: float, out: ChasmColumnResult = null) -> ChasmColumnResult:
 	## Evaluates the dual-2D heightmap chasm column at world coordinates (wx, wz).
@@ -99,27 +122,47 @@ func sample_column(wx: float, wz: float, out: ChasmColumnResult = null) -> Chasm
 
 	var warped_pos = get_warped_coordinates(wx, wz)
 	var raw_rift = sample_rift_mask(warped_pos.x, warped_pos.y)
+	out.raw_rift = raw_rift
 
 	var wall_margin = 0.03
 	if raw_rift < (config.chasm_rift_threshold - wall_margin):
 		out.is_chasm = false
 		out.is_pillar = false
 		out.is_wall = false
+		out.is_arena = false
+		out.is_arena_ledge = false
+		out.is_basalt_column = false
 		out.floor_y = 0
 		out.ceil_y = 0
 		return out
 
-	var bounds = calculate_floor_and_ceiling(warped_pos.x, warped_pos.y)
+	var is_arena_zone = config.arena_enabled and raw_rift >= config.arena_rift_threshold
+	var core_arena_threshold = config.arena_rift_threshold + 0.02
+	out.is_arena = is_arena_zone
+	out.is_arena_ledge = is_arena_zone and raw_rift < core_arena_threshold
+
+	var bounds = calculate_floor_and_ceiling(warped_pos.x, warped_pos.y, raw_rift)
 
 	if raw_rift < config.chasm_rift_threshold:
 		out.is_chasm = false
 		out.is_pillar = false
 		out.is_wall = true
+		out.is_basalt_column = false
 		out.floor_y = bounds.x
 		out.ceil_y = bounds.y
 		return out
 
-	if is_support_pillar(warped_pos.x, warped_pos.y):
+	var is_pillar_col = is_support_pillar(warped_pos.x, warped_pos.y)
+	if is_arena_zone:
+		if raw_rift >= core_arena_threshold:
+			# Pillars are strictly suppressed inside the combat arena
+			is_pillar_col = false
+		else:
+			# On perimeter ledges, pillars form basalt colonnade accents
+			if is_pillar_col:
+				out.is_basalt_column = true
+
+	if is_pillar_col:
 		out.is_chasm = false
 		out.is_pillar = true
 		out.is_wall = false
@@ -136,8 +179,8 @@ func sample_column(wx: float, wz: float, out: ChasmColumnResult = null) -> Chasm
 
 func can_chasm_intersect_cell(min_p: Vector3, max_p: Vector3) -> bool:
 	## Coarse lattice culling: returns false if deep chasm voids cannot intersect this AABB cell.
-	# 1. Fast vertical strata check
-	if max_p.y <= float(config.chasm_min_y) or min_p.y >= float(config.chasm_max_y):
+	# 1. Fast bedrock check
+	if max_p.y <= float(config.chasm_min_y):
 		return false
 
 	# 2. 2D Coarse AABB check with conservative margin scaled to cell size and wall warp
@@ -152,13 +195,20 @@ func can_chasm_intersect_cell(min_p: Vector3, max_p: Vector3) -> bool:
 	if raw_rift < (config.chasm_rift_threshold - margin):
 		return false
 
+	# 3. Vertical ceiling check: only expand to arena dome ceiling if arena threshold is reachable in this cell
+	var can_arena = config.arena_enabled and (raw_rift >= (config.arena_rift_threshold - margin))
+	var effective_max_y = float(config.arena_ceiling_y) if can_arena else float(config.chasm_max_y)
+	if min_p.y >= effective_max_y:
+		return false
+
 	return true
 
 
 func get_chasm_carve(wx: float, wy: float, wz: float) -> float:
 	## Point-query compatibility method for CaveCarver.
 	## Returns 1.0 if (wx, wy, wz) is inside carved chasm air void, 0.0 otherwise.
-	if wy <= 2.0 or wy >= float(config.chasm_max_y):
+	var effective_max_y = float(config.arena_ceiling_y) if config.arena_enabled else float(config.chasm_max_y)
+	if wy <= 2.0 or wy >= effective_max_y:
 		return 0.0
 
 	var warped_pos = get_warped_coordinates(wx, wz)
@@ -166,10 +216,14 @@ func get_chasm_carve(wx: float, wy: float, wz: float) -> float:
 	if raw_rift < config.chasm_rift_threshold:
 		return 0.0
 
-	if is_support_pillar(warped_pos.x, warped_pos.y):
+	var is_pillar_col = is_support_pillar(warped_pos.x, warped_pos.y)
+	if config.arena_enabled and raw_rift >= (config.arena_rift_threshold + 0.02):
+		is_pillar_col = false
+
+	if is_pillar_col:
 		return 0.0
 
-	var bounds = calculate_floor_and_ceiling(warped_pos.x, warped_pos.y)
+	var bounds = calculate_floor_and_ceiling(warped_pos.x, warped_pos.y, raw_rift)
 	if wy > float(bounds.x) and wy < float(bounds.y):
 		return 1.0
 
@@ -194,7 +248,11 @@ func sample_chasm(wx: float, wy: float, wz: float) -> Dictionary:
 			"is_pillar": false
 		}
 
-	if is_support_pillar(warped_pos.x, warped_pos.y):
+	var is_pillar_col = is_support_pillar(warped_pos.x, warped_pos.y)
+	if config.arena_enabled and raw_rift >= (config.arena_rift_threshold + 0.02):
+		is_pillar_col = false
+
+	if is_pillar_col:
 		return {
 			"is_chasm": false,
 			"density": 0.0,
@@ -202,7 +260,7 @@ func sample_chasm(wx: float, wy: float, wz: float) -> Dictionary:
 			"is_pillar": true
 		}
 
-	var bounds = calculate_floor_and_ceiling(warped_pos.x, warped_pos.y)
+	var bounds = calculate_floor_and_ceiling(warped_pos.x, warped_pos.y, raw_rift)
 	var is_void = wy > float(bounds.x) and wy < float(bounds.y)
 	var is_water = is_void and wy <= float(config.chasm_water_level)
 

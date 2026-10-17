@@ -122,12 +122,24 @@ func _exit_tree() -> void:
 	if scheduler != null:
 		scheduler.clear()
 
+var _spawn_point: Vector3 = Vector3.ZERO
+var _spawn_point_cached: bool = false
+
 func _get_focus_position() -> Vector3:
 	if is_instance_valid(focus_target):
 		if focus_target.is_inside_tree():
 			return focus_target.global_position
 		return focus_target.position
+	if _spawn_point_cached:
+		return _spawn_point
 	return Vector3.ZERO
+
+func _get_focus_forward() -> Vector3:
+	if is_instance_valid(focus_target):
+		if focus_target.is_inside_tree():
+			return -focus_target.global_transform.basis.z.normalized()
+		return -focus_target.transform.basis.z.normalized()
+	return Vector3.FORWARD
 
 
 func _load_chunk_sync(coord: ChunkCoord) -> void:
@@ -226,11 +238,24 @@ func _update_streaming() -> void:
 
 	# 2. Demand-driven subterranean promotion for surface-only chunks
 	if caves_enabled:
-		var to_promote = subterranean_coordinator.get_chunks_to_promote(focus_pos, focus_chunk, surf_h, _mouth_cache)
+		var look_dir = _get_focus_forward()
+		var to_promote = subterranean_coordinator.get_chunks_to_promote(focus_pos, focus_chunk, surf_h, _mouth_cache, look_dir, true)
+		var is_near_mouth = false
+		for dz in range(-1, 2):
+			for dx in range(-1, 2):
+				var n_coord = ChunkCoord.new(focus_chunk.x + dx, focus_chunk.z + dz)
+				if _mouth_cache.get(n_coord.to_key(), false):
+					is_near_mouth = true
+					break
+			if is_near_mouth:
+				break
+
 		for p_coord in to_promote:
 			if not scheduler.is_phase_in_flight(p_coord, ChunkScheduler.GenerationPhase.PHASE_SUBTERRANEAN):
 				var cached_surf = subterranean_coordinator.get_cached_surface_data(p_coord)
-				scheduler.schedule_subterranean_chunk(p_coord, bounds, generator, mesher, material_registry, cached_surf)
+				var has_mouth = _mouth_cache.get(p_coord.to_key(), false)
+				var should_bake_cave = is_player_subterranean or has_mouth or is_near_mouth
+				scheduler.schedule_subterranean_chunk(p_coord, bounds, generator, mesher, material_registry, cached_surf, false, should_bake_cave)
 				subterranean_coordinator.mark_subterranean_queued(p_coord)
 
 	# 3. Unload chunks out of range
@@ -295,9 +320,12 @@ func get_height_at(world_x: float, world_z: float) -> float:
 	return float(h) * bounds.voxel_size
 
 func get_spawn_point() -> Vector3:
-	if generator == null or bounds == null or world_config == null:
-		return Vector3(0.0, 30.0, 0.0)
-	return _spawn_finder.find_spawn_point(generator, bounds, world_config.sea_level)
+	if not _spawn_point_cached:
+		if generator == null or bounds == null or world_config == null:
+			return Vector3(0.0, 30.0, 0.0)
+		_spawn_point = _spawn_finder.find_spawn_point(generator, bounds, world_config.sea_level)
+		_spawn_point_cached = true
+	return _spawn_point
 
 func get_world_bounds() -> WorldBounds:
 	return bounds

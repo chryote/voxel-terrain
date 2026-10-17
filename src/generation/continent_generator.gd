@@ -61,8 +61,42 @@ func generate(coord: ChunkCoord, bounds: WorldBounds) -> SurfaceChunkData:
 	# -------------------------------------------------------------------------
 	# Pass 1: Calculate raw elevation, water table, moisture, and fluvial channels
 	# -------------------------------------------------------------------------
+	# Coarse Macro Topography Grid Sampling (stride 4) with Bilinear Interpolation
+	var stride: int = 4
+	var min_gx = coord.x * c_size - 1
+	var max_gx = coord.x * c_size + c_size
+	var min_gz = coord.z * c_size - 1
+	var max_gz = coord.z * c_size + c_size
+
+	var start_cgx = int(floor(float(min_gx) / float(stride))) * stride
+	var end_cgx = int(floor(float(max_gx) / float(stride))) * stride + stride
+	var start_cgz = int(floor(float(min_gz) / float(stride))) * stride
+	var end_cgz = int(floor(float(max_gz) / float(stride))) * stride + stride
+
+	var grid_w = (end_cgx - start_cgx) / stride + 1
+	var grid_h = (end_cgz - start_cgz) / stride + 1
+
+	var coarse_samples: Array[Vector2] = []
+	coarse_samples.resize(grid_w * grid_h)
+
+	for gj in range(grid_h):
+		var cgz = start_cgz + gj * stride
+		var wz = (float(cgz) + 0.5) * bounds.voxel_size
+		var row_offset = gj * grid_w
+		for gi in range(grid_w):
+			var cgx = start_cgx + gi * stride
+			var wx = (float(cgx) + 0.5) * bounds.voxel_size
+			coarse_samples[row_offset + gi] = macro.sample_macro_v2(wx, wz, bounds)
+
+	var inv_stride = 1.0 / float(stride)
+
 	for lz in range(-1, c_size + 1):
 		var gz = coord.z * c_size + lz
+		var gj = (gz - start_cgz) / stride
+		var tz = float((gz - start_cgz) % stride) * inv_stride
+		var row_0 = gj * grid_w
+		var row_1 = (gj + 1) * grid_w
+
 		for lx in range(-1, c_size + 1):
 			var gx = coord.x * c_size + lx
 			var col_idx = (lx + 1) + (lz + 1) * apron_w
@@ -76,7 +110,18 @@ func generate(coord: ChunkCoord, bounds: WorldBounds) -> SurfaceChunkData:
 				var wx = (float(gx) + 0.5) * bounds.voxel_size
 				var wz = (float(gz) + 0.5) * bounds.voxel_size
 
-				var m_v2 = macro.sample_macro_v2(wx, wz, bounds)
+				var gi = (gx - start_cgx) / stride
+				var tx = float((gx - start_cgx) % stride) * inv_stride
+
+				var c00 = coarse_samples[row_0 + gi]
+				var c10 = coarse_samples[row_0 + gi + 1]
+				var c01 = coarse_samples[row_1 + gi]
+				var c11 = coarse_samples[row_1 + gi + 1]
+
+				var c0 = c00.lerp(c10, tx)
+				var c1 = c01.lerp(c11, tx)
+				var m_v2 = c0.lerp(c1, tz)
+
 				var f_v3 = fluvial.sample_fluvial_v3(wx, wz, m_v2.x, m_v2.y)
 				var moist = climate.sample_moisture(wx, wz)
 
@@ -120,7 +165,7 @@ func height_at(col: Vector2i, bounds: WorldBounds) -> int:
 	var wx = (float(col.x) + 0.5) * bounds.voxel_size
 	var wz = (float(col.y) + 0.5) * bounds.voxel_size
 
-	var m_v2 = macro.sample_macro_v2(wx, wz, bounds)
+	var m_v2 = macro.sample_macro_interpolated(wx, wz, bounds)
 	var f_v3 = fluvial.sample_fluvial_v3(wx, wz, m_v2.x, m_v2.y)
 
 	return clampi(int(round(m_v2.x - f_v3.x)), config.seabed_level, 255)
@@ -132,7 +177,7 @@ func water_height_at(col: Vector2i, bounds: WorldBounds) -> int:
 	var wx = (float(col.x) + 0.5) * bounds.voxel_size
 	var wz = (float(col.y) + 0.5) * bounds.voxel_size
 
-	var m_v2 = macro.sample_macro_v2(wx, wz, bounds)
+	var m_v2 = macro.sample_macro_interpolated(wx, wz, bounds)
 	var f_v3 = fluvial.sample_fluvial_v3(wx, wz, m_v2.x, m_v2.y)
 
 	return int(round(f_v3.y))
@@ -144,7 +189,7 @@ func is_water_at(col: Vector2i, bounds: WorldBounds) -> bool:
 	var wx = (float(col.x) + 0.5) * bounds.voxel_size
 	var wz = (float(col.y) + 0.5) * bounds.voxel_size
 
-	var m_v2 = macro.sample_macro_v2(wx, wz, bounds)
+	var m_v2 = macro.sample_macro_interpolated(wx, wz, bounds)
 	var f_v3 = fluvial.sample_fluvial_v3(wx, wz, m_v2.x, m_v2.y)
 
 	var h = m_v2.x - f_v3.x

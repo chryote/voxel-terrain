@@ -186,29 +186,29 @@ func _populate_voxel_columns(surface_data: SurfaceChunkData, bounds: WorldBounds
 			var top_mat = surface_data.get_top_material(lx, lz)
 			var side_mat = surface_data.get_side_material(lx, lz)
 
-			var clamped_h = mini(h, max_h - 1)
-			var clamped_w = mini(water_h, max_h - 1)
+			var clamped_h = mini(h, max_h)
+			var clamped_w = mini(water_h, max_h)
 
 			# Bedrock (Y=0..2)
-			for ly in range(0, mini(3, clamped_h + 1)):
+			for ly in range(0, mini(3, clamped_h)):
 				v_data.set_voxel(lx, ly, lz, MaterialDef.ID_STONE)
 
 			# Mid stone
-			var rock_top = max(3, clamped_h - 3)
+			var rock_top = max(3, clamped_h - 4)
 			for ly in range(3, rock_top):
 				v_data.set_voxel(lx, ly, lz, MaterialDef.ID_STONE)
 
 			# Sub-surface soil/side material
-			for ly in range(rock_top, clamped_h):
+			for ly in range(rock_top, clamped_h - 1):
 				v_data.set_voxel(lx, ly, lz, side_mat)
 
-			# Surface top material
-			if clamped_h >= 0:
-				v_data.set_voxel(lx, clamped_h, lz, top_mat)
+			# Surface top material (sits at ly = clamped_h - 1, top face at Y = clamped_h.0)
+			if clamped_h > 0:
+				v_data.set_voxel(lx, clamped_h - 1, lz, top_mat)
 
-			# Surface water
+			# Surface water (sits directly on terrain at clamped_h up to clamped_w - 1, top face at clamped_w.0)
 			if clamped_w > clamped_h:
-				for ly in range(clamped_h + 1, clamped_w + 1):
+				for ly in range(clamped_h, clamped_w):
 					v_data.set_water(lx, ly, lz, true)
 
 	return v_data

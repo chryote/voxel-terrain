@@ -169,26 +169,30 @@ func build_mesh(data: RefCounted, registry: MaterialRegistry) -> MeshData:
 						continue
 					var idx = lz + ly * n
 
-					var is_surf = true
-					if has_heights:
-						var boundary_y = v_data.get_surface_height(lx, lz) - crust_depth
-						is_surf = (ly >= boundary_y)
-
 					var w_air = (v_data.get_voxel(lx - 1, ly, lz) == 0)
 					var e_air = (v_data.get_voxel(lx + 1, ly, lz) == 0)
 
-					if is_surf:
-						if w_air:
+					var is_surf_w = true
+					var is_surf_e = true
+					if has_heights:
+						var boundary_y = v_data.get_surface_height(lx, lz) - crust_depth
+						var w_adj_h = v_data.get_surface_height(lx - 1, lz)
+						var e_adj_h = v_data.get_surface_height(lx + 1, lz)
+						is_surf_w = (ly >= boundary_y) or (ly >= w_adj_h)
+						is_surf_e = (ly >= boundary_y) or (ly >= e_adj_h)
+
+					if w_air:
+						if is_surf_w:
 							s_west_mask[idx] = mat
 							has_s_west = true
-						if e_air:
-							s_east_mask[idx] = mat
-							has_s_east = true
-					else:
-						if w_air:
+						else:
 							c_west_mask[idx] = mat
 							has_c_west = true
-						if e_air:
+					if e_air:
+						if is_surf_e:
+							s_east_mask[idx] = mat
+							has_s_east = true
+						else:
 							c_east_mask[idx] = mat
 							has_c_east = true
 
@@ -233,26 +237,30 @@ func build_mesh(data: RefCounted, registry: MaterialRegistry) -> MeshData:
 						continue
 					var idx = lx + ly * n
 
-					var is_surf = true
-					if has_heights:
-						var boundary_y = v_data.get_surface_height(lx, lz) - crust_depth
-						is_surf = (ly >= boundary_y)
-
 					var s_air = (v_data.get_voxel(lx, ly, lz - 1) == 0)
 					var n_air = (v_data.get_voxel(lx, ly, lz + 1) == 0)
 
-					if is_surf:
-						if s_air:
+					var is_surf_s = true
+					var is_surf_n = true
+					if has_heights:
+						var boundary_y = v_data.get_surface_height(lx, lz) - crust_depth
+						var s_adj_h = v_data.get_surface_height(lx, lz - 1)
+						var n_adj_h = v_data.get_surface_height(lx, lz + 1)
+						is_surf_s = (ly >= boundary_y) or (ly >= s_adj_h)
+						is_surf_n = (ly >= boundary_y) or (ly >= n_adj_h)
+
+					if s_air:
+						if is_surf_s:
 							s_south_mask[idx] = mat
 							has_s_south = true
-						if n_air:
-							s_north_mask[idx] = mat
-							has_s_north = true
-					else:
-						if s_air:
+						else:
 							c_south_mask[idx] = mat
 							has_c_south = true
-						if n_air:
+					if n_air:
+						if is_surf_n:
+							s_north_mask[idx] = mat
+							has_s_north = true
+						else:
 							c_north_mask[idx] = mat
 							has_c_north = true
 

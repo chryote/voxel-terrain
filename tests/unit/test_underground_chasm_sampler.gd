@@ -135,3 +135,51 @@ func test_no_false_negatives_in_corridor() -> void:
 
 	assert_true(chasm_columns_found > 100, "Must validate across active chasm and wall columns (found %d)" % chasm_columns_found)
 
+func test_inland_continent_mask_bypass_detection() -> void:
+	var world_config = WorldConfig.new()
+	var gen_config = ContinentGeneratorConfig.new()
+	var cave_config = CaveGeneratorConfig.new()
+	var bounds = world_config.create_world_bounds()
+	var cont_gen = ContinentGenerator.new(1337, gen_config)
+	var sampler = UndergroundChasmSampler.new(1337, cave_config)
+	sampler.set_continent_mask(cont_gen.mask, bounds)
+
+	assert_false(sampler.is_deep_inland, "Initially is_deep_inland must be false")
+
+	var mid_x = (bounds.min_world_x + bounds.max_world_x) * 0.5
+	var mid_z = (bounds.min_world_z + bounds.max_world_z) * 0.5
+	var is_inland = sampler.update_deep_inland_status(mid_x, mid_z, mid_x + 16.0, mid_z + 16.0)
+
+	assert_true(is_inland, "Center of continent must be detected as deep inland")
+	assert_true(sampler.is_deep_inland, "is_deep_inland flag must be true")
+
+	# Mathematical equivalence check: sample_rift_mask with bypass vs without bypass must match
+	var rift_bypassed = sampler.sample_rift_mask(mid_x + 8.0, mid_z + 8.0)
+	sampler.is_deep_inland = false
+	var rift_evaluated = sampler.sample_rift_mask(mid_x + 8.0, mid_z + 8.0)
+	assert_almost_eq(rift_bypassed, rift_evaluated, 0.00001, "Deep inland rift calculation must be mathematically identical")
+
+func test_coastal_continent_mask_falloff_preservation() -> void:
+	var world_config = WorldConfig.new()
+	var gen_config = ContinentGeneratorConfig.new()
+	var cave_config = CaveGeneratorConfig.new()
+	var bounds = world_config.create_world_bounds()
+	var cont_gen = ContinentGenerator.new(1337, gen_config)
+	var sampler = UndergroundChasmSampler.new(1337, cave_config)
+	sampler.set_continent_mask(cont_gen.mask, bounds)
+
+	# Coastal / ocean chunk near the world boundary
+	var ocean_x = bounds.min_world_x + 10.0
+	var ocean_z = bounds.min_world_z + 10.0
+	var is_inland = sampler.update_deep_inland_status(ocean_x, ocean_z, ocean_x + 16.0, ocean_z + 16.0)
+
+	assert_false(is_inland, "Ocean boundary must not be detected as deep inland")
+	assert_false(sampler.is_deep_inland, "is_deep_inland must be false on ocean chunk")
+
+	# can_chasm_intersect_cell integration: inland cell sets flag
+	var mid_x = (bounds.min_world_x + bounds.max_world_x) * 0.5
+	var mid_z = (bounds.min_world_z + bounds.max_world_z) * 0.5
+	var _intersect = sampler.can_chasm_intersect_cell(Vector3(mid_x, 4.0, mid_z), Vector3(mid_x + 16.0, 24.0, mid_z + 16.0))
+	assert_true(sampler.is_deep_inland, "can_chasm_intersect_cell must set is_deep_inland on inland cell")
+
+

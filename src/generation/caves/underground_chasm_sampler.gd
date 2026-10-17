@@ -89,17 +89,45 @@ func get_warped_coordinates(wx: float, wz: float) -> Vector2:
 	return Vector2(wx + warp_x, wz + warp_z)
 
 
+const DEEP_INLAND_LAND_THRESHOLD: float = 0.20
+
 var continent_mask = null
 var world_bounds: WorldBounds = null
+var is_deep_inland: bool = false
 
 func set_continent_mask(p_mask, p_bounds: WorldBounds) -> void:
 	continent_mask = p_mask
 	world_bounds = p_bounds
+	is_deep_inland = false
+
+func reset_inland_cache() -> void:
+	is_deep_inland = false
+
+func update_deep_inland_status(min_x: float, min_z: float, max_x: float, max_z: float) -> bool:
+	## Samples continent land factor at the 4 cell/chunk corners.
+	## If all corners exceed DEEP_INLAND_LAND_THRESHOLD (0.20), the entire cell is deep inland,
+	## meaning ocean fade is guaranteed to be 1.0 and continent mask sampling can be bypassed.
+	if continent_mask == null or world_bounds == null:
+		is_deep_inland = false
+		return false
+
+	var c0 = continent_mask.get_land_raw(min_x, min_z, world_bounds)
+	var c1 = continent_mask.get_land_raw(max_x, min_z, world_bounds)
+	var c2 = continent_mask.get_land_raw(min_x, max_z, world_bounds)
+	var c3 = continent_mask.get_land_raw(max_x, max_z, world_bounds)
+
+	is_deep_inland = (
+		c0 > DEEP_INLAND_LAND_THRESHOLD and
+		c1 > DEEP_INLAND_LAND_THRESHOLD and
+		c2 > DEEP_INLAND_LAND_THRESHOLD and
+		c3 > DEEP_INLAND_LAND_THRESHOLD
+	)
+	return is_deep_inland
 
 func sample_rift_mask(sample_x: float, sample_z: float) -> float:
 	## Normalized [0.0, 1.0] 2D rift corridor density.
 	var rift = (rift_noise.get_noise_2d(sample_x, sample_z) + 1.0) * 0.5
-	if continent_mask != null and world_bounds != null:
+	if not is_deep_inland and continent_mask != null and world_bounds != null:
 		var land_raw = continent_mask.get_land_raw(sample_x, sample_z, world_bounds)
 		# Encase subterranean chasms and arenas in solid land before ocean falloff:
 		# Ocean falloff slope starts at land_raw ~ 0.12 and reaches sea level at land_raw ~ 0.065.
@@ -246,9 +274,13 @@ func can_chasm_intersect_cell(min_p: Vector3, max_p: Vector3) -> bool:
 	## Coarse lattice culling: returns false if deep chasm voids cannot intersect this AABB cell.
 	# 1. Fast bedrock check
 	if max_p.y <= float(config.chasm_min_y):
+		is_deep_inland = false
 		return false
 
-	# 2. 2D Coarse AABB check with conservative margin scaled to cell size and wall warp
+	# 2. Update chunk-level deep inland status across the 4 corners
+	update_deep_inland_status(min_p.x, min_p.z, max_p.x, max_p.z)
+
+	# 3. 2D Coarse AABB check with conservative margin scaled to cell size and wall warp
 	var mid_x = (min_p.x + max_p.x) * 0.5
 	var mid_z = (min_p.z + max_p.z) * 0.5
 	var raw_rift = sample_rift_mask(mid_x, mid_z)

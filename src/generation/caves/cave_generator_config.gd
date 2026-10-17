@@ -10,7 +10,7 @@ extends Resource
 
 @export_group("2D Cave Mouth & Portals")
 @export_range(0.0001, 0.01) var mouth_frequency: float = 0.0012 ## Spatial frequency of cave mouth placement
-@export_range(0.5, 0.99) var mouth_threshold: float = 0.76 ## Peak noise threshold required to trigger a cave mouth
+@export_range(0.2, 0.9) var mouth_threshold: float = 0.50 ## Peak noise threshold required to trigger a cave mouth
 @export_range(2.0, 20.0) var mouth_radius: float = 7.0 ## Radius in meters of the surface entrance opening
 @export_range(0.0, 10.0) var water_safety_margin: float = 3.0 ## Minimum meters above sea level required for dry-land cave mouths
 @export_range(15.0, 60.0) var funnel_descent_angle_deg: float = 35.0 ## Downward slope angle of entrance tunnel connecting surface to caves

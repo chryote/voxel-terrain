@@ -55,7 +55,8 @@ func sample_mouth(wx: float, wz: float, surface_h: float, sea_level: int) -> Dic
 		}
 
 	# Normalized intensity in [0.0, 1.0] from threshold to noise peak
-	var intensity = clampf((raw_n - config.mouth_threshold) / (1.0 - config.mouth_threshold), 0.0, 1.0)
+	var peak_n = maxf(0.72, config.mouth_threshold + 0.15)
+	var intensity = clampf((raw_n - config.mouth_threshold) / (peak_n - config.mouth_threshold), 0.0, 1.0)
 	# Smooth parabolic falloff: maximum depth and radius at epicenter
 	var smooth_i = intensity * intensity * (3.0 - 2.0 * intensity)
 	var carve_depth = smooth_i * config.max_entrance_depth

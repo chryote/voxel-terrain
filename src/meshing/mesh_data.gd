@@ -9,6 +9,7 @@ var normals: PackedVector3Array
 var colors: PackedColorArray
 var indices: PackedInt32Array
 var water_mesh_data: MeshData = null
+var has_cave_mouth: bool = false
 
 func is_empty() -> bool:
 	return vertices.is_empty() or indices.is_empty()
@@ -18,6 +19,7 @@ func clear() -> void:
 	normals.clear()
 	colors.clear()
 	indices.clear()
+	has_cave_mouth = false
 
 func create_array_mesh() -> ArrayMesh:
 	if is_empty():
@@ -26,8 +28,10 @@ func create_array_mesh() -> ArrayMesh:
 	var arrays = []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = vertices
-	arrays[Mesh.ARRAY_NORMAL] = normals
-	arrays[Mesh.ARRAY_COLOR] = colors
+	if normals.size() == vertices.size():
+		arrays[Mesh.ARRAY_NORMAL] = normals
+	if colors.size() == vertices.size():
+		arrays[Mesh.ARRAY_COLOR] = colors
 	arrays[Mesh.ARRAY_INDEX] = indices
 
 	var mesh = ArrayMesh.new()

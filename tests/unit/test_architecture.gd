@@ -8,6 +8,7 @@ func test_pure_layers_have_no_scene_node_dependencies() -> void:
 	var pure_dirs = [
 		"res://src/core",
 		"res://src/generation",
+		"res://src/generation/caves",
 		"res://src/meshing",
 		"res://src/streaming"
 	]

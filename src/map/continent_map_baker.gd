@@ -7,6 +7,11 @@ extends RefCounted
 ## Decoupled from scene nodes, UI, and rendering servers for thread-safety and testing.
 
 const ContinentMapColorPaletteClass = preload("res://src/map/continent_map_color_palette.gd")
+const CaveMouthDataClass = preload("res://src/map/cave_mouth_data.gd")
+const CaveMouthDetectorClass = preload("res://src/map/cave_mouth_detector.gd")
+
+var detector: CaveMouthDetectorClass = CaveMouthDetectorClass.new()
+var last_baked_cave_mouths: Array = []
 
 func bake_map(
 	generator: TerrainGenerator,
@@ -46,6 +51,9 @@ func bake_map(
 
 	var is_cont_gen = generator is ContinentGenerator
 	var cont_gen: ContinentGenerator = generator if is_cont_gen else null
+	if cont_gen == null and "continent_gen" in generator and generator.continent_gen is ContinentGenerator:
+		cont_gen = generator.continent_gen
+		is_cont_gen = true
 	if cont_gen != null and cont_gen.config != null:
 		sea_level = cont_gen.config.sea_level
 		seabed_level = cont_gen.config.seabed_level
@@ -131,5 +139,10 @@ func bake_map(
 
 			pixel_color.a = 1.0
 			img.set_pixel(px, py, pixel_color)
+
+	# -------------------------------------------------------------------------
+	# Pass 3: Cave Mouth Detection & Classification
+	# -------------------------------------------------------------------------
+	last_baked_cave_mouths = detector.detect_cave_mouths(generator, bounds, resolution)
 
 	return img

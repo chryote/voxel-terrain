@@ -12,6 +12,8 @@ const ContinentMapProviderClass = preload("res://src/map/continent_map_provider.
 const PlayerMarkerOverlayClass = preload("res://src/map/player_marker_overlay.gd")
 const MapCoordinateConverterClass = preload("res://src/map/map_coordinate_converter.gd")
 const MapPanZoomControllerClass = preload("res://src/map/map_pan_zoom_controller.gd")
+const CaveMouthDataClass = preload("res://src/map/cave_mouth_data.gd")
+const CaveMouthOverlayClass = preload("res://src/map/cave_mouth_overlay.gd")
 
 @export var voxel_world: VoxelWorld
 @export var player_motor: PlayerMotor
@@ -27,11 +29,12 @@ var _backdrop: ColorRect
 var _panel: PanelContainer
 var _map_content: Control
 var _map_texture_rect: TextureRect
+var _cave_mouth_overlay: CaveMouthOverlayClass
 var _player_marker: PlayerMarkerOverlayClass
 var _loading_label: Label
 var _zoom_label: Label
 var _stats_label: Label
-var _legend_container: HBoxContainer
+var _legend_container: Container
 
 func _init() -> void:
 	visible = false
@@ -48,14 +51,21 @@ func _ready() -> void:
 	if player_motor == null:
 		player_motor = get_node_or_null("../..") as PlayerMotor
 
-	if voxel_world == null and get_tree() != null:
-		var root = get_tree().current_scene
-		if root != null:
-			voxel_world = root.get_node_or_null("VoxelWorld") as VoxelWorld
+	_find_voxel_world_if_needed()
 
 	# If voxel_world is available, initiate background baking
 	if voxel_world != null:
 		_start_baking_if_needed()
+
+func _find_voxel_world_if_needed() -> void:
+	if voxel_world != null:
+		return
+	if get_tree() != null:
+		var root = get_tree().current_scene
+		if root != null:
+			voxel_world = root.get_node_or_null("VoxelWorld") as VoxelWorld
+		if voxel_world == null and get_tree().root != null:
+			voxel_world = get_tree().root.find_child("VoxelWorld", true, false) as VoxelWorld
 
 func _exit_tree() -> void:
 	if provider != null:
@@ -124,6 +134,7 @@ func open_map() -> void:
 		_previous_mouse_mode = Input.mouse_mode
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
+	_find_voxel_world_if_needed()
 	_start_baking_if_needed()
 	_apply_pan_zoom()
 	_update_player_marker()
@@ -171,14 +182,21 @@ func _apply_pan_zoom() -> void:
 	if _map_content != null:
 		_map_content.position = pan_zoom.pan_offset
 		_map_content.scale = Vector2(pan_zoom.zoom, pan_zoom.zoom)
+	if _cave_mouth_overlay != null:
+		if voxel_world != null and voxel_world.bounds != null and provider.is_ready():
+			_cave_mouth_overlay.set_cave_mouths(provider.get_cave_mouths(), voxel_world.bounds)
+		_cave_mouth_overlay.update_transform(pan_zoom.pan_offset, pan_zoom.zoom, pan_zoom.box_size)
 	if _player_marker != null:
-		_player_marker.update_transform(pan_zoom.pan_offset, pan_zoom.zoom)
+		_player_marker.update_transform(pan_zoom.pan_offset, pan_zoom.zoom, pan_zoom.box_size)
 	if _zoom_label != null:
 		_zoom_label.text = "%d%% (%.1fx)" % [int(round(pan_zoom.zoom * 100.0)), pan_zoom.zoom]
 
 func _start_baking_if_needed() -> void:
 	if provider.is_ready():
 		_map_texture_rect.texture = provider.get_texture()
+		if _cave_mouth_overlay != null and voxel_world != null:
+			_cave_mouth_overlay.set_cave_mouths(provider.get_cave_mouths(), voxel_world.bounds)
+			_cave_mouth_overlay.update_transform(pan_zoom.pan_offset, pan_zoom.zoom, pan_zoom.box_size)
 		_loading_label.visible = false
 		return
 
@@ -188,14 +206,22 @@ func _start_baking_if_needed() -> void:
 			provider.bake_async(voxel_world.generator, voxel_world.bounds, 512)
 
 func _on_map_texture_baked(texture: ImageTexture) -> void:
+	_find_voxel_world_if_needed()
 	if _map_texture_rect != null:
 		_map_texture_rect.texture = texture
+	if _cave_mouth_overlay != null and voxel_world != null:
+		_cave_mouth_overlay.set_cave_mouths(provider.get_cave_mouths(), voxel_world.bounds)
+		_cave_mouth_overlay.update_transform(pan_zoom.pan_offset, pan_zoom.zoom, pan_zoom.box_size)
 	if _loading_label != null:
 		_loading_label.visible = false
 
 func _update_player_marker() -> void:
-	if _player_marker == null or voxel_world == null or voxel_world.bounds == null:
+	if _player_marker == null:
 		return
+	if voxel_world == null or voxel_world.bounds == null:
+		_find_voxel_world_if_needed()
+		if voxel_world == null or voxel_world.bounds == null:
+			return
 
 	var p_pos = Vector3.ZERO
 	var p_yaw = 0.0
@@ -208,7 +234,7 @@ func _update_player_marker() -> void:
 			p_yaw = player_motor.rotation.y
 
 	_player_marker.update_player_state(p_pos, p_yaw, voxel_world.bounds)
-	_player_marker.update_transform(pan_zoom.pan_offset, pan_zoom.zoom)
+	_player_marker.update_transform(pan_zoom.pan_offset, pan_zoom.zoom, pan_zoom.box_size)
 
 	if _stats_label != null:
 		var seed_str = str(voxel_world.world_config.world_seed) if voxel_world.world_config != null else "N/A"
@@ -341,9 +367,20 @@ func _build_ui() -> void:
 	_loading_label.mouse_filter = MOUSE_FILTER_IGNORE
 	map_viewport_container.add_child(_loading_label)
 
+	# Cave mouth overlay
+	_cave_mouth_overlay = CaveMouthOverlayClass.new()
+	_cave_mouth_overlay.custom_minimum_size = Vector2(512, 512)
+	_cave_mouth_overlay.size = Vector2(512, 512)
+	_cave_mouth_overlay.map_size = Vector2(512, 512)
+	_cave_mouth_overlay.mouse_filter = MOUSE_FILTER_IGNORE
+	map_viewport_container.add_child(_cave_mouth_overlay)
+
 	# Player marker overlay
 	_player_marker = PlayerMarkerOverlayClass.new()
-	_player_marker.set_anchors_preset(PRESET_FULL_RECT)
+	_player_marker.custom_minimum_size = Vector2(512, 512)
+	_player_marker.size = Vector2(512, 512)
+	_player_marker.map_size = Vector2(512, 512)
+	_player_marker.z_index = 5
 	_player_marker.mouse_filter = MOUSE_FILTER_IGNORE
 	map_viewport_container.add_child(_player_marker)
 
@@ -355,8 +392,9 @@ func _build_ui() -> void:
 	main_vbox.add_child(_stats_label)
 
 	# 6. Map Legend
-	_legend_container = HBoxContainer.new()
-	_legend_container.add_theme_constant_override("separation", 12)
+	_legend_container = HFlowContainer.new()
+	_legend_container.add_theme_constant_override("h_separation", 10)
+	_legend_container.add_theme_constant_override("v_separation", 4)
 	main_vbox.add_child(_legend_container)
 
 	_add_legend_item("Ocean", Color("#1b3f63"))
@@ -366,6 +404,9 @@ func _build_ui() -> void:
 	_add_legend_item("Hills", Color("#6b4f38"))
 	_add_legend_item("Stone", Color("#787878"))
 	_add_legend_item("Snow", Color("#f4f7fb"))
+	_add_legend_item("Dead Cave (C)", CaveMouthDataClass.COLOR_DEAD_END)
+	_add_legend_item("Tunnel Cave (C)", CaveMouthDataClass.COLOR_TUNNEL)
+	_add_legend_item("Chasm Cave (C)", CaveMouthDataClass.COLOR_CHASM)
 	_add_legend_item("Player", Color(0.92, 0.12, 0.12))
 
 func _add_legend_item(title: String, color: Color) -> void:

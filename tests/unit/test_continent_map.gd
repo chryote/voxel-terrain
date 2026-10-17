@@ -234,3 +234,31 @@ func test_continent_map_ui_pan_and_zoom_integration() -> void:
 
 	ui.close_map()
 	ui.queue_free()
+
+func test_player_marker_overlay() -> void:
+	var PlayerMarkerOverlayClass = preload("res://src/map/player_marker_overlay.gd")
+	var overlay = PlayerMarkerOverlayClass.new()
+	assert_not_null(overlay, "PlayerMarkerOverlay must instantiate")
+	assert_eq(overlay.map_size, Vector2(512, 512), "Default map_size must be 512x512")
+
+	var bounds = WorldBounds.new(Vector2i(64, 64), 32, 1.0)
+	overlay.update_player_state(Vector3(0.0, 50.0, 0.0), PI * 0.25, bounds)
+	assert_eq(overlay.player_world_pos, Vector3(0.0, 50.0, 0.0))
+	assert_eq(overlay.player_yaw, PI * 0.25)
+	assert_eq(overlay.bounds, bounds)
+
+	# Transform update
+	overlay.update_transform(Vector2(-100.0, 50.0), 2.0, Vector2(512, 512))
+	assert_eq(overlay.pan_offset, Vector2(-100.0, 50.0))
+	assert_eq(overlay.zoom, 2.0)
+	assert_eq(overlay.map_size, Vector2(512, 512))
+
+	# UI integration test
+	var ui = ContinentMapUIClass.new()
+	ui._build_ui()
+	assert_not_null(ui._player_marker, "ContinentMapUI must instantiate _player_marker")
+	assert_eq(ui._player_marker.map_size, Vector2(512, 512), "_player_marker must have 512x512 map_size")
+	assert_eq(ui._player_marker.z_index, 5, "_player_marker must have elevated z_index")
+	ui.queue_free()
+	overlay.queue_free()
+

@@ -2,20 +2,87 @@ class_name ChunkScheduler
 extends RefCounted
 
 ## Thread-safe chunk generation and meshing scheduler using WorkerThreadPool.
-## Manages task handles and ensures all WorkerThreadPool tasks are properly reclaimed.
+## Supports two-phase streaming:
+## - Phase A (Surface-First): Instantaneous ~22 ms surface generation and meshing
+## - Phase B (Subterranean On-Demand): Deferred 3D cave carving and subterranean meshing
+## Also maintains full backward compatibility for monolithic full generation tasks.
+
+enum GenerationPhase {
+	PHASE_FULL = 0,
+	PHASE_SURFACE = 1,
+	PHASE_SUBTERRANEAN = 2
+}
 
 var _mutex: Mutex = Mutex.new()
-var _active_tasks: Dictionary = {}        # key -> task_id
+var _active_tasks: Dictionary = {}        # task_key -> task_id
 var _tasks_to_reclaim: Array[int] = []    # list of all task_ids created
-var _canceled_keys: Dictionary = {}       # key -> true
+var _canceled_keys: Dictionary = {}       # task_key or chunk_key -> true
 var _completed_results: Array[Dictionary] = []
 
+func _make_task_key(coord: ChunkCoord, phase: int) -> String:
+	return "%d:%d" % [coord.to_key(), phase]
+
 func is_chunk_in_flight(coord: ChunkCoord) -> bool:
+	var base_key = str(coord.to_key())
 	_mutex.lock()
-	var in_flight = _active_tasks.has(coord.to_key())
+	var in_flight = (
+		_active_tasks.has(base_key) or
+		_active_tasks.has(base_key + ":0") or
+		_active_tasks.has(base_key + ":1") or
+		_active_tasks.has(base_key + ":2")
+	)
 	_mutex.unlock()
 	return in_flight
 
+func is_phase_in_flight(coord: ChunkCoord, phase: int) -> bool:
+	var task_key = _make_task_key(coord, phase)
+	_mutex.lock()
+	var in_flight = _active_tasks.has(task_key)
+	_mutex.unlock()
+	return in_flight
+
+## Phase A: High-speed surface-only generation and meshing (~22 ms)
+func schedule_surface_chunk(
+	coord: ChunkCoord,
+	bounds: WorldBounds,
+	generator: TerrainGenerator,
+	mesher: Mesher,
+	registry: MaterialRegistry,
+	high_priority: bool = false
+) -> void:
+	_schedule_task_internal(
+		coord,
+		GenerationPhase.PHASE_SURFACE,
+		bounds,
+		generator,
+		mesher,
+		registry,
+		null,
+		high_priority
+	)
+
+## Phase B: On-demand subterranean 3D cave carving and meshing
+func schedule_subterranean_chunk(
+	coord: ChunkCoord,
+	bounds: WorldBounds,
+	generator: TerrainGenerator,
+	mesher: Mesher,
+	registry: MaterialRegistry,
+	cached_surface_data: SurfaceChunkData = null,
+	high_priority: bool = false
+) -> void:
+	_schedule_task_internal(
+		coord,
+		GenerationPhase.PHASE_SUBTERRANEAN,
+		bounds,
+		generator,
+		mesher,
+		registry,
+		cached_surface_data,
+		high_priority
+	)
+
+## Monolithic full generation (Phase A + Phase B combined)
 func schedule_chunk(
 	coord: ChunkCoord,
 	bounds: WorldBounds,
@@ -23,53 +90,133 @@ func schedule_chunk(
 	mesher: Mesher,
 	registry: MaterialRegistry
 ) -> void:
-	var key = coord.to_key()
+	_schedule_task_internal(
+		coord,
+		GenerationPhase.PHASE_FULL,
+		bounds,
+		generator,
+		mesher,
+		registry,
+		null,
+		false
+	)
+
+func _schedule_task_internal(
+	coord: ChunkCoord,
+	phase: int,
+	bounds: WorldBounds,
+	generator: TerrainGenerator,
+	mesher: Mesher,
+	registry: MaterialRegistry,
+	surface_data: SurfaceChunkData = null,
+	high_priority: bool = false
+) -> void:
+	var task_key = _make_task_key(coord, phase)
+	var base_key = str(coord.to_key())
+
 	_mutex.lock()
-	if _active_tasks.has(key):
+	# Avoid duplicate in-flight task for this phase
+	if _active_tasks.has(task_key) or _active_tasks.has(base_key):
 		_mutex.unlock()
 		return
-	_canceled_keys.erase(key)
+
+	_canceled_keys.erase(task_key)
+	_canceled_keys.erase(base_key)
 
 	var payload = {
 		"coord": coord,
+		"phase": phase,
 		"bounds": bounds,
 		"generator": generator,
 		"mesher": mesher,
-		"registry": registry
+		"registry": registry,
+		"surface_data": surface_data,
+		"task_key": task_key,
+		"base_key": base_key
 	}
 
-	var task_id = WorkerThreadPool.add_task(_process_chunk_task.bind(payload))
-	_active_tasks[key] = task_id
+	var task_id = WorkerThreadPool.add_task(_process_chunk_task.bind(payload), high_priority)
+	_active_tasks[task_key] = task_id
 	_tasks_to_reclaim.append(task_id)
 	_mutex.unlock()
 
 func cancel_chunk(coord: ChunkCoord) -> void:
-	var key = coord.to_key()
+	var base_key = str(coord.to_key())
 	_mutex.lock()
-	if _active_tasks.has(key):
-		_canceled_keys[key] = true
+	_canceled_keys[base_key] = true
+	_canceled_keys[base_key + ":0"] = true
+	_canceled_keys[base_key + ":1"] = true
+	_canceled_keys[base_key + ":2"] = true
 	_mutex.unlock()
 
 func _process_chunk_task(payload: Dictionary) -> void:
 	var coord: ChunkCoord = payload.coord
+	var phase: int = payload.phase
 	var bounds: WorldBounds = payload.bounds
 	var generator: TerrainGenerator = payload.generator
 	var mesher: Mesher = payload.mesher
 	var registry: MaterialRegistry = payload.registry
+	var task_key: String = payload.task_key
+	var base_key: String = payload.base_key
 
-	var chunk_data = generator.generate(coord, bounds)
-	var mesh_data = mesher.build_mesh(chunk_data, registry)
+	var chunk_data: RefCounted = null
+	var mesh_data: MeshData = null
+	var has_mouth: bool = false
 
-	var key = coord.to_key()
+	match phase:
+		GenerationPhase.PHASE_SURFACE:
+			if generator is LayeredTerrainGenerator:
+				var s_gen: LayeredTerrainGenerator = generator
+				var s_data = s_gen.generate_surface(coord, bounds)
+				chunk_data = s_data
+				has_mouth = s_data.has_cave_mouth
+			else:
+				chunk_data = generator.generate(coord, bounds)
+				has_mouth = chunk_data.has_cave_mouth if ("has_cave_mouth" in chunk_data) else false
+
+			mesh_data = mesher.build_mesh(chunk_data, registry)
+
+		GenerationPhase.PHASE_SUBTERRANEAN:
+			var cached_surf: SurfaceChunkData = payload.get("surface_data", null)
+			if generator is LayeredTerrainGenerator:
+				var s_gen: LayeredTerrainGenerator = generator
+				var v_data = s_gen.generate_subterranean(cached_surf, coord, bounds)
+				chunk_data = v_data
+				has_mouth = v_data.has_cave_mouth
+			else:
+				chunk_data = generator.generate(coord, bounds)
+				has_mouth = chunk_data.has_cave_mouth if ("has_cave_mouth" in chunk_data) else false
+
+			mesh_data = mesher.build_mesh(chunk_data, registry)
+
+		GenerationPhase.PHASE_FULL:
+			chunk_data = generator.generate(coord, bounds)
+			has_mouth = chunk_data.has_cave_mouth if ("has_cave_mouth" in chunk_data) else false
+			mesh_data = mesher.build_mesh(chunk_data, registry)
+
+	# Off-thread collision baking (ConcavePolygonShape3D created on worker thread)
+	var collision_baker = OffThreadCollisionBaker.new()
+	var shapes = collision_baker.bake_shapes_for_bundle(mesh_data)
+	if mesh_data is DualMeshBundle:
+		mesh_data.surface_shape = shapes.surface_shape
+		mesh_data.cave_shape = shapes.cave_shape
+
 	_mutex.lock()
-	if not _canceled_keys.has(key):
+	var is_canceled = _canceled_keys.has(task_key) or _canceled_keys.has(base_key)
+	if not is_canceled:
 		_completed_results.append({
+			"phase": phase,
 			"coord": coord,
 			"data": chunk_data,
-			"mesh_data": mesh_data
+			"mesh_data": mesh_data,
+			"surface_shape": shapes.surface_shape,
+			"cave_shape": shapes.cave_shape,
+			"has_cave_mouth": has_mouth
 		})
-	_active_tasks.erase(key)
-	_canceled_keys.erase(key)
+
+	_active_tasks.erase(task_key)
+	_active_tasks.erase(base_key)
+	_canceled_keys.erase(task_key)
 	_mutex.unlock()
 
 func poll_completed(max_count: int = 4) -> Array[Dictionary]:
@@ -120,4 +267,5 @@ func clear() -> void:
 	_mutex.lock()
 	_canceled_keys.clear()
 	_completed_results.clear()
+	_active_tasks.clear()
 	_mutex.unlock()

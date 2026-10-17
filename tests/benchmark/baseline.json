@@ -1,29 +1,65 @@
 {
   "generation_chunk_32": {
-    "avg_ms": 9.8884,
+    "avg_ms": 13.4106,
     "iterations": 15,
-    "max_ms": 10.394,
-    "median_ms": 9.894,
-    "min_ms": 9.693,
+    "max_ms": 13.712,
+    "median_ms": 13.386,
+    "min_ms": 13.224,
     "name": "generation_chunk_32",
-    "p95_ms": 10.154
+    "p95_ms": 13.521
   },
   "meshing_chunk_32": {
-    "avg_ms": 5.46533333333333,
+    "avg_ms": 5.6006,
     "iterations": 15,
-    "max_ms": 5.676,
-    "median_ms": 5.434,
-    "min_ms": 5.402,
+    "max_ms": 5.751,
+    "median_ms": 5.596,
+    "min_ms": 5.496,
     "name": "meshing_chunk_32",
-    "p95_ms": 5.618
+    "p95_ms": 5.662
   },
   "streamer_evaluation_vd8": {
-    "avg_ms": 1.1998,
+    "avg_ms": 1.20258,
     "iterations": 50,
-    "max_ms": 1.467,
-    "median_ms": 1.177,
-    "min_ms": 1.137,
+    "max_ms": 1.381,
+    "median_ms": 1.187,
+    "min_ms": 1.134,
     "name": "streamer_evaluation_vd8",
-    "p95_ms": 1.348
+    "p95_ms": 1.315
+  },
+  "subterranean_carve_64_chunks_batch": {
+    "avg_ms": 1805.9994,
+    "iterations": 5,
+    "max_ms": 1814.033,
+    "median_ms": 1803.473,
+    "min_ms": 1799.91,
+    "name": "subterranean_carve_64_chunks_batch",
+    "p95_ms": 1814.033
+  },
+  "subterranean_carve_isolated_chunk_16": {
+    "avg_ms": 36.43635,
+    "iterations": 20,
+    "max_ms": 38.08,
+    "median_ms": 36.27,
+    "min_ms": 35.636,
+    "name": "subterranean_carve_isolated_chunk_16",
+    "p95_ms": 38.027
+  },
+  "subterranean_chasm_dense_chunk_16": {
+    "avg_ms": 42.5987333333333,
+    "iterations": 15,
+    "max_ms": 43.029,
+    "median_ms": 42.614,
+    "min_ms": 41.959,
+    "name": "subterranean_chasm_dense_chunk_16",
+    "p95_ms": 42.828
+  },
+  "surface_generation_chunk_16": {
+    "avg_ms": 4.05186666666667,
+    "iterations": 15,
+    "max_ms": 4.437,
+    "median_ms": 4.002,
+    "min_ms": 3.881,
+    "name": "surface_generation_chunk_16",
+    "p95_ms": 4.337
   }
 }

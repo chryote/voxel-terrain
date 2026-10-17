@@ -9,6 +9,7 @@ signal map_baked(texture: ImageTexture)
 
 const ContinentMapBakerClass = preload("res://src/map/continent_map_baker.gd")
 const ContinentMapColorPaletteClass = preload("res://src/map/continent_map_color_palette.gd")
+const CaveMouthDataClass = preload("res://src/map/cave_mouth_data.gd")
 
 var _mutex: Mutex = Mutex.new()
 var _baker: ContinentMapBakerClass = ContinentMapBakerClass.new()
@@ -16,6 +17,7 @@ var _palette: ContinentMapColorPaletteClass = ContinentMapColorPaletteClass.new(
 
 var _cached_texture: ImageTexture = null
 var _cached_image: Image = null
+var _cached_cave_mouths: Array = []
 var _is_baking: bool = false
 var _task_id: int = -1
 
@@ -37,6 +39,12 @@ func get_texture() -> ImageTexture:
 	_mutex.unlock()
 	return tex
 
+func get_cave_mouths() -> Array:
+	_mutex.lock()
+	var mouths: Array = _cached_cave_mouths.duplicate()
+	_mutex.unlock()
+	return mouths
+
 func bake_sync(
 	generator: TerrainGenerator,
 	bounds: WorldBounds,
@@ -50,6 +58,7 @@ func bake_sync(
 	_mutex.lock()
 	_cached_image = img
 	_cached_texture = tex
+	_cached_cave_mouths = _baker.last_baked_cave_mouths.duplicate()
 	_is_baking = false
 	_mutex.unlock()
 
@@ -87,6 +96,7 @@ func _worker_task(payload: Dictionary) -> void:
 
 	_mutex.lock()
 	_cached_image = img
+	_cached_cave_mouths = _baker.last_baked_cave_mouths.duplicate()
 	_is_baking = false
 	_mutex.unlock()
 
@@ -119,6 +129,7 @@ func clear() -> void:
 	_task_id = -1
 	_cached_texture = null
 	_cached_image = null
+	_cached_cave_mouths.clear()
 	_is_baking = false
 	_mutex.unlock()
 

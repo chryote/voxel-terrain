@@ -11,6 +11,9 @@ const ID_SAND: int = 4
 const ID_SNOW: int = 5
 const ID_SEABED: int = 6
 const ID_GRAVEL: int = 7
+const ID_CAVE_WALL: int = 8
+const ID_CHASM_BASALT: int = 9
+const ID_CAVE_CRYSTAL: int = 10
 
 @export var id: int = 0
 @export var name: String = "air"

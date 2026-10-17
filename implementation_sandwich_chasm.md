@@ -1,6 +1,6 @@
 # Architecture Implementation Plan: Dual-2D Heightmap Deep Chasms & Abyssal Caverns
 
-> **Status:** Phase 1 Complete / Ready for Phase 2  
+> **Status:** Phase 2 Complete / Ready for Phase 3  
 > **Author:** Antigravity Pair Programmer  
 > **Scope:** Procedural subterranean terrain generation ([`CaveCarver`](file:///d:/GODOT/terrain/src/generation/caves/cave_carver.gd), [`UndergroundChasmSampler`](file:///d:/GODOT/terrain/src/generation/caves/underground_chasm_sampler.gd), [`CaveGeneratorConfig`](file:///d:/GODOT/terrain/src/generation/caves/cave_generator_config.gd), [`LayeredTerrainGenerator`](file:///d:/GODOT/terrain/src/generation/layered_terrain_generator.gd))
 
@@ -226,8 +226,8 @@ gantt
     Refactor UndergroundChasmSampler to 2D    :done, p1b, 2026-10-17, 1d
     Add Unit Tests for Column Sampling        :done, p1c, 2026-10-17, 1d
     section Phase 2: Integration & Culling
-    Integrate with CaveCarver & Coarse Culling:p2a, 2026-10-20, 1d
-    Optimize LayeredTerrainGenerator Loop      :p2b, after p2a, 1d
+    Integrate with CaveCarver & Coarse Culling:done, p2a, 2026-10-17, 1d
+    Optimize LayeredTerrainGenerator Loop      :done, p2b, 2026-10-17, 1d
     section Phase 3: Mitigations & Aesthetics
     Fine-tune Wall Warping & Basalt Materials  :p3a, 2026-10-22, 1d
     Validate Water Lake Boundaries & Drainage :p3b, after p3a, 1d
@@ -246,9 +246,10 @@ gantt
 
 
 ### Phase 2: Carver Integration & Culling Pipeline
-1. **Coarse Culling**: Update `can_chasm_intersect_cell` to evaluate 2D AABB rift bounds.
-2. **Carver Adapter**: Ensure `CaveCarver.sample_carve_density` and `CaveCarver.is_carved` maintain backward compatibility with 3D queries while leveraging column spans when available.
-3. **Chunk Carving Loop**: In [`LayeredTerrainGenerator._carve_subterranean_caves`](file:///d:/GODOT/terrain/src/generation/layered_terrain_generator.gd), sample `chasm_sampler.sample_column` outside the inner $Y$ loop, performing span operations rather than per-voxel 3D evaluations.
+1. [x] **Coarse Culling**: Update `can_chasm_intersect_cell` to evaluate 2D AABB rift bounds.
+2. [x] **Carver Adapter**: Ensure `CaveCarver.sample_carve_density` and `CaveCarver.is_carved` maintain backward compatibility with 3D queries while leveraging column spans when available.
+3. [x] **Chunk Carving Loop**: In [`LayeredTerrainGenerator._carve_subterranean_caves`](file:///d:/GODOT/terrain/src/generation/layered_terrain_generator.gd), sample `chasm_sampler.sample_column` outside the inner $Y$ loop, performing span operations rather than per-voxel 3D evaluations.
+
 
 ### Phase 3: Mitigation Tuning & Aesthetics
 1. **Wall Warping Calibration**: Tune `chasm_wall_warp_amplitude` and `chasm_wall_warp_frequency` to ensure canyon walls look like natural sheared bedrock faults rather than synthetic grid boundaries.

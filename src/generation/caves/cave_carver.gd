@@ -29,6 +29,34 @@ func _init(seed_val: int = 1337, p_config: CaveGeneratorConfig = null) -> void:
 	crystal_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 	crystal_noise.frequency = 0.04
 
+func sample_chasm_column(wx: float, wz: float, out: ChasmColumnResult = null) -> ChasmColumnResult:
+	## Delegates 2D column chasm evaluation to UndergroundChasmSampler.
+	return chasm_sampler.sample_column(wx, wz, out)
+
+func is_chasm_void(wy: float, chasm_col: ChasmColumnResult) -> bool:
+	## Fast O(1) integer span check: returns true if elevation wy falls strictly inside the chasm cavern void.
+	if chasm_col == null or not chasm_col.is_chasm:
+		return false
+	return wy > float(chasm_col.floor_y) and wy < float(chasm_col.ceil_y)
+
+func sample_tunnel_or_mouth_carve(wx: float, wy: float, wz: float, surface_h: float, sea_level: int) -> float:
+	## Evaluates non-chasm cave features (surface entrance mouths and 3D worm tunnels).
+	if not config.enabled or wy <= 2.0:
+		return 0.0
+
+	# Surface crust protection: outer terrain cannot be punctured except at active mouths
+	if mouth_sampler.is_crust_sealed(wx, wy, wz, surface_h, sea_level):
+		return 0.0
+
+	# Cave mouth downward funnel check (strictly bounded to entrance depth)
+	if wy >= (surface_h - config.max_entrance_depth) and wy <= (surface_h + 1.0):
+		var mouth_carve = mouth_sampler.get_funnel_carve(wx, wy, wz, surface_h, sea_level)
+		if mouth_carve > 0.0:
+			return mouth_carve
+
+	# 3D worm tunnel check
+	return tunnel_sampler.get_tunnel_carve(wx, wy, wz)
+
 func sample_carve_density(wx: float, wy: float, wz: float, surface_h: float, sea_level: int) -> float:
 	## Returns carving density: > 0.0 means hollow air (carved), <= 0.0 means solid rock.
 	# 1. Above surface is natural sky air
@@ -53,10 +81,11 @@ func sample_carve_density(wx: float, wy: float, wz: float, surface_h: float, sea
 		if mouth_carve > 0.0:
 			return mouth_carve
 
-	# 5. Deep chasm cavern check (confined strictly to Y: 4-22)
+	# 5. Deep chasm cavern check (strictly above bedrock Y > 2.0 and below chasm_max_y)
 	var chasm_carve = 0.0
-	if wy > float(config.chasm_min_y) and wy < float(config.chasm_max_y):
+	if wy > 2.0 and wy < float(config.chasm_max_y):
 		chasm_carve = chasm_sampler.get_chasm_carve(wx, wy, wz)
+
 
 	# 6. 3D worm tunnel check
 	var tunnel_carve = tunnel_sampler.get_tunnel_carve(wx, wy, wz)
@@ -67,12 +96,15 @@ func sample_carve_density(wx: float, wy: float, wz: float, surface_h: float, sea
 func is_carved(wx: float, wy: float, wz: float, surface_h: float, sea_level: int) -> bool:
 	return sample_carve_density(wx, wy, wz, surface_h, sea_level) > 0.05
 
-func is_subterranean_water(wx: float, wy: float, wz: float, surface_h: float, sea_level: int) -> bool:
+func is_subterranean_water(wx: float, wy: float, wz: float, surface_h: float, sea_level: int, chasm_col: ChasmColumnResult = null) -> bool:
 	if wy > float(config.chasm_water_level):
 		return false
+	if chasm_col != null:
+		return is_chasm_void(wy, chasm_col)
 	if not is_carved(wx, wy, wz, surface_h, sea_level):
 		return false
 	return chasm_sampler.is_subterranean_water(wx, wy, wz)
+
 
 func classify_subterranean_voxel(wx: float, wy: float, wz: float) -> int:
 	## Assigns geological material for solid voxels exposed to cave/chasm voids.

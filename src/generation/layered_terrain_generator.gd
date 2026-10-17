@@ -117,6 +117,9 @@ func _carve_subterranean_caves(
 			max_chunk_h = maxi(max_chunk_h, surface_data.get_height(lx, lz))
 	var carve_ceiling = mini(max_h, max_chunk_h + 2)
 
+	# Reusable column result allocated once per chunk generation (thread-safe local variable)
+	var chasm_col = ChasmColumnResult.new()
+
 	for bz in range(-1, c_size + 1, block_size):
 		for bx in range(-1, c_size + 1, block_size):
 			var min_gx = coord.x * c_size + bx
@@ -142,14 +145,19 @@ func _carve_subterranean_caves(
 				var min_wy = float(by) * bounds.voxel_size
 				var max_wy = float(mini(by + block_size, carve_ceiling)) * bounds.voxel_size
 
+				var cell_min_p = Vector3(min_wx, min_wy, min_wz)
+				var cell_max_p = Vector3(max_wx, max_wy, max_wz)
+
 				var status = cave_carver.sample_coarse_cell_status(
-					Vector3(min_wx, min_wy, min_wz),
-					Vector3(max_wx, max_wy, max_wz),
+					cell_min_p, cell_max_p,
 					cell_min_h, cell_max_h, sea_level
 				)
 
 				if status == CaveCarver.STATUS_AIR or status == CaveCarver.STATUS_SOLID:
 					continue
+
+				# Check whether deep chasm voids can intersect this active cell
+				var cell_can_chasm = cave_carver.chasm_sampler.can_chasm_intersect_cell(cell_min_p, cell_max_p)
 
 				# Fine per-voxel evaluation within active boundary block
 				for lz in range(bz, mini(bz + block_size, c_size + 1)):
@@ -161,6 +169,12 @@ func _carve_subterranean_caves(
 						var wx = (float(gx) + 0.5) * bounds.voxel_size
 						var col_h = float(surface_data.get_height(lx, lz))
 
+						# 2D Chasm column sampled ONCE outside the inner Y loop
+						if cell_can_chasm:
+							cave_carver.sample_chasm_column(wx, wz, chasm_col)
+						else:
+							chasm_col.is_chasm = false
+
 						for ly in range(by, mini(by + block_size, carve_ceiling)):
 							if ly <= 2:
 								continue
@@ -169,20 +183,30 @@ func _carve_subterranean_caves(
 							if wy > col_h + 1.0 and ly > col_h:
 								continue
 
-							if cave_carver.is_carved(wx, wy, wz, col_h, sea_level):
-								if not v_data.has_cave_mouth and wy >= (col_h - cave_config.crust_depth) and cave_carver.mouth_sampler.is_mouth_candidate(wx, wz, col_h, sea_level):
-									v_data.has_cave_mouth = true
-								if cave_carver.is_subterranean_water(wx, wy, wz, col_h, sea_level):
-									v_data.set_voxel(lx, ly, lz, 0)
-									v_data.set_water(lx, ly, lz, true)
-								else:
-									v_data.set_voxel(lx, ly, lz, 0)
-									v_data.set_water(lx, ly, lz, false)
+							var is_void = false
+							var is_water = false
+
+							# 1. Fast O(1) span check for 2D chasm void
+							if cave_carver.is_chasm_void(wy, chasm_col):
+								is_void = true
+								is_water = (wy <= float(cave_config.chasm_water_level))
+							else:
+								# 2. Check 3D worm tunnels and cave mouth funnels
+								var tunnel_or_mouth = cave_carver.sample_tunnel_or_mouth_carve(wx, wy, wz, col_h, sea_level)
+								if tunnel_or_mouth > 0.05:
+									is_void = true
+									if not v_data.has_cave_mouth and wy >= (col_h - cave_config.crust_depth) and cave_carver.mouth_sampler.is_mouth_candidate(wx, wz, col_h, sea_level):
+										v_data.has_cave_mouth = true
+
+							if is_void:
+								v_data.set_voxel(lx, ly, lz, 0)
+								v_data.set_water(lx, ly, lz, is_water)
 							elif ly <= cave_config.chasm_max_y:
 								var current_mat = v_data.get_voxel(lx, ly, lz)
 								if current_mat == MaterialDef.ID_STONE:
 									var sub_mat = cave_carver.classify_subterranean_voxel(wx, wy, wz)
 									v_data.set_voxel(lx, ly, lz, sub_mat)
+
 
 func height_at(col: Vector2i, bounds: WorldBounds) -> int:
 	return continent_gen.height_at(col, bounds)

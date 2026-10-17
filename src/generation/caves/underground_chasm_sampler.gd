@@ -121,14 +121,20 @@ func can_chasm_intersect_cell(min_p: Vector3, max_p: Vector3) -> bool:
 	if max_p.y <= float(config.chasm_min_y) or min_p.y >= float(config.chasm_max_y):
 		return false
 
-	# 2. 2D Coarse AABB check on center with conservative margin
+	# 2. 2D Coarse AABB check with conservative margin scaled to cell size and wall warp
 	var mid_x = (min_p.x + max_p.x) * 0.5
 	var mid_z = (min_p.z + max_p.z) * 0.5
 	var raw_rift = sample_rift_mask(mid_x, mid_z)
-	if raw_rift < (config.chasm_rift_threshold - 0.15):
+
+	var half_diag = Vector2(max_p.x - min_p.x, max_p.z - min_p.z).length() * 0.5
+	var max_reach = half_diag + config.chasm_wall_warp_amplitude
+	var margin = maxf(0.12, max_reach * config.chasm_rift_frequency * 2.5)
+
+	if raw_rift < (config.chasm_rift_threshold - margin):
 		return false
 
 	return true
+
 
 func get_chasm_carve(wx: float, wy: float, wz: float) -> float:
 	## Point-query compatibility method for CaveCarver.

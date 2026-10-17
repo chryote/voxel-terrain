@@ -99,3 +99,60 @@ func test_coarse_culling_preserves_cave_cavities() -> void:
 	var status = carver.sample_coarse_cell_status(cell_min, cell_max, surface_h, surface_h, sea_level)
 	assert_ne(status, CaveCarver.STATUS_SOLID, "A cell containing a hollow cave cavity must NEVER be culled as STATUS_SOLID")
 	assert_eq(status, CaveCarver.STATUS_MIXED, "A cell containing hollow voids must be classified as STATUS_MIXED")
+
+func test_column_span_adapter() -> void:
+	var config = CaveGeneratorConfig.new()
+	var carver = CaveCarver.new(1337, config)
+	var col = ChasmColumnResult.new()
+
+	# Scan for an active chasm column
+	var chasm_found = false
+	for x in range(0, 100, 5):
+		for z in range(0, 100, 5):
+			carver.sample_chasm_column(float(x), float(z), col)
+			if col.is_chasm and not col.is_pillar:
+				chasm_found = true
+				# Below floor: not void
+				assert_false(carver.is_chasm_void(float(col.floor_y), col), "Floor elevation must not be void")
+				assert_false(carver.is_chasm_void(float(col.floor_y - 1), col), "Below floor elevation must not be void")
+
+				# Above ceiling: not void
+				assert_false(carver.is_chasm_void(float(col.ceil_y), col), "Ceiling elevation must not be void")
+				assert_false(carver.is_chasm_void(float(col.ceil_y + 1), col), "Above ceiling elevation must not be void")
+
+				# Middle of span: void
+				var mid_y = float(col.floor_y + col.ceil_y) * 0.5
+				assert_true(carver.is_chasm_void(mid_y, col), "Mid-span elevation must be void")
+				break
+		if chasm_found:
+			break
+
+	assert_true(chasm_found, "Must locate an active chasm column to test column span adapter")
+
+func test_span_point_query_equivalence() -> void:
+	var config = CaveGeneratorConfig.new()
+	var carver = CaveCarver.new(1337, config)
+	var col = ChasmColumnResult.new()
+
+	var tested_columns = 0
+	for x in range(-30, 30, 6):
+		for z in range(-30, 30, 6):
+			tested_columns += 1
+			carver.sample_chasm_column(float(x), float(z), col)
+
+			# Compare point query against span query across vertical elevations
+			for y in range(config.chasm_min_y - 1, config.chasm_max_y + 2):
+				var wy = float(y)
+				var is_void_span = carver.is_chasm_void(wy, col)
+				var is_void_point = carver.chasm_sampler.get_chasm_carve(float(x), wy, float(z)) > 0.05
+				assert_eq(is_void_span, is_void_point, "Span and point queries must agree at (%f, %f, %f)" % [float(x), wy, float(z)])
+
+				# Subterranean water consistency
+				var is_water_with_col = carver.is_subterranean_water(float(x), wy, float(z), 50.0, 24, col)
+				var is_water_standalone = carver.is_subterranean_water(float(x), wy, float(z), 50.0, 24)
+				# If it's a chasm void, both must agree
+				if is_void_span:
+					assert_eq(is_water_with_col, is_water_standalone, "Subterranean water query must agree at (%f, %f, %f)" % [float(x), wy, float(z)])
+
+	assert_true(tested_columns > 50, "Must test multiple columns for span/point equivalence")
+

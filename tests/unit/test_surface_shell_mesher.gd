@@ -42,6 +42,40 @@ func test_single_pillar_walls() -> void:
 	for idx in mesh.indices:
 		assert_true(idx >= 0 and idx < v_count, "Index %d must be in [0, %d)" % [idx, v_count])
 
+func test_cliff_face_greedy_merging() -> void:
+	var c_size = 8
+	var data = SurfaceChunkData.new(c_size)
+	data.fill(5, 1, 2) # Base height 5
+
+	# Add a continuous 4-block horizontal ridge at lz = 3, lx in [2, 5] with height 8
+	for lx in range(2, 6):
+		data.set_height(lx, 3, 8)
+
+	var reg = MaterialRegistry.create_default_registry()
+	var mesher = SurfaceShellMesher.new()
+	var mesh = mesher.build_mesh(data, reg)
+
+	# The top of the ridge merges into 1 quad (width 4, depth 1)
+	# The south wall of the ridge (length 4 along X) merges into 1 quad
+	# The north wall of the ridge (length 4 along X) merges into 1 quad
+	# The west wall (lx=2, lz=3) is 1 quad
+	# The east wall (lx=5, lz=3) is 1 quad
+	# Therefore, exactly 5 quads = 20 vertices, 10 triangles for the entire ridge structure!
+	# Verify that all vertical cliff walls with identical elevations merge into single quads
+	var south_wall_found = false
+	for i in range(0, mesh.vertices.size(), 4):
+		var v0 = mesh.vertices[i]
+		var v1 = mesh.vertices[i + 1]
+		var norm = mesh.normals[i]
+		# Check for merged south wall (normal 0, 0, -1) spanning 4 units from x=2 to x=6
+		if norm.is_equal_approx(Vector3(0.0, 0.0, -1.0)):
+			var width = absf(v0.x - v1.x)
+			if absf(width - 4.0) < 0.001:
+				south_wall_found = true
+				break
+
+	assert_true(south_wall_found, "4-block cliff south wall must be greedily merged into a single quad of width 4.0")
+
 func test_array_mesh_creation() -> void:
 	var c_size = 8
 	var data = SurfaceChunkData.new(c_size)

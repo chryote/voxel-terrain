@@ -24,6 +24,7 @@ var cave_collision_shape: CollisionShape3D
 static var _shared_material: StandardMaterial3D
 static var _shared_cave_material: StandardMaterial3D
 static var _shared_water_material: StandardMaterial3D
+static var _shared_subterranean_water_material: StandardMaterial3D
 
 func _init() -> void:
 	if _shared_material == null:
@@ -44,6 +45,15 @@ func _init() -> void:
 		_shared_water_material.albedo_color = Color(0.12, 0.38, 0.65, 0.75)
 		_shared_water_material.roughness = 0.1
 		_shared_water_material.metallic = 0.15
+
+	if _shared_subterranean_water_material == null:
+		_shared_subterranean_water_material = StandardMaterial3D.new()
+		_shared_subterranean_water_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+		_shared_subterranean_water_material.alpha_scissor_threshold = 0.5
+		_shared_subterranean_water_material.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_ALWAYS
+		_shared_subterranean_water_material.albedo_color = Color(0.12, 0.38, 0.65, 0.85)
+		_shared_subterranean_water_material.roughness = 0.1
+		_shared_subterranean_water_material.metallic = 0.15
 
 func _ready() -> void:
 	_ensure_nodes_exist()
@@ -131,7 +141,7 @@ func setup(
 			if cave_water_instance == null:
 				cave_water_instance = MeshInstance3D.new()
 				cave_water_instance.name = "CaveWaterInstance"
-				cave_water_instance.material_override = _shared_water_material
+				cave_water_instance.material_override = _shared_subterranean_water_material
 				cave_water_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				add_child(cave_water_instance)
 			cave_water_instance.mesh = c_mesh_data.water_mesh_data.create_array_mesh()
@@ -163,7 +173,7 @@ func apply_subterranean_bundle(
 				if cave_water_instance == null:
 					cave_water_instance = MeshInstance3D.new()
 					cave_water_instance.name = "CaveWaterInstance"
-					cave_water_instance.material_override = _shared_water_material
+					cave_water_instance.material_override = _shared_subterranean_water_material
 					cave_water_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 					add_child(cave_water_instance)
 				cave_water_instance.mesh = c_mesh_data.water_mesh_data.create_array_mesh()
@@ -182,8 +192,14 @@ func apply_subterranean_bundle(
 
 	if is_subterranean_visible() and not collision_shape.disabled:
 		if cave_collision_shape != null:
-			if cave_collision_shape.shape == null and _cached_prebaked_cave_shape != null:
-				cave_collision_shape.shape = _cached_prebaked_cave_shape
+			if cave_collision_shape.shape == null:
+				if _cached_prebaked_cave_shape != null:
+					cave_collision_shape.shape = _cached_prebaked_cave_shape
+				elif cave_mesh_instance != null and cave_mesh_instance.mesh != null and cave_mesh_instance.mesh.get_surface_count() > 0:
+					var c_shape = cave_mesh_instance.mesh.create_trimesh_shape()
+					if c_shape != null:
+						c_shape.backface_collision = true
+					cave_collision_shape.shape = c_shape
 			cave_collision_shape.disabled = false
 
 func set_subterranean_visible(visible: bool) -> void:
@@ -192,8 +208,14 @@ func set_subterranean_visible(visible: bool) -> void:
 	if cave_water_instance != null:
 		cave_water_instance.visible = visible
 	if cave_collision_shape != null:
-		if visible and cave_collision_shape.shape == null and _cached_prebaked_cave_shape != null:
-			cave_collision_shape.shape = _cached_prebaked_cave_shape
+		if visible and cave_collision_shape.shape == null:
+			if _cached_prebaked_cave_shape != null:
+				cave_collision_shape.shape = _cached_prebaked_cave_shape
+			elif cave_mesh_instance != null and cave_mesh_instance.mesh != null and cave_mesh_instance.mesh.get_surface_count() > 0:
+				var c_shape = cave_mesh_instance.mesh.create_trimesh_shape()
+				if c_shape != null:
+					c_shape.backface_collision = true
+				cave_collision_shape.shape = c_shape
 		if not collision_shape.disabled:
 			cave_collision_shape.disabled = not visible
 

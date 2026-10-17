@@ -249,62 +249,90 @@ func build_mesh(data: RefCounted, registry: MaterialRegistry) -> MeshData:
 
 	return bundle
 
-func _greedy_merge_horizontal(
-	mask: PackedByteArray, n: int, ly: int, is_top: bool,
+## Parameterized 2D slice greedy merger unifying Y, X, and Z axis passes
+func _greedy_merge_slice(
+	mask: PackedByteArray, dim_u: int, dim_v: int,
+	slice_coord: int, u_axis: int, v_axis: int, normal_axis: int, is_positive: bool,
 	registry: MaterialRegistry,
 	verts: PackedVector3Array, norms: PackedVector3Array,
-	cols: PackedColorArray, inds: PackedInt32Array
+	cols: PackedColorArray, inds: PackedInt32Array,
+	is_top: bool = false
 ) -> void:
 	var visited = PackedByteArray()
-	visited.resize(n * n)
+	visited.resize(dim_u * dim_v)
 	visited.fill(0)
 
-	var y_pos = float(ly + 1) if is_top else float(ly)
-	var norm = Vector3(0.0, 1.0, 0.0) if is_top else Vector3(0.0, -1.0, 0.0)
+	var norm_val = float(slice_coord + 1) if is_positive else float(slice_coord)
+	var norm = Vector3.ZERO
+	norm[normal_axis] = 1.0 if is_positive else -1.0
 
-	for lz in range(n):
-		for lx in range(n):
-			var idx = lx + lz * n
+	for v in range(dim_v):
+		for u in range(dim_u):
+			var idx = u + v * dim_u
 			if visited[idx] == 1 or mask[idx] == 0:
 				continue
 
 			var mat = mask[idx]
 			var w = 1
-			while (lx + w) < n and visited[(lx + w) + lz * n] == 0 and mask[(lx + w) + lz * n] == mat:
+			while (u + w) < dim_u and visited[(u + w) + v * dim_u] == 0 and mask[(u + w) + v * dim_u] == mat:
 				w += 1
 
-			var d = 1
+			var h = 1
 			var can_expand = true
-			while (lz + d) < n and can_expand:
-				for cx in range(lx, lx + w):
-					var row_idx = cx + (lz + d) * n
+			while (v + h) < dim_v and can_expand:
+				for cu in range(u, u + w):
+					var row_idx = cu + (v + h) * dim_u
 					if visited[row_idx] == 1 or mask[row_idx] != mat:
 						can_expand = false
 						break
 				if can_expand:
-					d += 1
+					h += 1
 
-			for rz in range(lz, lz + d):
-				for rx in range(lx, lx + w):
-					visited[rx + rz * n] = 1
+			for rv in range(v, v + h):
+				for ru in range(u, u + w):
+					visited[ru + rv * dim_u] = 1
 
 			var color = registry.get_top_color(mat) if is_top else registry.get_side_color(mat)
 			var base_idx = verts.size()
-			var flx = float(lx)
-			var flz = float(lz)
+			var fu = float(u)
+			var fv = float(v)
 			var fw = float(w)
-			var fd = float(d)
+			var fh = float(h)
 
-			if is_top:
-				verts.append(Vector3(flx, y_pos, flz))
-				verts.append(Vector3(flx, y_pos, flz + fd))
-				verts.append(Vector3(flx + fw, y_pos, flz + fd))
-				verts.append(Vector3(flx + fw, y_pos, flz))
-			else:
-				verts.append(Vector3(flx + fw, y_pos, flz))
-				verts.append(Vector3(flx + fw, y_pos, flz + fd))
-				verts.append(Vector3(flx, y_pos, flz + fd))
-				verts.append(Vector3(flx, y_pos, flz))
+			# Emit 4 vertices according to axis and orientation
+			if normal_axis == 1:
+				if is_positive: # +Y (Top)
+					verts.append(Vector3(fu, norm_val, fv))
+					verts.append(Vector3(fu, norm_val, fv + fh))
+					verts.append(Vector3(fu + fw, norm_val, fv + fh))
+					verts.append(Vector3(fu + fw, norm_val, fv))
+				else: # -Y (Bottom)
+					verts.append(Vector3(fu + fw, norm_val, fv))
+					verts.append(Vector3(fu + fw, norm_val, fv + fh))
+					verts.append(Vector3(fu, norm_val, fv + fh))
+					verts.append(Vector3(fu, norm_val, fv))
+			elif normal_axis == 0:
+				if is_positive: # +X (East)
+					verts.append(Vector3(norm_val, fv, fu + fw))
+					verts.append(Vector3(norm_val, fv, fu))
+					verts.append(Vector3(norm_val, fv + fh, fu))
+					verts.append(Vector3(norm_val, fv + fh, fu + fw))
+				else: # -X (West)
+					verts.append(Vector3(norm_val, fv, fu))
+					verts.append(Vector3(norm_val, fv, fu + fw))
+					verts.append(Vector3(norm_val, fv + fh, fu + fw))
+					verts.append(Vector3(norm_val, fv + fh, fu))
+			else: # normal_axis == 2
+				if is_positive: # +Z (North)
+					verts.append(Vector3(fu, fv, norm_val))
+					verts.append(Vector3(fu + fw, fv, norm_val))
+					verts.append(Vector3(fu + fw, fv + fh, norm_val))
+					verts.append(Vector3(fu, fv + fh, norm_val))
+				else: # -Z (South)
+					verts.append(Vector3(fu + fw, fv, norm_val))
+					verts.append(Vector3(fu, fv, norm_val))
+					verts.append(Vector3(fu, fv + fh, norm_val))
+					verts.append(Vector3(fu + fw, fv + fh, norm_val))
 
 			for _k in range(4):
 				norms.append(norm)
@@ -316,6 +344,14 @@ func _greedy_merge_horizontal(
 			inds.append(base_idx)
 			inds.append(base_idx + 3)
 			inds.append(base_idx + 2)
+
+func _greedy_merge_horizontal(
+	mask: PackedByteArray, n: int, ly: int, is_top: bool,
+	registry: MaterialRegistry,
+	verts: PackedVector3Array, norms: PackedVector3Array,
+	cols: PackedColorArray, inds: PackedInt32Array
+) -> void:
+	_greedy_merge_slice(mask, n, n, ly, 0, 2, 1, is_top, registry, verts, norms, cols, inds, is_top)
 
 func _greedy_merge_x_aligned(
 	mask: PackedByteArray, n: int, max_h: int, lx: int, is_east: bool,
@@ -323,67 +359,7 @@ func _greedy_merge_x_aligned(
 	verts: PackedVector3Array, norms: PackedVector3Array,
 	cols: PackedColorArray, inds: PackedInt32Array
 ) -> void:
-	var visited = PackedByteArray()
-	visited.resize(n * max_h)
-	visited.fill(0)
-
-	var x_pos = float(lx + 1) if is_east else float(lx)
-	var norm = Vector3(1.0, 0.0, 0.0) if is_east else Vector3(-1.0, 0.0, 0.0)
-
-	for ly in range(max_h):
-		for lz in range(n):
-			var idx = lz + ly * n
-			if visited[idx] == 1 or mask[idx] == 0:
-				continue
-
-			var mat = mask[idx]
-			var w = 1 # along Z
-			while (lz + w) < n and visited[(lz + w) + ly * n] == 0 and mask[(lz + w) + ly * n] == mat:
-				w += 1
-
-			var h = 1 # along Y
-			var can_expand = true
-			while (ly + h) < max_h and can_expand:
-				for cz in range(lz, lz + w):
-					var row_idx = cz + (ly + h) * n
-					if visited[row_idx] == 1 or mask[row_idx] != mat:
-						can_expand = false
-						break
-				if can_expand:
-					h += 1
-
-			for ry in range(ly, ly + h):
-				for rz in range(lz, lz + w):
-					visited[rz + ry * n] = 1
-
-			var color = registry.get_side_color(mat)
-			var base_idx = verts.size()
-			var flz = float(lz)
-			var fly = float(ly)
-			var fw = float(w)
-			var fh = float(h)
-
-			if is_east:
-				verts.append(Vector3(x_pos, fly, flz + fw))
-				verts.append(Vector3(x_pos, fly, flz))
-				verts.append(Vector3(x_pos, fly + fh, flz))
-				verts.append(Vector3(x_pos, fly + fh, flz + fw))
-			else:
-				verts.append(Vector3(x_pos, fly, flz))
-				verts.append(Vector3(x_pos, fly, flz + fw))
-				verts.append(Vector3(x_pos, fly + fh, flz + fw))
-				verts.append(Vector3(x_pos, fly + fh, flz))
-
-			for _k in range(4):
-				norms.append(norm)
-				cols.append(color)
-
-			inds.append(base_idx)
-			inds.append(base_idx + 2)
-			inds.append(base_idx + 1)
-			inds.append(base_idx)
-			inds.append(base_idx + 3)
-			inds.append(base_idx + 2)
+	_greedy_merge_slice(mask, n, max_h, lx, 2, 1, 0, is_east, registry, verts, norms, cols, inds, false)
 
 func _greedy_merge_z_aligned(
 	mask: PackedByteArray, n: int, max_h: int, lz: int, is_north: bool,
@@ -391,67 +367,7 @@ func _greedy_merge_z_aligned(
 	verts: PackedVector3Array, norms: PackedVector3Array,
 	cols: PackedColorArray, inds: PackedInt32Array
 ) -> void:
-	var visited = PackedByteArray()
-	visited.resize(n * max_h)
-	visited.fill(0)
-
-	var z_pos = float(lz + 1) if is_north else float(lz)
-	var norm = Vector3(0.0, 0.0, 1.0) if is_north else Vector3(0.0, 0.0, -1.0)
-
-	for ly in range(max_h):
-		for lx in range(n):
-			var idx = lx + ly * n
-			if visited[idx] == 1 or mask[idx] == 0:
-				continue
-
-			var mat = mask[idx]
-			var w = 1 # along X
-			while (lx + w) < n and visited[(lx + w) + ly * n] == 0 and mask[(lx + w) + ly * n] == mat:
-				w += 1
-
-			var h = 1 # along Y
-			var can_expand = true
-			while (ly + h) < max_h and can_expand:
-				for cx in range(lx, lx + w):
-					var row_idx = cx + (ly + h) * n
-					if visited[row_idx] == 1 or mask[row_idx] != mat:
-						can_expand = false
-						break
-				if can_expand:
-					h += 1
-
-			for ry in range(ly, ly + h):
-				for rx in range(lx, lx + w):
-					visited[rx + ry * n] = 1
-
-			var color = registry.get_side_color(mat)
-			var base_idx = verts.size()
-			var flx = float(lx)
-			var fly = float(ly)
-			var fw = float(w)
-			var fh = float(h)
-
-			if is_north:
-				verts.append(Vector3(flx, fly, z_pos))
-				verts.append(Vector3(flx + fw, fly, z_pos))
-				verts.append(Vector3(flx + fw, fly + fh, z_pos))
-				verts.append(Vector3(flx, fly + fh, z_pos))
-			else:
-				verts.append(Vector3(flx + fw, fly, z_pos))
-				verts.append(Vector3(flx, fly, z_pos))
-				verts.append(Vector3(flx, fly + fh, z_pos))
-				verts.append(Vector3(flx + fw, fly + fh, z_pos))
-
-			for _k in range(4):
-				norms.append(norm)
-				cols.append(color)
-
-			inds.append(base_idx)
-			inds.append(base_idx + 2)
-			inds.append(base_idx + 1)
-			inds.append(base_idx)
-			inds.append(base_idx + 3)
-			inds.append(base_idx + 2)
+	_greedy_merge_slice(mask, n, max_h, lz, 0, 1, 2, is_north, registry, verts, norms, cols, inds, false)
 
 func _build_dual_water_mesh(v_data: VoxelChunkData, bundle: DualMeshBundle, has_heights: bool) -> void:
 	var n = v_data.chunk_size

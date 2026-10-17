@@ -25,7 +25,7 @@ func bake_shape(mesh_data: MeshData) -> ConcavePolygonShape3D:
 	shape.backface_collision = true
 	return shape
 
-func bake_shapes_for_bundle(mesh_data: MeshData) -> Dictionary:
+func bake_shapes_for_bundle(mesh_data: MeshData, bake_cave: bool = true) -> Dictionary:
 	var result = {
 		"surface_shape": null,
 		"cave_shape": null
@@ -38,8 +38,8 @@ func bake_shapes_for_bundle(mesh_data: MeshData) -> Dictionary:
 	if not mesh_data.is_empty():
 		result.surface_shape = bake_shape(mesh_data)
 
-	# 2. Cave shape (if DualMeshBundle with cave geometry)
-	if mesh_data is DualMeshBundle and mesh_data.has_cave_geometry():
+	# 2. Cave shape (if DualMeshBundle with cave geometry and bake_cave is enabled)
+	if bake_cave and mesh_data is DualMeshBundle and mesh_data.has_cave_geometry():
 		result.cave_shape = bake_shape(mesh_data.cave_mesh_data)
 
 	return result

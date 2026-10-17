@@ -180,3 +180,28 @@ func sample_macro_v2(wx: float, wz: float, bounds: WorldBounds) -> Vector2:
 	var final_h = lerpf(float(config.seabed_level), total_land_h, coast_t)
 
 	return Vector2(final_h, continentalness)
+
+## Fast coarse-grid bilinear interpolation for single-column sampling
+func sample_macro_interpolated(wx: float, wz: float, bounds: WorldBounds, stride: int = 4) -> Vector2:
+	var gx = int(floor(wx / bounds.voxel_size - 0.5))
+	var gz = int(floor(wz / bounds.voxel_size - 0.5))
+	var gx0 = int(floor(float(gx) / float(stride))) * stride
+	var gx1 = gx0 + stride
+	var gz0 = int(floor(float(gz) / float(stride))) * stride
+	var gz1 = gz0 + stride
+	var tx = float(gx - gx0) / float(stride)
+	var tz = float(gz - gz0) / float(stride)
+
+	var wx0 = (float(gx0) + 0.5) * bounds.voxel_size
+	var wx1 = (float(gx1) + 0.5) * bounds.voxel_size
+	var wz0 = (float(gz0) + 0.5) * bounds.voxel_size
+	var wz1 = (float(gz1) + 0.5) * bounds.voxel_size
+
+	var c00 = sample_macro_v2(wx0, wz0, bounds)
+	var c10 = sample_macro_v2(wx1, wz0, bounds)
+	var c01 = sample_macro_v2(wx0, wz1, bounds)
+	var c11 = sample_macro_v2(wx1, wz1, bounds)
+
+	var c0 = c00.lerp(c10, tx)
+	var c1 = c01.lerp(c11, tx)
+	return c0.lerp(c1, tz)

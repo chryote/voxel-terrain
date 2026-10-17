@@ -12,6 +12,7 @@ A prioritized architectural blueprint and actionable TODO for optimizing procedu
 | **Surface Meshing** | 2D Greedy Quad Merge | Non-merged vertical cliff quads | Low tri count $\rightarrow$ Target: **60% fewer cliff quads** |
 | **Subterranean Generation (Phase B)** | 3D Voxel Array ($34 \times 34 \times 160$) | 185k voxel populator + 3D carve loops in GDScript | Heavy (~50–90 ms) $\rightarrow$ Target: **< 12 ms** |
 | **Subterranean Meshing** | 3-Axis Greedy Merge over 185k cells | Monolithic vertical column traversal | High CPU latency $\rightarrow$ Target: **Sub-chunking / Direct heightfield** |
+| **Subterranean Water Shading** | Alpha-blended (`TRANSPARENCY_ALPHA`) on cave water | Deep depth-sorting & overdraw beneath solid rock | Fill-rate penalty $\rightarrow$ Target: **Alpha Scissor / depth-sort bypass** |
 | **Streaming Promotion** | Sudden 25-chunk queue explosion | "Thundering Herd" on `WorkerThreadPool` | Queue stalls $\rightarrow$ Target: **Staggered directional priority** |
 | **Physics Collision** | Off-thread `ConcavePolygonShape3D` | Baking cave BVH even when player is on surface | Wasted CPU cycles $\rightarrow$ Target: **Deferred cave collision baking** |
 
@@ -39,6 +40,13 @@ Quick optimizations requiring no breaking changes to data structures or engine A
 - [ ] **1.4 Unify Mesher Axis Passes**
   - **Problem:** [`voxel_mesher.gd`](file:///d:/GODOT/terrain/src/meshing/voxel_mesher.gd) repeats nearly identical scanning and greedy-masking logic 3 times for $Y$, $X$, and $Z$ axes.
   - **Solution:** Consolidate into a parameterized 2D slice merger `_greedy_merge_slice(u_axis, v_axis, normal_axis)` to reduce code duplication and simplify profiling.
+
+- [ ] **1.5 Subterranean Water Alpha Sorting Fix**
+  - **Problem:** [`ChunkNode.gd`](file:///d:/GODOT/terrain/src/world/chunk_node.gd) assigns `_shared_water_material` (configured with `BaseMaterial3D.TRANSPARENCY_ALPHA`) to both surface water and subterranean `cave_water_instance`. Godot's renderer performs expensive back-to-front depth sorting on alpha-blended transparent surfaces, causing GPU fill-rate stalls and sorting calculations for underground pools and flooded chasms located beneath solid rock.
+  - **Solution:** Add a fast-path logic check when initializing water materials:
+    - Detect when a water mesh is underground / subterranean (e.g., `cave_water_instance` or water layers generated below surface heightfield).
+    - Ensure subterranean water uses `BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR` or disables deep depth-sorting (e.g. with `BaseMaterial3D.DEPTH_DRAW_ALWAYS` / alpha prepass) to prevent the GPU from calculating transparency passes beneath solid rock.
+  - **Expected Gain:** Eliminates alpha depth-sorting queue stalls and excessive transparent pixel overdraw in cavern and chasm views.
 
 ---
 
@@ -133,7 +141,7 @@ High Impact │  [2.1 Direct Chasm Bypass]       [3.1 Vertical Sub-Chunks]
             │
             │  [1.1 Cliff Face Merging]        [3.3 Trilinear Worm Noise]
             │  [1.3 Macro Noise Stride]        [4.2 Simplified Physics Mesh]
-Low Impact  │  [1.4 Unify Mesher Passes]
+Low Impact  │  [1.4 Unify Mesher Passes]       [1.5 Cave Water Alpha Fix]
             └─────────────────────────────────────────────────────────────
                Low Effort / Quick Wins            High Effort / Structural
 ```
@@ -145,5 +153,6 @@ Low Impact  │  [1.4 Unify Mesher Passes]
 When starting the next optimization iteration:
 1. [ ] Implement **1.1** (Cliff face merging in `SurfaceShellMesher`) to lock in minimal surface triangle counts.
 2. [ ] Implement **1.2** (Defer subterranean cave collision baking in `OffThreadCollisionBaker`).
-3. [ ] Implement **3.2** (Priority throttling in `SubterraneanStreamCoordinator` to prevent thread herd spikes).
-4. [ ] Prototype **2.1** (Direct 2D heightfield meshing for deep chasms) to eliminate 3D voxel overhead.
+3. [ ] Implement **1.5** (Fast-path subterranean water alpha scissor / depth-sort bypass in `ChunkNode`).
+4. [ ] Implement **3.2** (Priority throttling in `SubterraneanStreamCoordinator` to prevent thread herd spikes).
+5. [ ] Prototype **2.1** (Direct 2D heightfield meshing for deep chasms) to eliminate 3D voxel overhead.

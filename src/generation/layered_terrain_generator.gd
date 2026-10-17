@@ -246,8 +246,8 @@ func _carve_subterranean_caves(
 		for bx in range(-1, c_size + 1, block_size):
 			var min_gx = coord.x * c_size + bx
 			var min_gz = coord.z * c_size + bz
-			var max_gx = coord.x * c_size + mini(bx + block_size - 1, c_size)
-			var max_gz = coord.z * c_size + mini(bz + block_size - 1, c_size)
+			var max_gx = min_gx + block_size - 1
+			var max_gz = min_gz + block_size - 1
 
 			var min_wx = float(min_gx) * bounds.voxel_size
 			var min_wz = float(min_gz) * bounds.voxel_size

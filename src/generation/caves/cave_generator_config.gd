@@ -29,7 +29,7 @@ extends Resource
 @export_range(0.0, 3.0) var tunnel_radius_variation: float = 0.8 ## High-frequency perturbation on tunnel walls
 @export_range(0.5, 2.0) var tunnel_vertical_squish: float = 1.15 ## Vertical squish factor (>1 compresses vertically for flatter floors)
 @export_range(1.5, 4.0) var min_clearance: float = 2.2 ## Guaranteed minimum vertical clearance for player movement
-@export var use_trilinear_tunnel_grid: bool = true ## Evaluate 3D worm tunnels via trilinear density interpolation for 8x faster carving
+@export var use_trilinear_tunnel_grid: bool = false ## Evaluate 3D worm tunnels via direct continuous 3D noise (false) or trilinear interpolation (true)
 
 @export_group("Continuity & Dead Ends")
 @export_range(0.001, 0.03) var continuity_frequency: float = 0.006 ## Frequency of modulation noise controlling tunnel continuity

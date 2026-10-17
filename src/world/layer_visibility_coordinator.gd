@@ -14,13 +14,14 @@ enum PlayerLayerState {
 var last_state: PlayerLayerState = PlayerLayerState.SURFACE
 var last_chunk_coord: ChunkCoord = null
 var mouth_visibility_radius_chunks: int = 1
+var _last_chunk_count: int = -1
 
 func determine_player_state(
 	player_pos: Vector3,
 	surface_height: float,
 	is_near_mouth: bool
 ) -> PlayerLayerState:
-	if player_pos.y < (surface_height - 3.0):
+	if player_pos.y < (surface_height - 3.0) or player_pos.y <= 12.0:
 		return PlayerLayerState.SUBTERRANEAN
 	elif is_near_mouth:
 		return PlayerLayerState.NEAR_CAVE_MOUTH
@@ -49,12 +50,13 @@ func update_chunk_visibility(
 
 	var current_state = determine_player_state(focus_pos, surface_height, is_near_mouth)
 
-	# Avoid redundant iterations if neither chunk position nor state changed
-	if not force and last_chunk_coord != null and last_chunk_coord.equals(focus_coord) and current_state == last_state:
+	# Avoid redundant iterations if neither chunk position nor state nor loaded chunk count changed
+	if not force and last_chunk_coord != null and last_chunk_coord.equals(focus_coord) and current_state == last_state and loaded_chunks.size() == _last_chunk_count:
 		return current_state
 
 	last_chunk_coord = focus_coord
 	last_state = current_state
+	_last_chunk_count = loaded_chunks.size()
 
 	for key in loaded_chunks:
 		var node = loaded_chunks[key]

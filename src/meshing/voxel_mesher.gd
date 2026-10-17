@@ -53,6 +53,7 @@ func build_mesh(data: RefCounted, registry: MaterialRegistry) -> MeshData:
 	# Compute active horizontal layers and mixed sections for 70%+ meshing bypass
 	var sec_count = v_data.get_section_count()
 	var mixed_sections: Array[int] = []
+	var non_empty_sections: Array[int] = []
 	var active_h_layers: Array[int] = []
 
 	for sec in range(sec_count):
@@ -62,7 +63,10 @@ func build_mesh(data: RefCounted, registry: MaterialRegistry) -> MeshData:
 
 		if status == VoxelChunkData.SECTION_EMPTY:
 			continue
-		elif status == VoxelChunkData.SECTION_SOLID:
+
+		non_empty_sections.append(sec)
+
+		if status == VoxelChunkData.SECTION_SOLID:
 			var above_solid = (sec + 1 < sec_count) and (v_data.get_section_status(sec + 1) == VoxelChunkData.SECTION_SOLID)
 			var below_solid = (sec - 1 >= 0) and (v_data.get_section_status(sec - 1) == VoxelChunkData.SECTION_SOLID)
 			if not below_solid:
@@ -159,7 +163,8 @@ func build_mesh(data: RefCounted, registry: MaterialRegistry) -> MeshData:
 		var has_c_west = false
 		var has_c_east = false
 
-		for sec in mixed_sections:
+		var x_sections = non_empty_sections if (lx == 0 or lx == n - 1) else mixed_sections
+		for sec in x_sections:
 			var sec_start_y = sec * VoxelChunkData.SECTION_HEIGHT
 			var sec_end_y = mini((sec + 1) * VoxelChunkData.SECTION_HEIGHT, max_h)
 			for ly in range(sec_start_y, sec_end_y):
@@ -227,7 +232,8 @@ func build_mesh(data: RefCounted, registry: MaterialRegistry) -> MeshData:
 		var has_c_south = false
 		var has_c_north = false
 
-		for sec in mixed_sections:
+		var z_sections = non_empty_sections if (lz == 0 or lz == n - 1) else mixed_sections
+		for sec in z_sections:
 			var sec_start_y = sec * VoxelChunkData.SECTION_HEIGHT
 			var sec_end_y = mini((sec + 1) * VoxelChunkData.SECTION_HEIGHT, max_h)
 			for ly in range(sec_start_y, sec_end_y):

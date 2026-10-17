@@ -78,3 +78,69 @@ func find_spawn_point(
 		return bounds.column_to_world(best_col, float(best_h) + 1.0)
 
 	return Vector3(0.0, float(sea_level + 5) * bounds.voxel_size, 0.0)
+
+const ChasmColumnResultClass = preload("res://src/generation/caves/chasm_column_result.gd")
+
+func find_underground_arena_spawn_point(
+	generator: TerrainGenerator,
+	bounds: WorldBounds,
+	sea_level: int
+) -> Vector3:
+	## Locates a flat subterranean combat arena near the continental ocean fall-off.
+	if not ("cave_carver" in generator) or generator.cave_carver == null:
+		return find_spawn_point(generator, bounds, sea_level)
+
+	var col = ChasmColumnResultClass.new()
+	var best_score = 999999.0
+	var best_pos = Vector3.ZERO
+	var found = false
+
+	var c_size = bounds.chunk_size
+	var min_cz = bounds.min_chunk_z
+	var max_cz = bounds.max_chunk_z
+	var min_cx = bounds.min_chunk_x
+	var max_cx = bounds.max_chunk_x
+
+	# Search chunks across bounds with step of 2 chunks
+	for cz in range(min_cz + 4, max_cz - 4, 2):
+		for cx in range(min_cx + 4, max_cx - 4, 2):
+			var wx = float(cx * c_size + (c_size / 2)) * bounds.voxel_size
+			var wz = float(cz * c_size + (c_size / 2)) * bounds.voxel_size
+			generator.cave_carver.sample_chasm_column(wx, wz, col)
+			if col.is_arena and not col.is_pillar:
+				var clearance = col.ceil_y - col.floor_y
+				if clearance >= 5:
+					var land = 0.5
+					if "continent_gen" in generator and generator.continent_gen.mask != null:
+						land = generator.continent_gen.mask.get_land_raw(wx, wz, bounds)
+					elif "topography" in generator and generator.topography.continent_mask != null:
+						land = generator.topography.continent_mask.get_land_raw(wx, wz, bounds)
+
+					# Score: prefer land factor close to ocean falloff (~0.05), prefer core combat arena (raw_rift >= 0.82)
+					var land_penalty = absf(land - 0.05) * 10.0
+					var rift_bonus = 5.0 if col.raw_rift >= 0.82 else 0.0
+					var score = land_penalty - rift_bonus
+
+					if score < best_score:
+						best_score = score
+						best_pos = Vector3(wx, float(col.floor_y + 1), wz)
+						found = true
+
+	if found:
+		# Fine-tune position within +/- 12 meters to find the core arena flat center (highest raw_rift)
+		var center_wx = best_pos.x
+		var center_wz = best_pos.z
+		var best_local_rift = -1.0
+		var fine_pos = best_pos
+		for dz in range(-12, 13, 2):
+			for dx in range(-12, 13, 2):
+				var wx = center_wx + float(dx)
+				var wz = center_wz + float(dz)
+				generator.cave_carver.sample_chasm_column(wx, wz, col)
+				if col.is_arena and not col.is_pillar and (col.ceil_y - col.floor_y) >= 5:
+					if col.raw_rift > best_local_rift:
+						best_local_rift = col.raw_rift
+						fine_pos = Vector3(wx, float(col.floor_y + 1), wz)
+		return fine_pos
+
+	return find_spawn_point(generator, bounds, sea_level)

@@ -163,9 +163,8 @@ func generate_chasm_data(
 
 			chasm_data.chasm_flags[col_idx] = flag
 
-			if chasm_col.is_chasm or chasm_col.is_pillar or chasm_col.is_wall:
-				var mat = cave_carver.classify_subterranean_voxel(wx, float(chasm_col.floor_y), wz)
-				chasm_data.materials[col_idx] = mat
+			var mat = cave_carver.classify_subterranean_voxel(wx, float(chasm_col.floor_y), wz)
+			chasm_data.materials[col_idx] = mat
 
 	return chasm_data
 

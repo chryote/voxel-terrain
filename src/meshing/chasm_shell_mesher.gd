@@ -262,10 +262,12 @@ func _mesh_subterranean_chasm(chasm_data: ChasmChunkData, registry: MaterialRegi
 			var right_void = (right_flag & ChasmChunkData.FLAG_CHASM) != 0 and (right_flag & ChasmChunkData.FLAG_PILLAR) == 0
 
 			# Face facing -X: left is void, right is solid
-			if left_void and not right_void and lx < n:
+			if left_void and not right_void:
 				var y_min = fl_heights[left_col] + 1
 				var y_max = cl_heights[left_col]
 				var mat = mats[right_col]
+				if mat == 0:
+					mat = MaterialDef.ID_CHASM_BASALT
 
 				var d = 1
 				while (lz + d) < n:
@@ -277,7 +279,10 @@ func _mesh_subterranean_chasm(chasm_data: ChasmChunkData, registry: MaterialRegi
 					var nr_void = (nr_flag & ChasmChunkData.FLAG_CHASM) != 0 and (nr_flag & ChasmChunkData.FLAG_PILLAR) == 0
 					if not nl_void or nr_void:
 						break
-					if (fl_heights[nl_col] + 1) != y_min or cl_heights[nl_col] != y_max or mats[nr_col] != mat:
+					var nr_mat = mats[nr_col]
+					if nr_mat == 0:
+						nr_mat = MaterialDef.ID_CHASM_BASALT
+					if (fl_heights[nl_col] + 1) != y_min or cl_heights[nl_col] != y_max or nr_mat != mat:
 						break
 					d += 1
 
@@ -287,10 +292,12 @@ func _mesh_subterranean_chasm(chasm_data: ChasmChunkData, registry: MaterialRegi
 				continue
 
 			# Face facing +X: left is solid, right is void
-			if not left_void and right_void and lx > 0:
+			if not left_void and right_void:
 				var y_min = fl_heights[right_col] + 1
 				var y_max = cl_heights[right_col]
 				var mat = mats[left_col]
+				if mat == 0:
+					mat = MaterialDef.ID_CHASM_BASALT
 
 				var d = 1
 				while (lz + d) < n:
@@ -302,7 +309,10 @@ func _mesh_subterranean_chasm(chasm_data: ChasmChunkData, registry: MaterialRegi
 					var nr_void = (nr_flag & ChasmChunkData.FLAG_CHASM) != 0 and (nr_flag & ChasmChunkData.FLAG_PILLAR) == 0
 					if nl_void or not nr_void:
 						break
-					if (fl_heights[nr_col] + 1) != y_min or cl_heights[nr_col] != y_max or mats[nl_col] != mat:
+					var nl_mat = mats[nl_col]
+					if nl_mat == 0:
+						nl_mat = MaterialDef.ID_CHASM_BASALT
+					if (fl_heights[nr_col] + 1) != y_min or cl_heights[nr_col] != y_max or nl_mat != mat:
 						break
 					d += 1
 
@@ -349,10 +359,12 @@ func _mesh_subterranean_chasm(chasm_data: ChasmChunkData, registry: MaterialRegi
 			var front_void = (front_flag & ChasmChunkData.FLAG_CHASM) != 0 and (front_flag & ChasmChunkData.FLAG_PILLAR) == 0
 
 			# Face facing -Z: back is void, front is solid
-			if back_void and not front_void and lz < n:
+			if back_void and not front_void:
 				var y_min = fl_heights[back_col] + 1
 				var y_max = cl_heights[back_col]
 				var mat = mats[front_col]
+				if mat == 0:
+					mat = MaterialDef.ID_CHASM_BASALT
 
 				var w = 1
 				while (lx + w) < n:
@@ -364,7 +376,10 @@ func _mesh_subterranean_chasm(chasm_data: ChasmChunkData, registry: MaterialRegi
 					var nf_void = (nf_flag & ChasmChunkData.FLAG_CHASM) != 0 and (nf_flag & ChasmChunkData.FLAG_PILLAR) == 0
 					if not nb_void or nf_void:
 						break
-					if (fl_heights[nb_col] + 1) != y_min or cl_heights[nb_col] != y_max or mats[nf_col] != mat:
+					var nf_mat = mats[nf_col]
+					if nf_mat == 0:
+						nf_mat = MaterialDef.ID_CHASM_BASALT
+					if (fl_heights[nb_col] + 1) != y_min or cl_heights[nb_col] != y_max or nf_mat != mat:
 						break
 					w += 1
 
@@ -374,10 +389,12 @@ func _mesh_subterranean_chasm(chasm_data: ChasmChunkData, registry: MaterialRegi
 				continue
 
 			# Face facing +Z: back is solid, front is void
-			if not back_void and front_void and lz > 0:
+			if not back_void and front_void:
 				var y_min = fl_heights[front_col] + 1
 				var y_max = cl_heights[front_col]
 				var mat = mats[back_col]
+				if mat == 0:
+					mat = MaterialDef.ID_CHASM_BASALT
 
 				var w = 1
 				while (lx + w) < n:
@@ -389,7 +406,10 @@ func _mesh_subterranean_chasm(chasm_data: ChasmChunkData, registry: MaterialRegi
 					var nf_void = (nf_flag & ChasmChunkData.FLAG_CHASM) != 0 and (nf_flag & ChasmChunkData.FLAG_PILLAR) == 0
 					if nb_void or not nf_void:
 						break
-					if (fl_heights[nf_col] + 1) != y_min or cl_heights[nf_col] != y_max or mats[nb_col] != mat:
+					var nb_mat = mats[nb_col]
+					if nb_mat == 0:
+						nb_mat = MaterialDef.ID_CHASM_BASALT
+					if (fl_heights[nf_col] + 1) != y_min or cl_heights[nf_col] != y_max or nb_mat != mat:
 						break
 					w += 1
 
@@ -514,14 +534,14 @@ func _mesh_subterranean_chasm(chasm_data: ChasmChunkData, registry: MaterialRegi
 	bundle.cave_mesh_data.indices = c_inds
 
 	if not sub_water_verts.is_empty():
-		if bundle.water_mesh_data == null:
-			bundle.water_mesh_data = MeshData.new()
-		var base_w_idx = bundle.water_mesh_data.vertices.size()
-		bundle.water_mesh_data.vertices.append_array(sub_water_verts)
-		bundle.water_mesh_data.normals.append_array(sub_water_norms)
-		bundle.water_mesh_data.colors.append_array(sub_water_cols)
+		if bundle.cave_mesh_data.water_mesh_data == null:
+			bundle.cave_mesh_data.water_mesh_data = MeshData.new()
+		var base_w_idx = bundle.cave_mesh_data.water_mesh_data.vertices.size()
+		bundle.cave_mesh_data.water_mesh_data.vertices.append_array(sub_water_verts)
+		bundle.cave_mesh_data.water_mesh_data.normals.append_array(sub_water_norms)
+		bundle.cave_mesh_data.water_mesh_data.colors.append_array(sub_water_cols)
 		for ind in sub_water_inds:
-			bundle.water_mesh_data.indices.append(base_w_idx + ind)
+			bundle.cave_mesh_data.water_mesh_data.indices.append(base_w_idx + ind)
 
 
 # Helper quad emitter methods for curtain walls

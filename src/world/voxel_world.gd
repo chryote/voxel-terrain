@@ -12,6 +12,7 @@ signal initial_area_ready()
 @export var cave_config: CaveGeneratorConfig
 @export var material_registry: MaterialRegistry
 @export var focus_target: Node3D
+@export var spawn_on_underground_arena: bool = true
 @export var caves_enabled: bool = true:
 	set(val):
 		caves_enabled = val
@@ -103,8 +104,8 @@ func _ready() -> void:
 	initial_area_ready.emit()
 
 	_update_streaming()
-	_update_chunk_collisions(true)
 	_update_layer_visibility(true)
+	_update_chunk_collisions(true)
 
 func _process(_delta: float) -> void:
 	_process_completed_chunks()
@@ -184,6 +185,9 @@ func _process_completed_chunks() -> void:
 				node.apply_subterranean_bundle(mesh_data, cave_shape)
 				_mouth_cache[key] = node.has_cave_mouth
 				subterranean_coordinator.mark_subterranean_ready(coord)
+				if visibility_coordinator.last_state == LayerVisibilityCoordinator.PlayerLayerState.SUBTERRANEAN:
+					node.set_subterranean_visible(true)
+				_update_layer_visibility(true)
 			continue
 
 		var dist_to_focus = focus_chunk.chebyshev_distance_to(coord)
@@ -219,7 +223,7 @@ func _update_streaming() -> void:
 	var focus_pos = _get_focus_position()
 	var focus_chunk = bounds.world_to_chunk(focus_pos)
 	var surf_h = get_height_at(focus_pos.x, focus_pos.z)
-	var is_player_subterranean = focus_pos.y < (surf_h - 4.0)
+	var is_player_subterranean = (focus_pos.y < (surf_h - 4.0)) or (focus_pos.y <= 12.0)
 
 	# 1. Enqueue new chunks to load (Phase A surface-first)
 	var to_load = streamer.get_chunks_to_load(
@@ -323,7 +327,10 @@ func get_spawn_point() -> Vector3:
 	if not _spawn_point_cached:
 		if generator == null or bounds == null or world_config == null:
 			return Vector3(0.0, 30.0, 0.0)
-		_spawn_point = _spawn_finder.find_spawn_point(generator, bounds, world_config.sea_level)
+		if spawn_on_underground_arena and caves_enabled:
+			_spawn_point = _spawn_finder.find_underground_arena_spawn_point(generator, bounds, world_config.sea_level)
+		else:
+			_spawn_point = _spawn_finder.find_spawn_point(generator, bounds, world_config.sea_level)
 		_spawn_point_cached = true
 	return _spawn_point
 

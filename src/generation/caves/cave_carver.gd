@@ -39,7 +39,39 @@ func is_chasm_void(wy: float, chasm_col: ChasmColumnResult) -> bool:
 		return false
 	return wy > float(chasm_col.floor_y) and wy < float(chasm_col.ceil_y)
 
-func sample_tunnel_or_mouth_carve(wx: float, wy: float, wz: float, surface_h: float, sea_level: int) -> float:
+func get_mouth_descent_carve(wx: float, wy: float, wz: float, surface_h: float, sea_level: int, chasm_col: ChasmColumnResult = null) -> float:
+	if not config.enabled or wy <= 2.0 or wy > (surface_h + 1.0):
+		return 0.0
+
+	var mouth_info = mouth_sampler.sample_mouth(wx, wz, surface_h, sea_level)
+	if not mouth_info.is_mouth:
+		return 0.0
+
+	# 1. Entrance bowl opening
+	var bottom_y: float = mouth_info.bottom_y
+	if wy >= bottom_y:
+		return mouth_sampler.get_funnel_carve(wx, wy, wz, surface_h, sea_level)
+
+	# 2. Downward descent shaft connecting bowl to subterranean cavern or tunnel
+	if mouth_info.intensity >= 0.20:
+		if chasm_col == null:
+			chasm_col = sample_chasm_column(wx, wz)
+
+		if chasm_col.is_chasm and not chasm_col.is_pillar:
+			if wy >= float(chasm_col.ceil_y):
+				return maxf(0.15, mouth_info.intensity)
+
+		var ty = int(bottom_y)
+		while ty > 2:
+			if tunnel_sampler.get_tunnel_carve(wx, float(ty), wz) > 0.05:
+				if wy >= float(ty):
+					return maxf(0.15, mouth_info.intensity)
+				break
+			ty -= 1
+
+	return 0.0
+
+func sample_tunnel_or_mouth_carve(wx: float, wy: float, wz: float, surface_h: float, sea_level: int, chasm_col: ChasmColumnResult = null) -> float:
 	## Evaluates non-chasm cave features (surface entrance mouths and 3D worm tunnels).
 	if not config.enabled or wy <= 2.0:
 		return 0.0
@@ -48,16 +80,16 @@ func sample_tunnel_or_mouth_carve(wx: float, wy: float, wz: float, surface_h: fl
 	if mouth_sampler.is_crust_sealed(wx, wy, wz, surface_h, sea_level):
 		return 0.0
 
-	# Cave mouth downward funnel check (strictly bounded to entrance depth)
-	if wy >= (surface_h - config.max_entrance_depth) and wy <= (surface_h + 1.0):
-		var mouth_carve = mouth_sampler.get_funnel_carve(wx, wy, wz, surface_h, sea_level)
+	# Cave mouth entrance and downward descent funnel check
+	if wy <= (surface_h + 1.0):
+		var mouth_carve = get_mouth_descent_carve(wx, wy, wz, surface_h, sea_level, chasm_col)
 		if mouth_carve > 0.0:
 			return mouth_carve
 
 	# 3D worm tunnel check
 	return tunnel_sampler.get_tunnel_carve(wx, wy, wz)
 
-func sample_carve_density(wx: float, wy: float, wz: float, surface_h: float, sea_level: int) -> float:
+func sample_carve_density(wx: float, wy: float, wz: float, surface_h: float, sea_level: int, chasm_col: ChasmColumnResult = null) -> float:
 	## Returns carving density: > 0.0 means hollow air (carved), <= 0.0 means solid rock.
 	# 1. Above surface is natural sky air
 	if wy > surface_h:
@@ -75,17 +107,20 @@ func sample_carve_density(wx: float, wy: float, wz: float, surface_h: float, sea
 	if mouth_sampler.is_crust_sealed(wx, wy, wz, surface_h, sea_level):
 		return 0.0
 
-	# 4. Cave mouth downward funnel check (strictly bounded to entrance depth)
-	if wy >= (surface_h - config.max_entrance_depth) and wy <= (surface_h + 1.0):
-		var mouth_carve = mouth_sampler.get_funnel_carve(wx, wy, wz, surface_h, sea_level)
-		if mouth_carve > 0.0:
-			return mouth_carve
-
-	# 5. Deep chasm cavern check (strictly above bedrock Y > 2.0 and below chasm_max_y)
+	# 4. Deep chasm cavern check (strictly above bedrock Y > 2.0 and below chasm_max_y)
 	var chasm_carve = 0.0
 	if wy > 2.0 and wy < float(config.chasm_max_y):
-		chasm_carve = chasm_sampler.get_chasm_carve(wx, wy, wz)
+		if chasm_col != null:
+			if is_chasm_void(wy, chasm_col):
+				chasm_carve = 1.0
+		else:
+			chasm_carve = chasm_sampler.get_chasm_carve(wx, wy, wz)
 
+	# 5. Cave mouth downward descent funnel check
+	if wy <= (surface_h + 1.0):
+		var mouth_carve = get_mouth_descent_carve(wx, wy, wz, surface_h, sea_level, chasm_col)
+		if mouth_carve > 0.0:
+			return maxf(mouth_carve, chasm_carve)
 
 	# 6. 3D worm tunnel check
 	var tunnel_carve = tunnel_sampler.get_tunnel_carve(wx, wy, wz)

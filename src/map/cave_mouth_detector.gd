@@ -78,7 +78,7 @@ func detect_cave_mouths(
 							var g_mag = sqrt(gx * gx + gz * gz)
 							if g_mag < 0.0001:
 								break
-							var step_len = minf(g_mag * 50.0, step * 0.4)
+							var step_len = minf(g_mag * 1500.0, step * 0.5)
 							var nx = peak_x + (gx / g_mag) * step_len
 							var nz = peak_z + (gz / g_mag) * step_len
 							var n_val = mouth_sampler.sample_raw_noise(nx, nz)
@@ -112,7 +112,7 @@ func detect_cave_mouths(
 		var surface_h = float(generator.height_at(col, bounds))
 
 		var mouth_info = mouth_sampler.sample_mouth(peak_wx, peak_wz, surface_h, sea_level)
-		if not mouth_info.is_mouth:
+		if not mouth_info.is_mouth or mouth_info.carve_depth < 2.5:
 			continue
 
 		var mouth_type = classify_cave_mouth(peak_wx, peak_wz, surface_h, sea_level, cave_carver)
@@ -146,7 +146,6 @@ func classify_cave_mouth(
 	if not mouth_info.is_mouth:
 		return CaveMouthDataClass.Type.DEAD_END
 
-	var bottom_y = mouth_info.bottom_y
 	var chasm_sampler = cave_carver.chasm_sampler
 	var tunnel_sampler = cave_carver.tunnel_sampler
 	var chasm_col = ChasmColumnResult.new()
@@ -173,21 +172,7 @@ func classify_cave_mouth(
 		chasm_sampler.sample_column(sx, sz, chasm_col)
 
 		if chasm_col.is_chasm and not chasm_col.is_pillar:
-			# Direct descent: funnel bottom reaches within or near chasm ceiling
-			if bottom_y <= float(chasm_col.ceil_y + 4):
-				return CaveMouthDataClass.Type.CHASM
-
-			# Intersecting tunnel path: check vertical corridor between funnel and chasm
-			var tunnel_connects_to_chasm = false
-			var test_top = int(bottom_y)
-			var test_bottom = chasm_col.ceil_y
-			for ty in range(test_bottom, test_top + 1):
-				if tunnel_sampler.get_tunnel_carve(sx, float(ty), sz) > 0.05:
-					tunnel_connects_to_chasm = true
-					break
-
-			if tunnel_connects_to_chasm:
-				return CaveMouthDataClass.Type.CHASM
+			return CaveMouthDataClass.Type.CHASM
 
 	# -------------------------------------------------------------------------
 	# 2. Check for connection to Interconnected 3D Worm Tunnels (Medium Priority: Yellow)
@@ -196,10 +181,7 @@ func classify_cave_mouth(
 		var sx = wx + off.x
 		var sz = wz + off.y
 
-		# Sample vertical envelope throughout entrance funnel descent
-		var y_start = int(bottom_y - 4.0)
-		var y_end = int(surface_h - 1.0)
-		for ty in range(y_start, y_end + 1):
+		for ty in range(int(surface_h), 2, -1):
 			if tunnel_sampler.get_tunnel_carve(sx, float(ty), sz) > 0.05:
 				return CaveMouthDataClass.Type.TUNNEL
 

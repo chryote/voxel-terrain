@@ -156,3 +156,25 @@ func test_span_point_query_equivalence() -> void:
 
 	assert_true(tested_columns > 50, "Must test multiple columns for span/point equivalence")
 
+func test_cave_mouth_descent_continuity() -> void:
+	var config = CaveGeneratorConfig.new()
+	var carver = CaveCarver.new(1337, config)
+	var col = ChasmColumnResult.new()
+	var sea_level = 24
+	var surface_h = 39.0
+
+	# At mouth coordinate (1032.8, -528.6), verify descent carving provides continuous air down to chasm
+	var wx = 1032.8
+	var wz = -528.6
+	var mouth_info = carver.mouth_sampler.sample_mouth(wx, wz, surface_h, sea_level)
+	assert_true(mouth_info.is_mouth, "Target coordinate must have an active mouth")
+	assert_true(mouth_info.carve_depth >= 2.5, "Mouth must have substantial depth")
+
+	carver.sample_chasm_column(wx, wz, col)
+	assert_true(col.is_chasm and not col.is_pillar, "Underneath mouth must be an open chasm")
+
+	# Verify continuous carve density > 0 from surface down to chasm floor
+	for y in range(col.floor_y + 1, int(surface_h)):
+		var carve = carver.sample_carve_density(wx, float(y), wz, surface_h, sea_level, col)
+		assert_true(carve > 0.05, "Voxel at Y=%d must be hollow void/air for continuous descent" % y)
+

@@ -195,7 +195,7 @@ func _carve_subterranean_caves(
 								is_water = (wy <= float(cave_config.chasm_water_level))
 							elif cell_can_tunnel_or_mouth:
 								# 2. Check 3D worm tunnels and cave mouth funnels only if cell allows them
-								var tunnel_or_mouth = cave_carver.sample_tunnel_or_mouth_carve(wx, wy, wz, col_h, sea_level)
+								var tunnel_or_mouth = cave_carver.sample_tunnel_or_mouth_carve(wx, wy, wz, col_h, sea_level, chasm_col)
 								if tunnel_or_mouth > 0.05:
 									is_void = true
 									if not v_data.has_cave_mouth and wy >= (col_h - cave_config.crust_depth) and cave_carver.mouth_sampler.is_mouth_candidate(wx, wz, col_h, sea_level):

@@ -91,7 +91,7 @@ func setup(
 ) -> void:
 	coord = p_coord
 	position = origin
-	has_cave_mouth = mesh_data.has_cave_mouth if (mesh_data is DualMeshBundle) else false
+	has_cave_mouth = mesh_data.has_cave_mouth if mesh_data != null else false
 	_ensure_nodes_exist()
 
 	# Assign pre-baked surface shape immediately

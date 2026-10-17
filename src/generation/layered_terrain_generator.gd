@@ -156,8 +156,11 @@ func _carve_subterranean_caves(
 				if status == CaveCarver.STATUS_AIR or status == CaveCarver.STATUS_SOLID:
 					continue
 
-				# Check whether deep chasm voids can intersect this active cell
+				# Check whether deep chasm voids or tunnels/mouths can intersect this active cell
 				var cell_can_chasm = cave_carver.chasm_sampler.can_chasm_intersect_cell(cell_min_p, cell_max_p)
+				var cell_can_tunnel = cave_carver.tunnel_sampler.can_tunnel_intersect_cell(cell_min_p, cell_max_p)
+				var cell_can_mouth = cave_carver.mouth_sampler.can_mouth_intersect_cell(cell_min_p, cell_max_p, cell_max_h, sea_level)
+				var cell_can_tunnel_or_mouth = cell_can_tunnel or cell_can_mouth
 
 				# Fine per-voxel evaluation within active boundary block
 				for lz in range(bz, mini(bz + block_size, c_size + 1)):
@@ -190,8 +193,8 @@ func _carve_subterranean_caves(
 							if cave_carver.is_chasm_void(wy, chasm_col):
 								is_void = true
 								is_water = (wy <= float(cave_config.chasm_water_level))
-							else:
-								# 2. Check 3D worm tunnels and cave mouth funnels
+							elif cell_can_tunnel_or_mouth:
+								# 2. Check 3D worm tunnels and cave mouth funnels only if cell allows them
 								var tunnel_or_mouth = cave_carver.sample_tunnel_or_mouth_carve(wx, wy, wz, col_h, sea_level)
 								if tunnel_or_mouth > 0.05:
 									is_void = true

@@ -25,11 +25,15 @@ func _init_noises(seed_val: int) -> void:
 	rift_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 	rift_noise.frequency = config.chasm_rift_frequency
 
-	# 2. 2D Wall Domain Warp Noise (Perturbs vertical walls for organic fracture look)
+	# 2. 2D Wall Domain Warp Noise (2-octave Fractal FBM for organic fracture fault lines)
 	wall_warp_noise = FastNoiseLite.new()
 	wall_warp_noise.seed = seed_val + 1012
 	wall_warp_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 	wall_warp_noise.frequency = config.chasm_wall_warp_frequency
+	wall_warp_noise.fractal_type = FastNoiseLite.FRACTAL_FBM
+	wall_warp_noise.fractal_octaves = 2
+	wall_warp_noise.fractal_lacunarity = 2.0
+	wall_warp_noise.fractal_gain = 0.5
 
 	# 3. 2D Floor Heightfield Noise
 	floor_noise = FastNoiseLite.new()
@@ -50,10 +54,12 @@ func _init_noises(seed_val: int) -> void:
 	pillar_noise.frequency = config.pillar_frequency
 
 func get_warped_coordinates(wx: float, wz: float) -> Vector2:
-	## Domain-warps horizontal sampling coordinates to eliminate sterile straight cliff walls.
+	## Domain-warps horizontal sampling coordinates using decorrelated offsets
+	## to eliminate sterile straight cliff walls and generate natural fracture fault lines.
 	var warp_x = wall_warp_noise.get_noise_2d(wx, wz) * config.chasm_wall_warp_amplitude
-	var warp_z = wall_warp_noise.get_noise_2d(wx + 100.0, wz + 100.0) * config.chasm_wall_warp_amplitude
+	var warp_z = wall_warp_noise.get_noise_2d(wx + 43.1, wz + 17.4) * config.chasm_wall_warp_amplitude
 	return Vector2(wx + warp_x, wz + warp_z)
+
 
 func sample_rift_mask(sample_x: float, sample_z: float) -> float:
 	## Normalized [0.0, 1.0] 2D rift corridor density.
@@ -94,25 +100,38 @@ func sample_column(wx: float, wz: float, out: ChasmColumnResult = null) -> Chasm
 	var warped_pos = get_warped_coordinates(wx, wz)
 	var raw_rift = sample_rift_mask(warped_pos.x, warped_pos.y)
 
-	if raw_rift < config.chasm_rift_threshold:
+	var wall_margin = 0.03
+	if raw_rift < (config.chasm_rift_threshold - wall_margin):
 		out.is_chasm = false
 		out.is_pillar = false
-		out.floor_y = 0
-		out.ceil_y = 0
-		return out
-
-	if is_support_pillar(warped_pos.x, warped_pos.y):
-		out.is_chasm = false
-		out.is_pillar = true
+		out.is_wall = false
 		out.floor_y = 0
 		out.ceil_y = 0
 		return out
 
 	var bounds = calculate_floor_and_ceiling(warped_pos.x, warped_pos.y)
+
+	if raw_rift < config.chasm_rift_threshold:
+		out.is_chasm = false
+		out.is_pillar = false
+		out.is_wall = true
+		out.floor_y = bounds.x
+		out.ceil_y = bounds.y
+		return out
+
+	if is_support_pillar(warped_pos.x, warped_pos.y):
+		out.is_chasm = false
+		out.is_pillar = true
+		out.is_wall = false
+		out.floor_y = bounds.x
+		out.ceil_y = bounds.y
+		return out
+
 	out.is_chasm = true
 	out.floor_y = bounds.x
 	out.ceil_y = bounds.y
 	out.is_pillar = false
+	out.is_wall = false
 	return out
 
 func can_chasm_intersect_cell(min_p: Vector3, max_p: Vector3) -> bool:

@@ -173,7 +173,7 @@ func _carve_subterranean_caves(
 						if cell_can_chasm:
 							cave_carver.sample_chasm_column(wx, wz, chasm_col)
 						else:
-							chasm_col.is_chasm = false
+							chasm_col.reset()
 
 						for ly in range(by, mini(by + block_size, carve_ceiling)):
 							if ly <= 2:
@@ -201,11 +201,19 @@ func _carve_subterranean_caves(
 							if is_void:
 								v_data.set_voxel(lx, ly, lz, 0)
 								v_data.set_water(lx, ly, lz, is_water)
-							elif ly <= cave_config.chasm_max_y:
-								var current_mat = v_data.get_voxel(lx, ly, lz)
-								if current_mat == MaterialDef.ID_STONE:
+							elif chasm_col.is_chasm:
+								if ly == chasm_col.floor_y:
 									var sub_mat = cave_carver.classify_subterranean_voxel(wx, wy, wz)
 									v_data.set_voxel(lx, ly, lz, sub_mat)
+								elif ly == chasm_col.ceil_y + 1 and ly < carve_ceiling:
+									var sub_mat = cave_carver.classify_subterranean_voxel(wx, wy, wz)
+									v_data.set_voxel(lx, ly, lz, sub_mat)
+							elif chasm_col.is_pillar or chasm_col.is_wall:
+								if ly >= chasm_col.floor_y and ly <= chasm_col.ceil_y + 1 and ly < carve_ceiling:
+									var sub_mat = cave_carver.classify_subterranean_voxel(wx, wy, wz)
+									v_data.set_voxel(lx, ly, lz, sub_mat)
+
+
 
 
 func height_at(col: Vector2i, bounds: WorldBounds) -> int:

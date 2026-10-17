@@ -229,8 +229,8 @@ gantt
     Integrate with CaveCarver & Coarse Culling:done, p2a, 2026-10-17, 1d
     Optimize LayeredTerrainGenerator Loop      :done, p2b, 2026-10-17, 1d
     section Phase 3: Mitigations & Aesthetics
-    Fine-tune Wall Warping & Basalt Materials  :p3a, 2026-10-22, 1d
-    Validate Water Lake Boundaries & Drainage :p3b, after p3a, 1d
+    Fine-tune Wall Warping & Basalt Materials  :done, p3a, 2026-10-17, 1d
+    Validate Water Lake Boundaries & Drainage :done, p3b, 2026-10-17, 1d
     section Phase 4: Benchmarking & Sign-off
     Run Performance Benchmarks vs Baseline    :p4a, 2026-10-24, 1d
     Visual Inspection in Godot Editor         :p4b, after p4a, 1d
@@ -252,9 +252,9 @@ gantt
 
 
 ### Phase 3: Mitigation Tuning & Aesthetics
-1. **Wall Warping Calibration**: Tune `chasm_wall_warp_amplitude` and `chasm_wall_warp_frequency` to ensure canyon walls look like natural sheared bedrock faults rather than synthetic grid boundaries.
-2. **Subterranean Materials**: Verify that solid voxels on the floor, wall, and ceiling are assigned proper geological materials ([`MaterialDef.ID_CHASM_BASALT`](file:///d:/GODOT/terrain/src/generation/material_def.gd) and [`MaterialDef.ID_CAVE_CRYSTAL`](file:///d:/GODOT/terrain/src/generation/material_def.gd)).
-3. **Water Table Validation**: Confirm that subterranean water pools naturally up to `chasm_water_level` and never leaks out of unsealed mouths.
+1. [x] **Wall Warping Calibration**: Tune `chasm_wall_warp_amplitude` and `chasm_wall_warp_frequency` to ensure canyon walls look like natural sheared bedrock faults rather than synthetic grid boundaries.
+2. [x] **Subterranean Materials**: Verify that solid voxels on the floor, wall, and ceiling are assigned proper geological materials ([`MaterialDef.ID_CHASM_BASALT`](file:///d:/GODOT/terrain/src/core/material_def.gd) and [`MaterialDef.ID_CAVE_CRYSTAL`](file:///d:/GODOT/terrain/src/core/material_def.gd)).
+3. [x] **Water Table Validation**: Confirm that subterranean water pools naturally up to `chasm_water_level` and never leaks out of unsealed mouths.
 
 ### Phase 4: Benchmarking & Quality Assurance
 1. **Performance Profiling**: Run chunk generation benchmark tests measuring CPU time on worker threads:

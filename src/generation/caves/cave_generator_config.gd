@@ -47,10 +47,12 @@ extends Resource
 @export_range(3.0, 10.0) var min_chasm_height: float = 5.0 ## Guaranteed clearance between floor and ceiling
 @export var chasm_water_level: int = 10 ## Elevation below which cavern voids pool water
 @export_range(0.001, 0.02) var pillar_frequency: float = 0.008 ## Frequency of stone support pillars
+@export_range(0.1, 0.9) var pillar_threshold: float = 0.60 ## Density above which pillars remain solid
+
 @export_group("Chasm Battle Arenas & POIs")
 @export var arena_enabled: bool = true ## Enable procedural subterranean battle arenas
-@export_range(0.70, 0.95) var arena_rift_threshold: float = 0.85 ## Rift corridor density threshold to anchor arenas
-@export var arena_floor_y: int = 12 ## Flattened arena combat elevation (elevated above water level)
+@export_range(0.70, 0.95) var arena_rift_threshold: float = 0.80 ## Rift corridor density threshold to anchor arenas
+@export var arena_floor_y: int = 6 ## Flattened arena combat elevation (elevated above water level)
 @export var arena_ceiling_y: int = 28 ## Vaulted ceiling dome elevation in battle arenas
 @export var arena_ledge_step_height: int = 2 ## Height delta for stepped spectator ledges along perimeter
 @export var bypass_chasm_voxelization: bool = true ## Bypass 3D voxel allocation for pure chasm chunks

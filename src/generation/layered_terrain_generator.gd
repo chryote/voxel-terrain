@@ -21,6 +21,7 @@ func _init(seed_val: int = 1337, p_config: ContinentGeneratorConfig = null, p_ca
 	cave_carver = CaveCarver.new(seed_val, cave_config)
 
 const CaveMouthDetectorClass = preload("res://src/map/cave_mouth_detector.gd")
+const ChasmChunkDataClass = preload("res://src/core/chasm_chunk_data.gd")
 
 func init_cave_mouths(bounds: WorldBounds) -> Array:
 	## Discovers and initializes continent-wide allowed cave mouths respecting configured limits.
@@ -74,16 +75,99 @@ func check_has_cave_mouth(surface_data: SurfaceChunkData, coord: ChunkCoord, bou
 	return false
 
 ## Phase B: Subterranean voxel column population and 3D cave carving
-func generate_subterranean(surface_data: SurfaceChunkData, coord: ChunkCoord, bounds: WorldBounds) -> VoxelChunkData:
+func generate_subterranean(surface_data: SurfaceChunkData, coord: ChunkCoord, bounds: WorldBounds) -> RefCounted:
 	if not _mouths_initialized and cave_config.enabled and cave_config.limit_cave_mouths and bounds != null:
 		init_cave_mouths(bounds)
 	if surface_data == null:
 		surface_data = generate_surface(coord, bounds)
 
 	var max_h = 160
+
+	# 2.1 Bypass 3D Voxelization Pattern for pure chasm / non-tunnel chunks
+	if cave_config.bypass_chasm_voxelization and not surface_data.has_cave_mouth:
+		var c_size = bounds.chunk_size
+		var min_wx = float(coord.x * c_size) * bounds.voxel_size
+		var min_wz = float(coord.z * c_size) * bounds.voxel_size
+		var max_wx = float((coord.x + 1) * c_size) * bounds.voxel_size
+		var max_wz = float((coord.z + 1) * c_size) * bounds.voxel_size
+		var cell_min_p = Vector3(min_wx, 0.0, min_wz)
+		var cell_max_p = Vector3(max_wx, float(max_h) * bounds.voxel_size, max_wz)
+
+		var can_tunnel = cave_config.enabled and cave_carver.tunnel_sampler.can_tunnel_intersect_cell(cell_min_p, cell_max_p)
+		var can_mouth = cave_config.enabled and cave_carver.mouth_sampler.can_mouth_intersect_cell(cell_min_p, cell_max_p, 255.0, config.sea_level)
+
+		if not can_tunnel and not can_mouth:
+			return generate_chasm_data(surface_data, coord, bounds, max_h)
+
 	var v_data = _populate_voxel_columns(surface_data, bounds, max_h)
 	_carve_subterranean_caves(v_data, surface_data, coord, bounds, max_h)
 	return v_data
+
+func generate_chasm_data(
+	surface_data: SurfaceChunkData,
+	coord: ChunkCoord,
+	bounds: WorldBounds,
+	max_h: int = 160
+) -> RefCounted:
+	## High-speed 2.5D chasm generation bypassing 3D voxel arrays (185k voxels).
+	## Evaluates floor, ceiling, and wall boundary flags column-by-column in O(N^2) time.
+	var c_size = bounds.chunk_size
+	var chasm_data = ChasmChunkDataClass.new(c_size, max_h, surface_data)
+	chasm_data.chasm_water_level = cave_config.chasm_water_level
+
+	if not cave_config.enabled:
+		return chasm_data
+
+	var min_wx = float(coord.x * c_size) * bounds.voxel_size
+	var min_wz = float(coord.z * c_size) * bounds.voxel_size
+	var max_wx = float((coord.x + 1) * c_size) * bounds.voxel_size
+	var max_wz = float((coord.z + 1) * c_size) * bounds.voxel_size
+	var cell_min_p = Vector3(min_wx, 0.0, min_wz)
+	var cell_max_p = Vector3(max_wx, float(max_h) * bounds.voxel_size, max_wz)
+
+	if not cave_carver.chasm_sampler.can_chasm_intersect_cell(cell_min_p, cell_max_p):
+		return chasm_data
+
+	var chasm_col = ChasmColumnResult.new()
+	var apron_w = chasm_data.apron_size
+
+	for lz in range(-1, c_size + 1):
+		var gz = coord.z * c_size + lz
+		var wz = (float(gz) + 0.5) * bounds.voxel_size
+		var row_start = (lz + 1) * apron_w
+
+		for lx in range(-1, c_size + 1):
+			var gx = coord.x * c_size + lx
+			var wx = (float(gx) + 0.5) * bounds.voxel_size
+			var col_idx = (lx + 1) + row_start
+
+			cave_carver.sample_chasm_column(wx, wz, chasm_col)
+
+			chasm_data.floor_heights[col_idx] = chasm_col.floor_y
+			chasm_data.ceil_heights[col_idx] = chasm_col.ceil_y
+
+			var flag = 0
+			if chasm_col.is_chasm:
+				flag |= ChasmChunkDataClass.FLAG_CHASM
+				chasm_data.has_chasm = true
+			if chasm_col.is_pillar:
+				flag |= ChasmChunkDataClass.FLAG_PILLAR
+			if chasm_col.is_wall:
+				flag |= ChasmChunkDataClass.FLAG_WALL
+			if chasm_col.is_arena:
+				flag |= ChasmChunkDataClass.FLAG_ARENA
+			if chasm_col.is_arena_ledge:
+				flag |= ChasmChunkDataClass.FLAG_ARENA_LEDGE
+			if chasm_col.is_basalt_column:
+				flag |= ChasmChunkDataClass.FLAG_BASALT_COLUMN
+
+			chasm_data.chasm_flags[col_idx] = flag
+
+			if chasm_col.is_chasm or chasm_col.is_pillar or chasm_col.is_wall:
+				var mat = cave_carver.classify_subterranean_voxel(wx, float(chasm_col.floor_y), wz)
+				chasm_data.materials[col_idx] = mat
+
+	return chasm_data
 
 ## Combined full generation (implements TerrainGenerator polymorphism)
 func generate(coord: ChunkCoord, bounds: WorldBounds) -> RefCounted:

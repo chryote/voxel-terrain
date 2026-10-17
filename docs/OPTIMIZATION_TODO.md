@@ -59,7 +59,7 @@ Quick optimizations requiring no breaking changes to data structures or engine A
 
 The single largest performance opportunity for subterranean chasms and combat arenas.
 
-- [ ] **2.1 The "Bypass 3D Voxelization" Pattern for Chasms**
+- [x] **2.1 The "Bypass 3D Voxelization" Pattern for Chasms**
   - **Current Bottleneck:**
     ```
     2D Floor/Ceil Noise ──> Allocate 185k Voxels in RAM ──> Fill Solid Columns ──> Carve Air Voids ──> Run 3D Greedy Mesher ──> Dual Mesh
@@ -70,17 +70,19 @@ The single largest performance opportunity for subterranean chasms and combat ar
     ```
   - **Implementation Strategy:**
     - Since deep chasms are defined by `floor_noise` and `ceil_noise` with vertical warped walls, they are mathematically two 2.5D surfaces facing each other.
-    - Mesh the chasm floor using the existing high-speed [`SurfaceShellMesher`](file:///d:/GODOT/terrain/src/meshing/surface_shell_mesher.gd).
+    - Mesh the chasm floor using the high-speed 2D greedy pass (`SurfaceShellMesher`).
     - Mesh the chasm ceiling identically with inverted normals (`Vector3.DOWN`).
     - Generate vertical curtain quads along rift boundary edges and pillars.
   - **Expected Gain:** Eliminates 3D voxel iteration entirely for chasms. Converts $O(N^3)$ chasm generation into an $O(N^2)$ operation (~5 ms instead of ~60 ms).
+  - **Status:** **Completed.** Implemented `ChasmChunkData` representing 2.5D chasm columns with $O(1)$ virtual voxel access, and `ChasmShellMesher` directly meshing floor, inverted ceiling, vertical curtain walls, and subterranean water planes with 2D greedy quad merging. Pure chasm chunks bypass 185k voxel array allocations completely.
 
-- [ ] **2.2 Chasm Arena POI Anchor System**
+- [x] **2.2 Chasm Arena POI Anchor System**
   - **Goal:** Procedurally generate wide, flat subterranean battle arenas / chambers without awkward jagged pillars in the combat zone.
   - **Implementation:**
     - Define an `ArenaFeature` mask in [`UndergroundChasmSampler.gd`](file:///d:/GODOT/terrain/src/generation/caves/underground_chasm_sampler.gd) where `raw_rift > 0.85` or at seeded POI coordinates.
     - Inside arena bounds, suppress random support pillars (`is_pillar = false`) and flatten `floor_noise` to a smooth amphitheater floor.
     - Add perimeter basalt columns / stepped perimeter spectator ledges.
+  - **Status:** **Completed.** Integrated `arena_enabled`, `arena_rift_threshold`, `arena_floor_y`, and `arena_ceiling_y` into `UndergroundChasmSampler` and `CaveGeneratorConfig`. Core arena zones strictly suppress pillars, flatten floors for combat, and vault ceiling domes to 28m, with perimeter stepped spectator ledges and basalt colonnade accents.
 
 ---
 

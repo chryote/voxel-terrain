@@ -6,15 +6,22 @@ extends Mesher
 ## eliminating 80%+ of GPU triangle throughput when the player is on the surface.
 
 const SurfaceShellMesher = preload("res://src/meshing/surface_shell_mesher.gd")
+const ChasmShellMesher = preload("res://src/meshing/chasm_shell_mesher.gd")
+const ChasmChunkDataClass = preload("res://src/core/chasm_chunk_data.gd")
 
 var sea_level: int = 24
 var crust_depth: int = 3
 var _shell_mesher: SurfaceShellMesher = SurfaceShellMesher.new()
+var _chasm_mesher: ChasmShellMesher = ChasmShellMesher.new()
 
 func build_mesh(data: RefCounted, registry: MaterialRegistry) -> MeshData:
 	# Polymorphic fallback: if passed 2.5D surface shell data, delegate to surface shell mesher
 	if data is SurfaceChunkData:
 		return _shell_mesher.build_mesh(data, registry)
+
+	# Direct chasm bypass: if passed 2.5D chasm column data, delegate to chasm shell mesher
+	if data is ChasmChunkDataClass:
+		return _chasm_mesher.build_mesh(data, registry)
 
 	if not (data is VoxelChunkData):
 		push_error("VoxelMesher: Unsupported data type")

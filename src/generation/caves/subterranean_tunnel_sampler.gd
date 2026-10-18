@@ -7,14 +7,16 @@ extends RefCounted
 ## with a 3D continuity noise that pinches off branches into natural dead ends.
 
 var config: CaveGeneratorConfig
+var chasm_sampler: UndergroundChasmSampler = null
 
 var tunnel_noise_a: FastNoiseLite
 var tunnel_noise_b: FastNoiseLite
 var continuity_noise: FastNoiseLite
 var perturb_noise: FastNoiseLite
 
-func _init(seed_val: int = 1337, p_config: CaveGeneratorConfig = null) -> void:
+func _init(seed_val: int = 1337, p_config: CaveGeneratorConfig = null, p_chasm_sampler: UndergroundChasmSampler = null) -> void:
 	config = p_config if p_config != null else CaveGeneratorConfig.new()
+	chasm_sampler = p_chasm_sampler
 
 	# 1. Primary 3D worm noise field A
 	tunnel_noise_a = FastNoiseLite.new()
@@ -39,6 +41,31 @@ func _init(seed_val: int = 1337, p_config: CaveGeneratorConfig = null) -> void:
 	perturb_noise.seed = seed_val + 912
 	perturb_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 	perturb_noise.frequency = config.tunnel_frequency * 2.5
+ 
+func set_chasm_sampler(p_chasm_sampler: UndergroundChasmSampler) -> void:
+	chasm_sampler = p_chasm_sampler
+
+func get_arena_suppression(wx: float, wz: float) -> float:
+	## Smooth Hermite suppression factor [0.0..1.0] for worm tunnels approaching core combat arenas.
+	## Returns 0.0 inside core arenas, 1.0 outside arena zone, and a continuous Hermite curve in-between.
+	if chasm_sampler == null or not config.arena_enabled:
+		return 1.0
+
+	var fade_start = config.arena_rift_threshold - 0.04
+	var warp_margin = chasm_sampler.get_wall_warp_margin()
+	var unwarped_rift = chasm_sampler.sample_unwarped_rift(wx, wz)
+	if unwarped_rift < (fade_start - warp_margin):
+		return 1.0
+
+	var warped_pos = chasm_sampler.get_warped_coordinates(wx, wz)
+	var raw_rift = chasm_sampler.sample_rift_mask(warped_pos.x, warped_pos.y)
+	if raw_rift <= fade_start:
+		return 1.0
+	if raw_rift >= config.arena_rift_threshold:
+		return 0.0
+
+	var blend = (raw_rift - fade_start) / 0.04
+	return 1.0 - (blend * blend * (3.0 - 2.0 * blend))
 
 func sample_tunnel(wx: float, wy: float, wz: float) -> Dictionary:
 	# Vertical squish allows wider, flatter floors for comfortable player walking
@@ -53,12 +80,22 @@ func sample_tunnel(wx: float, wy: float, wz: float) -> Dictionary:
 
 	# Calculate effective radius
 	var eff_radius = config.tunnel_radius_base + perturb
+	var is_pinched = false
 
 	# Modulate dead ends via continuity noise
 	var is_dead_end = cont <= config.dead_end_threshold
 	if is_dead_end:
 		var pinch = (config.dead_end_threshold - cont) * config.pinch_rate
 		eff_radius -= pinch
+		is_pinched = true
+
+	# Smooth arena suppression: tapers worm tunnels before reaching arena boundary
+	var arena_supp = get_arena_suppression(wx, wz)
+	if arena_supp < 1.0:
+		eff_radius *= arena_supp
+		is_pinched = true
+		if arena_supp <= 0.0:
+			is_dead_end = true
 
 	# If radius contracted to <= 0, the corridor is completely pinched shut by solid rock
 	if eff_radius <= 0.0:
@@ -71,7 +108,7 @@ func sample_tunnel(wx: float, wy: float, wz: float) -> Dictionary:
 		}
 
 	# Ensure traversable corridors strictly respect minimum player clearance
-	if not is_dead_end:
+	if not is_pinched:
 		eff_radius = maxf(config.min_clearance, eff_radius)
 
 	# In normalized tunnel coordinates, 0.0 = centerline, 1.0 = tunnel perimeter
@@ -159,18 +196,31 @@ func can_tunnel_intersect_cell(min_p: Vector3, max_p: Vector3) -> bool:
 	return false
 
 func get_tunnel_carve(wx: float, wy: float, wz: float) -> float:
+	var arena_supp = get_arena_suppression(wx, wz)
+	if arena_supp <= 0.0:
+		return 0.0
+
 	var squished_y = wy * config.tunnel_vertical_squish
 	var na = tunnel_noise_a.get_noise_3d(wx, squished_y, wz)
 	var nb = tunnel_noise_b.get_noise_3d(wx, squished_y, wz)
 	var centerline_dist = sqrt(na * na + nb * nb)
 
-	var cont = continuity_noise.get_noise_3d(wx, wy * 0.8, wz)
 	var eff_radius = config.tunnel_radius_base
+	var is_pinched = false
+
+	if arena_supp < 1.0:
+		eff_radius *= arena_supp
+		is_pinched = true
+
+	var cont = continuity_noise.get_noise_3d(wx, wy * 0.8, wz)
 	if cont <= config.dead_end_threshold:
 		eff_radius -= (config.dead_end_threshold - cont) * config.pinch_rate
-		if eff_radius <= 0.0:
-			return 0.0
-	else:
+		is_pinched = true
+
+	if eff_radius <= 0.0:
+		return 0.0
+
+	if not is_pinched:
 		eff_radius = maxf(config.min_clearance, eff_radius)
 
 	var tunnel_threshold = eff_radius * 0.05

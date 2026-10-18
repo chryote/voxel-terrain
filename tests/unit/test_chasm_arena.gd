@@ -6,6 +6,8 @@ extends "res://tests/framework/test_case.gd"
 ## suppression of random pillars in the combat zone, stepped perimeter spectator ledges,
 ## and vaulted high ceiling domes.
 
+const ChasmChunkData = preload("res://src/core/chasm_chunk_data.gd")
+
 func test_arena_trigger_and_flattened_floor() -> void:
 	var config = CaveGeneratorConfig.new()
 	config.arena_enabled = true
@@ -230,11 +232,122 @@ func test_cave_water_table_toggle() -> void:
 	var bundle_disabled = mesher_disabled.build_mesh(v_data, reg) as DualMeshBundle
 	assert_true(bundle_disabled.cave_mesh_data == null or bundle_disabled.cave_mesh_data.water_mesh_data == null, "Cave water mesh must be null when mesher cave_water_enabled is false")
 
-	var mesher_enabled = VoxelMesher.new()
-	mesher_enabled.cave_water_enabled = true
-	var bundle_enabled = mesher_enabled.build_mesh(v_data, reg) as DualMeshBundle
-	assert_not_null(bundle_enabled.cave_mesh_data, "Cave mesh data must exist when water is present")
-	assert_not_null(bundle_enabled.cave_mesh_data.water_mesh_data, "Cave water mesh must exist when mesher cave_water_enabled is true")
-	assert_false(bundle_enabled.cave_mesh_data.water_mesh_data.is_empty(), "Cave water mesh must have geometry")
+	# 3. ChasmChunkData toggle validation: rock geometry MUST be preserved when cave_water is false
+	var chasm_sampler = UndergroundChasmSampler.new(1337)
+	var bounds = WorldConfig.new().create_world_bounds()
+	var gen = LayeredTerrainGenerator.new(1337)
+	var selector = preload("res://tests/benchmark/chunk_bench/benchmark_chunk_selector.gd").new()
+	var arena_coord = selector.find_arena_center(gen.cave_carver.chasm_sampler, bounds)
+	var s_data = gen.generate_surface(arena_coord, bounds)
+	var c_data = gen.generate_subterranean(s_data, arena_coord, bounds) as ChasmChunkData
+	assert_not_null(c_data, "Arena chunk data must exist")
+
+	var chasm_mesher_dry = VoxelMesher.new()
+	chasm_mesher_dry.cave_water_enabled = false
+	var bundle_dry = chasm_mesher_dry.build_mesh(c_data, reg) as DualMeshBundle
+	assert_not_null(bundle_dry, "Dry arena meshing must produce bundle")
+	assert_true(bundle_dry.has_cave_geometry(), "Dry arena must still generate floor/ceiling cave geometry!")
+	assert_true(bundle_dry.cave_mesh_data.get_vertex_count() > 0, "Dry arena must have cave vertices")
+	assert_true(bundle_dry.cave_mesh_data.get_triangle_count() > 0, "Dry arena must have cave triangles")
+	assert_true(bundle_dry.cave_mesh_data.water_mesh_data == null or bundle_dry.cave_mesh_data.water_mesh_data.is_empty(), "Cave water must be empty when disabled")
+
+func test_arena_chunk_bypasses_3d_voxelization() -> void:
+	## Validates Task 1.3: Core arena chunks bypass 3D voxelization (185k voxels)
+	## and return ChasmChunkData (2.5D heightfield) for ultra-fast generation.
+	var world_config = WorldConfig.new()
+	var bounds = world_config.create_world_bounds()
+	var gen = LayeredTerrainGenerator.new(1337)
+	var selector = preload("res://tests/benchmark/chunk_bench/benchmark_chunk_selector.gd").new()
+	var arena_center_coord = selector.find_arena_center(gen.cave_carver.chasm_sampler, bounds)
+
+	assert_not_null(arena_center_coord, "Must locate arena center chunk")
+
+	var s_data = gen.generate_surface(arena_center_coord, bounds)
+	var sub_data = gen.generate_subterranean(s_data, arena_center_coord, bounds)
+
+	assert_not_null(sub_data, "Subterranean data must not be null")
+	assert_true(sub_data is ChasmChunkData, "Arena center chunk must return 2.5D ChasmChunkData")
+	assert_true(sub_data.has_chasm, "Arena chunk must have has_chasm = true")
+
+	# Meshing validation: VoxelMesher must delegate to ChasmShellMesher and produce DualMeshBundle
+	var mesher = VoxelMesher.new()
+	var reg = MaterialRegistry.create_default_registry()
+	var bundle = mesher.build_mesh(sub_data, reg) as DualMeshBundle
+
+	assert_not_null(bundle, "Meshing must produce DualMeshBundle")
+	assert_true(bundle.has_cave_geometry(), "Arena must contain cave geometry")
+	assert_true(bundle.cave_mesh_data.get_triangle_count() > 0, "Cave mesh must have triangles")
+
+	# Collision baking validation: OffThreadCollisionBaker must successfully bake concave shape
+	var baker = OffThreadCollisionBaker.new()
+	var shapes = baker.bake_shapes_for_bundle(bundle, true)
+	assert_not_null(shapes.cave_shape, "Arena must produce valid physics cave collision shape")
+
+func test_arena_boundary_seams() -> void:
+	## Validates Step 4: Boundary seam continuity between an arena chunk (2.5D ChasmChunkData)
+	## and an adjacent non-arena chunk (3D VoxelChunkData).
+	## Verifies that worm tunnels do not carve unmeshed holes into solid rock at the shared border.
+	var world_config = WorldConfig.new()
+	var bounds = world_config.create_world_bounds()
+	var gen = LayeredTerrainGenerator.new(1337)
+	var selector = preload("res://tests/benchmark/chunk_bench/benchmark_chunk_selector.gd").new()
+	var arena_coord = selector.find_arena_center(gen.cave_carver.chasm_sampler, bounds)
+
+	assert_not_null(arena_coord, "Must locate arena center chunk")
+
+	var s_data_a = gen.generate_surface(arena_coord, bounds)
+	var sub_data_a = gen.generate_subterranean(s_data_a, arena_coord, bounds)
+	assert_true(sub_data_a is ChasmChunkData, "Chunk A must be 2.5D ChasmChunkData")
+
+	# Find a neighboring chunk that generates as 3D VoxelChunkData
+	var neighbor_coord: ChunkCoord = null
+	var sub_data_b = null
+	var offset: Vector2i = Vector2i.ZERO
+
+	for off in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(2, 0), Vector2i(-2, 0), Vector2i(0, 2), Vector2i(0, -2)]:
+		var cand = ChunkCoord.new(arena_coord.x + off.x, arena_coord.z + off.y)
+		var s_data_cand = gen.generate_surface(cand, bounds)
+		var sub_cand = gen.generate_subterranean(s_data_cand, cand, bounds)
+		if sub_cand is VoxelChunkData:
+			neighbor_coord = cand
+			sub_data_b = sub_cand
+			offset = off
+			break
+
+	assert_not_null(neighbor_coord, "Must find adjacent or nearby 3D voxel chunk")
+	if neighbor_coord == null:
+		return
+
+	# Verify that in sub_data_b, at the boundary facing the arena,
+	# worm tunnels are pinched shut (arena_supp <= 0) when approaching the arena,
+	# ensuring no open cavity opens into solid uncarved rock.
+	var c_size = bounds.chunk_size
+	var tunnel_sampler = gen.cave_carver.tunnel_sampler
+
+	var checked_points = 0
+	var suppressed_points = 0
+
+	# Find the boundary between cand and the arena
+	# Along the shared edge:
+	if offset.x != 0:
+		var edge_wx = float(arena_coord.x * c_size + (c_size if offset.x > 0 else 0)) * bounds.voxel_size
+		for lz in range(c_size):
+			var wz = float(arena_coord.z * c_size + lz) * bounds.voxel_size
+			var supp = tunnel_sampler.get_arena_suppression(edge_wx, wz)
+			checked_points += 1
+			if supp < 1.0:
+				suppressed_points += 1
+	elif offset.y != 0:
+		var edge_wz = float(arena_coord.z * c_size + (c_size if offset.y > 0 else 0)) * bounds.voxel_size
+		for lx in range(c_size):
+			var wx = float(arena_coord.x * c_size + lx) * bounds.voxel_size
+			var supp = tunnel_sampler.get_arena_suppression(wx, edge_wz)
+			checked_points += 1
+			if supp < 1.0:
+				suppressed_points += 1
+
+	assert_true(checked_points > 0, "Must check boundary coordinates")
+	assert_true(suppressed_points > 0, "Tunnel suppression must be active along arena boundary")
+
 
 

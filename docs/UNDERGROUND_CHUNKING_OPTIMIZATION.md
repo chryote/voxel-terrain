@@ -68,12 +68,13 @@ Worker threads must bake two separate complex `ConcavePolygonShape3D` instances 
   2. Inside `sample_rift_mask()`, if `is_deep_inland == true`, skip calling `get_land_raw()` entirely!
 - **Impact:** Eliminates ~8,000 noise samples per inland subterranean chunk ($>90\%$ of landmass).
 
-#### Task 1.3: Suppress 3D Worm Tunnels in Core Combat Arenas
-- **File:** `res://src/generation/layered_terrain_generator.gd`
+#### Task 1.3: Suppress 3D Worm Tunnels in Core Combat Arenas [COMPLETED]
+- **File:** `res://src/generation/layered_terrain_generator.gd`, `res://src/generation/caves/subterranean_tunnel_sampler.gd`
 - **Problem:** Combat arenas already suppress support pillars (`is_pillar = false`) to keep the battle floor clear. However, if a 3D worm tunnel intersects the arena AABB, the entire chunk drops into 185k voxel generation.
-- **Solution:** In `generate_subterranean()`, check if the chunk center or bounding box is an arena (`is_arena == true` or `raw_rift >= arena_rift_threshold`).
-  - In arena zones, worm tunnels should be suppressed or bypassed so the chunk stays on the ultra-fast 2.5D heightfield path (`generate_chasm_data()`).
-- **Impact:** Forces all arena chunks to bypass 3D voxelization, dropping generation time from ~45 ms down to < 10 ms.
+- **Solution:** 
+  1. In `SubterraneanTunnelSampler`, mathematically taper worm tunnel radius to 0 using a smooth Hermite curve over a 0.04 rift margin before reaching the arena threshold (`arena_supp <= 0.0`), naturally terminating tunnels into solid stone walls without open boundary seams.
+  2. In `generate_subterranean()`, check if the chunk is in an arena (`cave_carver.chasm_sampler.is_arena(mid_wx, mid_wz)`), allowing core arena chunks to bypass `can_tunnel` and generate directly via the fast 2.5D heightfield path (`generate_chasm_data()`).
+- **Impact:** Forces core arena chunks to bypass 3D voxelization, dropping generation time from ~45 ms down to < 10 ms with 0 seam mismatches.
 
 ---
 

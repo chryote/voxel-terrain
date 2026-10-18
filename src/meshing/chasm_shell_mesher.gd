@@ -148,11 +148,11 @@ func _mesh_subterranean_chasm(chasm_data: ChasmChunkData, registry: MaterialRegi
 			c_cols.append(col)
 
 			c_inds.append(base_idx)
+			c_inds.append(base_idx + 2)
 			c_inds.append(base_idx + 1)
-			c_inds.append(base_idx + 2)
 			c_inds.append(base_idx)
-			c_inds.append(base_idx + 2)
 			c_inds.append(base_idx + 3)
+			c_inds.append(base_idx + 2)
 
 	# -------------------------------------------------------------------------
 	# Pass B: Ceiling (-Y faces, downward facing with inverted normals)
@@ -240,11 +240,11 @@ func _mesh_subterranean_chasm(chasm_data: ChasmChunkData, registry: MaterialRegi
 			c_cols.append(col)
 
 			c_inds.append(base_idx)
+			c_inds.append(base_idx + 2)
 			c_inds.append(base_idx + 1)
-			c_inds.append(base_idx + 2)
 			c_inds.append(base_idx)
-			c_inds.append(base_idx + 2)
 			c_inds.append(base_idx + 3)
+			c_inds.append(base_idx + 2)
 
 	# -------------------------------------------------------------------------
 	# Pass C: Vertical Curtain Walls along X-boundaries (normal +X and -X)
@@ -438,6 +438,14 @@ func _mesh_subterranean_chasm(chasm_data: ChasmChunkData, registry: MaterialRegi
 			lx += 1
 
 	# -------------------------------------------------------------------------
+	# Store subterranean cave mesh into bundle
+	# -------------------------------------------------------------------------
+	bundle.cave_mesh_data.vertices = c_verts
+	bundle.cave_mesh_data.normals = c_norms
+	bundle.cave_mesh_data.colors = c_cols
+	bundle.cave_mesh_data.indices = c_inds
+
+	# -------------------------------------------------------------------------
 	# Pass E: Subterranean Water Table (+Y faces at water_lvl + 1)
 	# -------------------------------------------------------------------------
 	if not cave_water_enabled or not chasm_data.cave_water_enabled:
@@ -523,19 +531,11 @@ func _mesh_subterranean_chasm(chasm_data: ChasmChunkData, registry: MaterialRegi
 			sub_water_cols.append(water_col)
 
 			sub_water_inds.append(base_idx)
+			sub_water_inds.append(base_idx + 2)
 			sub_water_inds.append(base_idx + 1)
-			sub_water_inds.append(base_idx + 2)
 			sub_water_inds.append(base_idx)
-			sub_water_inds.append(base_idx + 2)
 			sub_water_inds.append(base_idx + 3)
-
-	# -------------------------------------------------------------------------
-	# Store subterranean cave mesh into bundle
-	# -------------------------------------------------------------------------
-	bundle.cave_mesh_data.vertices = c_verts
-	bundle.cave_mesh_data.normals = c_norms
-	bundle.cave_mesh_data.colors = c_cols
-	bundle.cave_mesh_data.indices = c_inds
+			sub_water_inds.append(base_idx + 2)
 
 	if not sub_water_verts.is_empty():
 		if bundle.cave_mesh_data.water_mesh_data == null:
@@ -560,8 +560,8 @@ static func _emit_quad_x_pos(verts: PackedVector3Array, norms: PackedVector3Arra
 	norms.append(norm); norms.append(norm); norms.append(norm); norms.append(norm)
 	cols.append(color); cols.append(color); cols.append(color); cols.append(color)
 
-	inds.append(base_idx); inds.append(base_idx + 1); inds.append(base_idx + 2)
-	inds.append(base_idx); inds.append(base_idx + 2); inds.append(base_idx + 3)
+	inds.append(base_idx); inds.append(base_idx + 2); inds.append(base_idx + 1)
+	inds.append(base_idx); inds.append(base_idx + 3); inds.append(base_idx + 2)
 
 static func _emit_quad_x_neg(verts: PackedVector3Array, norms: PackedVector3Array, cols: PackedColorArray, inds: PackedInt32Array, x: float, y_min: float, y_max: float, z: float, d: float, color: Color) -> void:
 	var base_idx = verts.size()
@@ -574,8 +574,8 @@ static func _emit_quad_x_neg(verts: PackedVector3Array, norms: PackedVector3Arra
 	norms.append(norm); norms.append(norm); norms.append(norm); norms.append(norm)
 	cols.append(color); cols.append(color); cols.append(color); cols.append(color)
 
-	inds.append(base_idx); inds.append(base_idx + 1); inds.append(base_idx + 2)
-	inds.append(base_idx); inds.append(base_idx + 2); inds.append(base_idx + 3)
+	inds.append(base_idx); inds.append(base_idx + 2); inds.append(base_idx + 1)
+	inds.append(base_idx); inds.append(base_idx + 3); inds.append(base_idx + 2)
 
 static func _emit_quad_z_pos(verts: PackedVector3Array, norms: PackedVector3Array, cols: PackedColorArray, inds: PackedInt32Array, z: float, y_min: float, y_max: float, x: float, w: float, color: Color) -> void:
 	var base_idx = verts.size()
@@ -588,8 +588,8 @@ static func _emit_quad_z_pos(verts: PackedVector3Array, norms: PackedVector3Arra
 	norms.append(norm); norms.append(norm); norms.append(norm); norms.append(norm)
 	cols.append(color); cols.append(color); cols.append(color); cols.append(color)
 
-	inds.append(base_idx); inds.append(base_idx + 1); inds.append(base_idx + 2)
-	inds.append(base_idx); inds.append(base_idx + 2); inds.append(base_idx + 3)
+	inds.append(base_idx); inds.append(base_idx + 2); inds.append(base_idx + 1)
+	inds.append(base_idx); inds.append(base_idx + 3); inds.append(base_idx + 2)
 
 static func _emit_quad_z_neg(verts: PackedVector3Array, norms: PackedVector3Array, cols: PackedColorArray, inds: PackedInt32Array, z: float, y_min: float, y_max: float, x: float, w: float, color: Color) -> void:
 	var base_idx = verts.size()
@@ -602,5 +602,5 @@ static func _emit_quad_z_neg(verts: PackedVector3Array, norms: PackedVector3Arra
 	norms.append(norm); norms.append(norm); norms.append(norm); norms.append(norm)
 	cols.append(color); cols.append(color); cols.append(color); cols.append(color)
 
-	inds.append(base_idx); inds.append(base_idx + 1); inds.append(base_idx + 2)
-	inds.append(base_idx); inds.append(base_idx + 2); inds.append(base_idx + 3)
+	inds.append(base_idx); inds.append(base_idx + 2); inds.append(base_idx + 1)
+	inds.append(base_idx); inds.append(base_idx + 3); inds.append(base_idx + 2)

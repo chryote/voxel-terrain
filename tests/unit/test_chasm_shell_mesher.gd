@@ -159,3 +159,47 @@ func test_voxel_mesher_delegation_to_chasm_shell_mesher() -> void:
 	assert_true(res is DualMeshBundle, "VoxelMesher must delegate ChasmChunkData to ChasmShellMesher")
 	var bundle = res as DualMeshBundle
 	assert_true(bundle.has_cave_geometry(), "Delegated bundle must contain cave geometry")
+
+func test_chasm_shell_mesher_winding_order_and_normals() -> void:
+	var s_data = SurfaceChunkData.new(16)
+	s_data.fill(50, MaterialDef.ID_GRASS, MaterialDef.ID_DIRT)
+
+	var chasm_data = ChasmChunkData.new(16, 160, s_data)
+	chasm_data.has_chasm = true
+
+	# Pit with steps: x=4..7, z=4..7 with stepped floor
+	for lz in range(4, 8):
+		for lx in range(4, 8):
+			var fl_y = 6 if lx < 6 else 8
+			chasm_data.set_floor(lx, lz, fl_y)
+			chasm_data.set_ceil(lx, lz, 20)
+			chasm_data.set_flags(lx, lz, ChasmChunkData.FLAG_CHASM)
+			chasm_data.set_column_material(lx, lz, MaterialDef.ID_CHASM_BASALT)
+
+	var mesher = ChasmShellMesher.new()
+	var reg = MaterialRegistry.create_default_registry()
+	var bundle = mesher.build_mesh(chasm_data, reg) as DualMeshBundle
+
+	assert_true(bundle.has_cave_geometry(), "Must have cave geometry")
+	var cave = bundle.cave_mesh_data
+	var v = cave.vertices
+	var n = cave.normals
+	var ind = cave.indices
+
+	var num_tri = ind.size() / 3
+	assert_true(num_tri > 0, "Must have triangles")
+
+	for t in range(num_tri):
+		var i0 = ind[t * 3]
+		var i1 = ind[t * 3 + 1]
+		var i2 = ind[t * 3 + 2]
+		var v0 = v[i0]
+		var v1 = v[i1]
+		var v2 = v[i2]
+		var norm_declared = n[i0]
+		# Godot's geometric outward face normal from vertex index order (i0, i1, i2):
+		var norm_geom = (v2 - v0).cross(v1 - v0).normalized()
+		assert_true(
+			norm_geom.dot(norm_declared) > 0.9,
+			"Triangle %d winding order mismatch: declared %s vs geometric %s" % [t, norm_declared, norm_geom]
+		)

@@ -20,8 +20,8 @@ func _init(seed_val: int = 1337, p_config: CaveGeneratorConfig = null) -> void:
 	config = p_config if p_config != null else CaveGeneratorConfig.new()
 
 	mouth_sampler = CaveMouthSampler.new(seed_val, config)
-	tunnel_sampler = SubterraneanTunnelSampler.new(seed_val, config)
 	chasm_sampler = UndergroundChasmSampler.new(seed_val, config)
+	tunnel_sampler = SubterraneanTunnelSampler.new(seed_val, config, chasm_sampler)
 
 	# High-frequency vein noise for subterranean crystal deposits
 	crystal_noise = FastNoiseLite.new()

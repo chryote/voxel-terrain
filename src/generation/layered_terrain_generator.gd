@@ -110,11 +110,9 @@ func generate_subterranean(surface_data: SurfaceChunkData, coord: ChunkCoord, bo
 		var can_tunnel = cave_config.enabled and cave_carver.tunnel_sampler.can_tunnel_intersect_cell(cell_min_p, cell_max_p)
 		var can_mouth = cave_config.enabled and cave_carver.mouth_sampler.can_mouth_intersect_cell(cell_min_p, cell_max_p, float(max_surf_h), config.sea_level)
 
-		# Task 1.3: Suppress 3D worm tunnels in core combat arenas (keep fast 2.5D heightfield path)
+		# Task 1.3: Suppress 3D worm tunnels in combat arenas (keep fast 2.5D heightfield path)
 		if can_tunnel and cave_config.arena_enabled and not can_mouth:
-			var mid_wx = (min_wx + max_wx) * 0.5
-			var mid_wz = (min_wz + max_wz) * 0.5
-			if cave_carver.chasm_sampler.is_arena(mid_wx, mid_wz):
+			if cave_carver.chasm_sampler.can_arena_intersect_box(min_wx, min_wz, max_wx, max_wz):
 				can_tunnel = false
 
 		if not can_tunnel and not can_mouth:
@@ -178,8 +176,10 @@ func generate_chasm_data(
 				flag |= ChasmChunkDataClass.FLAG_WALL
 			if chasm_col.is_arena:
 				flag |= ChasmChunkDataClass.FLAG_ARENA
+				chasm_data.has_arena = true
 			if chasm_col.is_arena_ledge:
 				flag |= ChasmChunkDataClass.FLAG_ARENA_LEDGE
+				chasm_data.has_arena = true
 			if chasm_col.is_basalt_column:
 				flag |= ChasmChunkDataClass.FLAG_BASALT_COLUMN
 

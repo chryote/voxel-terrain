@@ -15,6 +15,7 @@ enum ChunkSubterraneanState {
 var enabled: bool = true
 var subterranean_elevation_offset: float = 4.0
 var subterranean_radius_chunks: int = 2
+var subterranean_forward_radius_chunks: int = 4
 var mouth_trigger_radius_chunks: int = 1
 
 # Dictionary: chunk key -> ChunkSubterraneanState
@@ -109,32 +110,38 @@ func get_tiered_chunks_to_promote(
 		var has_mouth = mouth_cache.get(key, false)
 		var dist_to_focus = focus_chunk.chebyshev_distance_to(coord)
 
-		# Promotion eligibility
-		var should_promote = false
-		if has_mouth:
-			should_promote = true
-		elif (is_player_subterranean or is_player_near_mouth) and dist_to_focus <= subterranean_radius_chunks:
-			should_promote = true
-
-		if not should_promote:
-			continue
-
 		# Directional scoring
 		var offset = Vector2(float(coord.x - focus_chunk.x), float(coord.z - focus_chunk.z))
 		var offset_len = offset.length()
 		var dot = (offset / offset_len).dot(forward2d) if (has_dir and offset_len > 0.0) else 0.0
 
+		# Promotion eligibility
+		var should_promote = false
+		if has_mouth:
+			should_promote = true
+		elif (is_player_subterranean or is_player_near_mouth):
+			if dist_to_focus <= subterranean_radius_chunks:
+				should_promote = true
+			elif has_dir and dist_to_focus <= subterranean_forward_radius_chunks and dot >= 0.0:
+				should_promote = true
+
+		if not should_promote:
+			continue
+
 		# Tier Classification:
 		# Tier 1 (Immediate):
 		# - Chunk the player is standing on
 		# - Any chunk containing an active cave mouth
-		# - Immediate neighbor in direct forward movement direction (dot > 0.707)
-		if coord.equals(focus_chunk) or has_mouth or (dist_to_focus == 1 and dot > 0.707):
+		# - Immediate neighbor in direct forward movement direction (dist_to_focus == 1 and dot > 0.707)
+		# - Direct forward gaze at distance 2 (dist_to_focus == 2 and dot > 0.8)
+		if coord.equals(focus_chunk) or has_mouth or (dist_to_focus == 1 and dot > 0.707) or (dist_to_focus == 2 and dot > 0.8):
 			tiers["tier1"].append(coord)
 		# Tier 2 (Nearby Entrance & Forward View):
 		# - Chunks adjacent to any nearby cave mouth
-		# - Chunks within distance 1 in forward 180-degree view cone (dot >= 0.0)
-		elif _is_adjacent_to_any_mouth(coord, nearby_mouths) or (dist_to_focus <= 1 and (dot >= 0.0 or not has_dir)):
+		# - Chunks within distance 1 in forward 180-degree view cone (dot >= 0.0 or not has_dir)
+		# - Chunks at distance 2 in forward view cone (dist_to_focus == 2 and dot >= 0.2)
+		# - Chunks at distance 3 in direct forward gaze (dist_to_focus == 3 and dot > 0.707)
+		elif _is_adjacent_to_any_mouth(coord, nearby_mouths) or (dist_to_focus <= 1 and (dot >= 0.0 or not has_dir)) or (dist_to_focus == 2 and dot >= 0.2) or (dist_to_focus == 3 and dot > 0.707):
 			tiers["tier2"].append(coord)
 		# Tier 3 (Deferred Peripheral):
 		# - All other eligible peripheral chunks
@@ -149,7 +156,17 @@ func get_tiered_chunks_to_promote(
 		return focus_chunk.euclidean_distance_to(a) < focus_chunk.euclidean_distance_to(b)
 	)
 	tiers["tier3"].sort_custom(func(a: ChunkCoord, b: ChunkCoord) -> bool:
-		return focus_chunk.euclidean_distance_to(a) < focus_chunk.euclidean_distance_to(b)
+		var dist_a = focus_chunk.euclidean_distance_to(a)
+		var dist_b = focus_chunk.euclidean_distance_to(b)
+		if has_dir:
+			var off_a = Vector2(float(a.x - focus_chunk.x), float(a.z - focus_chunk.z))
+			var dot_a = (off_a / off_a.length()).dot(forward2d) if off_a.length() > 0.0 else 0.0
+			var off_b = Vector2(float(b.x - focus_chunk.x), float(b.z - focus_chunk.z))
+			var dot_b = (off_b / off_b.length()).dot(forward2d) if off_b.length() > 0.0 else 0.0
+			var score_a = dist_a - dot_a * 2.0
+			var score_b = dist_b - dot_b * 2.0
+			return score_a < score_b
+		return dist_a < dist_b
 	)
 
 	return tiers

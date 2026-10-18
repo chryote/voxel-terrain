@@ -189,6 +189,52 @@ func is_arena(wx: float, wz: float) -> bool:
 	var warped_pos = get_warped_coordinates(wx, wz)
 	return sample_rift_mask(warped_pos.x, warped_pos.y) >= config.arena_rift_threshold
 
+func can_arena_intersect_box(min_x: float, min_z: float, max_x: float, max_z: float) -> bool:
+	## Coarse AABB query: returns true if any part of the horizontal bounding box
+	## intersects an active subterranean battle arena or its perimeter spectator ledges.
+	if not config.arena_enabled:
+		return false
+
+	var mid_x = (min_x + max_x) * 0.5
+	var mid_z = (min_z + max_z) * 0.5
+	var unwarped_mid = sample_unwarped_rift(mid_x, mid_z)
+	var half_diag = Vector2(max_x - min_x, max_z - min_z).length() * 0.5
+	var max_reach = half_diag + get_wall_warp_margin()
+	var margin = maxf(0.12, max_reach * config.chasm_rift_frequency * 2.5)
+
+	# 1. Fast O(1) early exit: if unwarped rift at box center cannot reach arena threshold
+	# even with maximum domain warp reach and radial distance, exit early.
+	if unwarped_mid < (config.arena_rift_threshold - margin):
+		return false
+
+	# 2. Check box center point
+	if is_arena(mid_x, mid_z):
+		return true
+
+	# 3. Check 4 corners
+	if is_arena(min_x, min_z) or is_arena(max_x, min_z) or is_arena(min_x, max_z) or is_arena(max_x, max_z):
+		return true
+
+	# 4. Check edge midpoints (total 9 sample points)
+	if is_arena(mid_x, min_z) or is_arena(mid_x, max_z) or is_arena(min_x, mid_z) or is_arena(max_x, mid_z):
+		return true
+
+	# 5. Check warped center proximity to arena transition threshold
+	var warped_pos = get_warped_coordinates(mid_x, mid_z)
+	var raw_rift = sample_rift_mask(warped_pos.x, warped_pos.y)
+	return raw_rift >= (config.arena_rift_threshold - 0.02)
+
+func can_arena_intersect_chunk(coord: ChunkCoord, bounds: WorldBounds) -> bool:
+	## High-level chunk query testing whether the specified chunk intersects an arena.
+	if bounds == null or not config.arena_enabled:
+		return false
+	var c_size = bounds.chunk_size
+	var min_x = float(coord.x * c_size) * bounds.voxel_size
+	var min_z = float(coord.z * c_size) * bounds.voxel_size
+	var max_x = float((coord.x + 1) * c_size) * bounds.voxel_size
+	var max_z = float((coord.z + 1) * c_size) * bounds.voxel_size
+	return can_arena_intersect_box(min_x, min_z, max_x, max_z)
+
 func sample_column(wx: float, wz: float, out: ChasmColumnResult = null, surface_h: float = -1.0) -> ChasmColumnResult:
 	## Evaluates the dual-2D heightmap chasm column at world coordinates (wx, wz).
 	## Populates 'out' to avoid per-column heap allocations in hot chunk-carving loops.

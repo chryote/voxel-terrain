@@ -169,3 +169,23 @@ Comparative benchmark run via `bench_surface_vs_arena.gd`:
   - Average chunk time across mixed 10x10 area dropped from **944.35 ms** to **511.66 ms**.
 - **Meshing Efficiency**:
   - Core arena meshing operates at **5.0 ms** via `ChasmShellMesher`, avoiding the 3D cubic triple loop.
+
+---
+
+## 6. Phase 2: Complete 3D Loop Prohibition Across Full Arena Complexes
+
+### Problem Addressed
+While single core anchor chunks bypassed 3D voxelization, adjacent arena chunks (spectator tiers, perimeter walls, entry halls) failed the single-point midpoint test `is_arena(mid_wx, mid_wz)` and dropped into the 185,000-voxel 3D loop (~280 ms meshing).
+
+### Architectural Solution Implemented
+1. **Separation of Concerns in `UndergroundChasmSampler`**:
+   - Implemented `can_arena_intersect_box(min_x, min_z, max_x, max_z)` and `can_arena_intersect_chunk(coord, bounds)`.
+   - Uses conservative unwarped rift margin culling + 3x3 box lattice evaluation to detect all arena features across the chunk.
+2. **Mathematical Suppression Awareness in `SubterraneanTunnelSampler`**:
+   - `can_tunnel_intersect_cell()` gates arena influence check: if a cell is inside the core arena where `get_arena_suppression <= 0.0`, it returns `false` in O(1) time.
+   - For cells outside the arena, runs standard fast-path with zero extra noise evaluation.
+3. **Chunk-Level 2.5D Bypass in `LayeredTerrainGenerator`**:
+   - Replaced the single-point check with `can_arena_intersect_box()`, ensuring 100% of chunks with arena geometry bypass 3D voxelization to `ChasmChunkData`.
+   - Propagated `has_arena = true` flag onto `ChasmChunkData`.
+4. **Enforcement via New Unit Tests (`TestArenaNo3DLoop`)**:
+   - Created `tests/unit/test_arena_no_3d_loop.gd` containing 4 dedicated tests that strictly forbid any arena or spectator ledge chunk from using `VoxelChunkData`.

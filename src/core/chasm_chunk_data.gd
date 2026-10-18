@@ -29,6 +29,10 @@ var materials: PackedByteArray
 
 var has_cave_mouth: bool = false
 var has_chasm: bool = false
+var has_arena: bool = false
+
+func has_arena_columns() -> bool:
+	return has_arena
 
 func _init(p_chunk_size: int = 32, p_max_height: int = 160, p_surface_data: SurfaceChunkData = null) -> void:
 	chunk_size = p_chunk_size

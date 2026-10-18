@@ -158,7 +158,24 @@ func _get_focus_position() -> Vector3:
 	return Vector3.ZERO
 
 func _get_focus_forward() -> Vector3:
+	if is_inside_tree() and get_viewport() != null:
+		var cam = get_viewport().get_camera_3d()
+		if is_instance_valid(cam):
+			return -cam.global_transform.basis.z.normalized()
 	if is_instance_valid(focus_target):
+		var rig = focus_target.camera_rig if ("camera_rig" in focus_target) else focus_target.get_node_or_null("camera_rig")
+		if is_instance_valid(rig):
+			var cam = rig.camera if ("camera" in rig) else rig.get_node_or_null("camera")
+			if is_instance_valid(cam):
+				if cam.is_inside_tree():
+					return -cam.global_transform.basis.z.normalized()
+				return -cam.transform.basis.z.normalized()
+			if rig.has_method("get_camera_yaw"):
+				var yaw = rig.get_camera_yaw()
+				return -Vector3(sin(yaw), 0.0, cos(yaw)).normalized()
+			if rig.is_inside_tree():
+				return -rig.global_transform.basis.z.normalized()
+			return -rig.transform.basis.z.normalized()
 		if focus_target.is_inside_tree():
 			return -focus_target.global_transform.basis.z.normalized()
 		return -focus_target.transform.basis.z.normalized()

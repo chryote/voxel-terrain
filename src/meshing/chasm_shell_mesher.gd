@@ -326,19 +326,19 @@ func _mesh_subterranean_chasm(chasm_data: ChasmChunkData, registry: MaterialRegi
 			if left_void and right_void:
 				var left_fl = fl_heights[left_col]
 				var right_fl = fl_heights[right_col]
-				if left_fl > right_fl and lx > 0:
+				if left_fl > right_fl:
 					# Left floor higher than right floor: wall faces +X into right column
 					_emit_quad_x_pos(c_verts, c_norms, c_cols, c_inds, float(lx), float(right_fl + 1), float(left_fl + 1), float(lz), 1.0, registry.get_side_color(mats[left_col]))
-				elif right_fl > left_fl and lx < n:
+				elif right_fl > left_fl:
 					# Right floor higher than left floor: wall faces -X into left column
 					_emit_quad_x_neg(c_verts, c_norms, c_cols, c_inds, float(lx), float(left_fl + 1), float(right_fl + 1), float(lz), 1.0, registry.get_side_color(mats[right_col]))
 
 				var left_cl = cl_heights[left_col]
 				var right_cl = cl_heights[right_col]
-				if left_cl < right_cl and lx > 0:
+				if left_cl < right_cl:
 					# Left ceiling lower: wall faces +X into right column
 					_emit_quad_x_pos(c_verts, c_norms, c_cols, c_inds, float(lx), float(left_cl), float(right_cl), float(lz), 1.0, registry.get_side_color(mats[left_col]))
-				elif right_cl < left_cl and lx < n:
+				elif right_cl < left_cl:
 					# Right ceiling lower: wall faces -X into left column
 					_emit_quad_x_neg(c_verts, c_norms, c_cols, c_inds, float(lx), float(right_cl), float(left_cl), float(lz), 1.0, registry.get_side_color(mats[right_col]))
 
@@ -423,16 +423,16 @@ func _mesh_subterranean_chasm(chasm_data: ChasmChunkData, registry: MaterialRegi
 			if back_void and front_void:
 				var back_fl = fl_heights[back_col]
 				var front_fl = fl_heights[front_col]
-				if back_fl > front_fl and lz > 0:
+				if back_fl > front_fl:
 					_emit_quad_z_pos(c_verts, c_norms, c_cols, c_inds, float(lz), float(front_fl + 1), float(back_fl + 1), float(lx), 1.0, registry.get_side_color(mats[back_col]))
-				elif front_fl > back_fl and lz < n:
+				elif front_fl > back_fl:
 					_emit_quad_z_neg(c_verts, c_norms, c_cols, c_inds, float(lz), float(back_fl + 1), float(front_fl + 1), float(lx), 1.0, registry.get_side_color(mats[front_col]))
 
 				var back_cl = cl_heights[back_col]
 				var front_cl = cl_heights[front_col]
-				if back_cl < front_cl and lz > 0:
+				if back_cl < front_cl:
 					_emit_quad_z_pos(c_verts, c_norms, c_cols, c_inds, float(lz), float(back_cl), float(front_cl), float(lx), 1.0, registry.get_side_color(mats[back_col]))
-				elif front_cl < back_cl and lz < n:
+				elif front_cl < back_cl:
 					_emit_quad_z_neg(c_verts, c_norms, c_cols, c_inds, float(lz), float(front_cl), float(back_cl), float(lx), 1.0, registry.get_side_color(mats[front_col]))
 
 			lx += 1

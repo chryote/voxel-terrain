@@ -135,47 +135,120 @@ func can_tunnel_intersect_cell(min_p: Vector3, max_p: Vector3) -> bool:
 	if max_p.y <= min_p.y or max_p.x <= min_p.x or max_p.z <= min_p.z:
 		return false
 
-	var eff_thresh = config.tunnel_radius_base * 0.05 * 0.85
-
 	var span_x = max_p.x - min_p.x
 	var span_y = max_p.y - min_p.y
 	var span_z = max_p.z - min_p.z
 
-	# Fast-path for small coarse cells (e.g. 4x4x4 block inside _carve_subterranean_caves)
-	if span_x <= 4.1 and span_y <= 4.1 and span_z <= 4.1:
-		var max_safe_d = eff_thresh + 0.12
+	# Fast-path check: does this cell volume touch any arena suppression zone?
+	var has_arena_influence = false
+	if chasm_sampler != null and config.arena_enabled:
+		var mid_x_c = (min_p.x + max_p.x) * 0.5
+		var mid_z_c = (min_p.z + max_p.z) * 0.5
+		var unwarped = chasm_sampler.sample_unwarped_rift(mid_x_c, mid_z_c)
+		var half_diag = Vector2(span_x, span_z).length() * 0.5
+		var margin = (half_diag + chasm_sampler.get_wall_warp_margin()) * config.chasm_rift_frequency * 2.5 + 0.05
+		if unwarped >= (config.arena_rift_threshold - 0.04 - margin):
+			has_arena_influence = true
+			# If the entire cell is in the core arena (suppression <= 0.0), tunnels cannot exist
+			if get_arena_suppression(mid_x_c, mid_z_c) <= 0.0:
+				if get_arena_suppression(min_p.x, min_p.z) <= 0.0 and \
+				   get_arena_suppression(max_p.x, min_p.z) <= 0.0 and \
+				   get_arena_suppression(min_p.x, max_p.z) <= 0.0 and \
+				   get_arena_suppression(max_p.x, max_p.z) <= 0.0:
+					return false
 
-		# 1. Fast center check: if center is inside the tunnel, return true immediately
+	var eff_thresh = config.tunnel_radius_base * 0.05 * 0.85
+
+	# Path A: Standard fast-path when outside arena influence (>99% of cells in the world)
+	if not has_arena_influence:
+		if span_x <= 4.1 and span_y <= 4.1 and span_z <= 4.1:
+			var max_safe_d = eff_thresh + 0.12
+			var mid_x = (min_p.x + max_p.x) * 0.5
+			var mid_y = (min_p.y + max_p.y) * 0.5
+			var mid_z = (min_p.z + max_p.z) * 0.5
+			var sq_y_m = mid_y * config.tunnel_vertical_squish
+			var na_m = tunnel_noise_a.get_noise_3d(mid_x, sq_y_m, mid_z)
+			var nb_m = tunnel_noise_b.get_noise_3d(mid_x, sq_y_m, mid_z)
+			var mid_d = sqrt(na_m * na_m + nb_m * nb_m)
+			if mid_d <= eff_thresh:
+				return true
+
+			var min_d = mid_d
+			for cx in [min_p.x, max_p.x]:
+				for cy in [min_p.y, max_p.y]:
+					for cz in [min_p.z, max_p.z]:
+						var sq_y = cy * config.tunnel_vertical_squish
+						var na = tunnel_noise_a.get_noise_3d(cx, sq_y, cz)
+						var nb = tunnel_noise_b.get_noise_3d(cx, sq_y, cz)
+						var d = sqrt(na * na + nb * nb)
+						if d <= eff_thresh:
+							return true
+						min_d = minf(min_d, d)
+
+			return min_d <= max_safe_d
+
+		var step_x = minf(8.0, span_x)
+		var step_y = minf(8.0, span_y)
+		var step_z = minf(8.0, span_z)
+		var max_safe_d = eff_thresh + 0.25
+
+		var y = min_p.y
+		while y <= max_p.y:
+			var sq_y = y * config.tunnel_vertical_squish
+			var z = min_p.z
+			while z <= max_p.z:
+				var x = min_p.x
+				while x <= max_p.x:
+					var na = tunnel_noise_a.get_noise_3d(x, sq_y, z)
+					var nb = tunnel_noise_b.get_noise_3d(x, sq_y, z)
+					var d = sqrt(na * na + nb * nb)
+					if d <= max_safe_d:
+						return true
+					x += step_x
+				z += step_z
+			y += step_y
+
+		return false
+
+	# Path B: Arena influence active — scale thresholds by 2D suppression factor
+	if span_x <= 4.1 and span_y <= 4.1 and span_z <= 4.1:
 		var mid_x = (min_p.x + max_p.x) * 0.5
 		var mid_y = (min_p.y + max_p.y) * 0.5
 		var mid_z = (min_p.z + max_p.z) * 0.5
-		var sq_y_m = mid_y * config.tunnel_vertical_squish
-		var na_m = tunnel_noise_a.get_noise_3d(mid_x, sq_y_m, mid_z)
-		var nb_m = tunnel_noise_b.get_noise_3d(mid_x, sq_y_m, mid_z)
-		var mid_d = sqrt(na_m * na_m + nb_m * nb_m)
-		if mid_d <= eff_thresh:
-			return true
+		var mid_supp = get_arena_suppression(mid_x, mid_z)
 
-		var min_d = mid_d
+		if mid_supp > 0.0:
+			var sq_y_m = mid_y * config.tunnel_vertical_squish
+			var na_m = tunnel_noise_a.get_noise_3d(mid_x, sq_y_m, mid_z)
+			var nb_m = tunnel_noise_b.get_noise_3d(mid_x, sq_y_m, mid_z)
+			var mid_d = sqrt(na_m * na_m + nb_m * nb_m)
+			if mid_d <= (eff_thresh * mid_supp):
+				return true
+
+		var max_supp = mid_supp
+		var min_d_scaled = 999.0
 		for cx in [min_p.x, max_p.x]:
 			for cy in [min_p.y, max_p.y]:
 				for cz in [min_p.z, max_p.z]:
+					var supp = get_arena_suppression(cx, cz)
+					max_supp = maxf(max_supp, supp)
+					if supp <= 0.0:
+						continue
 					var sq_y = cy * config.tunnel_vertical_squish
 					var na = tunnel_noise_a.get_noise_3d(cx, sq_y, cz)
 					var nb = tunnel_noise_b.get_noise_3d(cx, sq_y, cz)
 					var d = sqrt(na * na + nb * nb)
-					if d <= eff_thresh:
+					if d <= (eff_thresh * supp):
 						return true
-					min_d = minf(min_d, d)
+					min_d_scaled = minf(min_d_scaled, d / maxf(0.01, supp))
 
-		return min_d <= max_safe_d
+		if max_supp <= 0.0:
+			return false
+		return min_d_scaled <= (eff_thresh + 0.12)
 
-	# General bounding box path for multi-block volumes or full chunk AABBs:
-	# Steps in increments of <= 8.0m with calibrated 0.25 margin to eliminate false negatives.
 	var step_x = minf(8.0, span_x)
 	var step_y = minf(8.0, span_y)
 	var step_z = minf(8.0, span_z)
-	var max_safe_d = eff_thresh + 0.25
 
 	var y = min_p.y
 	while y <= max_p.y:
@@ -184,11 +257,15 @@ func can_tunnel_intersect_cell(min_p: Vector3, max_p: Vector3) -> bool:
 		while z <= max_p.z:
 			var x = min_p.x
 			while x <= max_p.x:
-				var na = tunnel_noise_a.get_noise_3d(x, sq_y, z)
-				var nb = tunnel_noise_b.get_noise_3d(x, sq_y, z)
-				var d = sqrt(na * na + nb * nb)
-				if d <= max_safe_d:
-					return true
+				var supp = get_arena_suppression(x, z)
+				if supp > 0.0:
+					var pt_eff_thresh = config.tunnel_radius_base * supp * 0.05 * 0.85
+					var pt_max_safe_d = pt_eff_thresh + (0.25 * supp)
+					var na = tunnel_noise_a.get_noise_3d(x, sq_y, z)
+					var nb = tunnel_noise_b.get_noise_3d(x, sq_y, z)
+					var d = sqrt(na * na + nb * nb)
+					if d <= pt_max_safe_d:
+						return true
 				x += step_x
 			z += step_z
 		y += step_y

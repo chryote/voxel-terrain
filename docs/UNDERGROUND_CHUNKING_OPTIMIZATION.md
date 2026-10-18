@@ -52,7 +52,7 @@ Worker threads must bake two separate complex `ConcavePolygonShape3D` instances 
 
 ### Priority 1: Instant Wins (Low Effort, High Impact)
 
-#### Task 1.1: Fast Early-Exit Corridor Masking (Skip Unwarped Void Columns)
+#### Task 1.1: Fast Early-Exit Corridor Masking (Skip Unwarped Void Columns) [COMPLETED]
 - **File:** `res://src/generation/caves/underground_chasm_sampler.gd`
 - **Problem:** `get_warped_coordinates()` calculates two 2-octave FBM noise samples *before* checking if the column is anywhere near a chasm or arena.
 - **Solution:** Sample `rift_noise.get_noise_2d(wx, wz)` first without domain warping.
@@ -60,7 +60,7 @@ Worker threads must bake two separate complex `ConcavePolygonShape3D` instances 
   - If `raw_unwarped_rift < (chasm_rift_threshold - margin)`, return early immediately (`is_chasm = false`).
 - **Impact:** Skips domain warping, continent mask, floor, ceiling, and pillar noise for ~70–80% of columns in non-chasm regions of boundary chunks.
 
-#### Task 1.2: Cache or Coarse-Sample the Continent Land Mask
+#### Task 1.2: Cache or Coarse-Sample the Continent Land Mask [COMPLETED]
 - **File:** `res://src/generation/caves/underground_chasm_sampler.gd`
 - **Problem:** `continent_mask.get_land_raw()` runs 7 multi-octave noises on every column just to check if the cave is near ocean water.
 - **Solution:**
@@ -80,7 +80,7 @@ Worker threads must bake two separate complex `ConcavePolygonShape3D` instances 
 
 ### Priority 2: Algorithmic & Meshing Improvements (Medium Effort, High Impact)
 
-#### Task 2.1: Tighten Vertical Carving Extents for 3D Fallback
+#### Task 2.1: Tighten Vertical Carving Extents for 3D Fallback [COMPLETED]
 - **File:** `res://src/generation/layered_terrain_generator.gd`
 - **Problem:** When 3D carving does run, it iterates up to `max_h = 160` (or `bounds.chunk_size * 4`), iterating tens of thousands of air voxels above the surface or subterranean ceiling.
 - **Solution:**

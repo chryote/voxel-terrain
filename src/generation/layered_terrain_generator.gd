@@ -114,7 +114,7 @@ func generate_subterranean(surface_data: SurfaceChunkData, coord: ChunkCoord, bo
 			return generate_chasm_data(surface_data, coord, bounds, max_h)
 
 	var v_data = _populate_voxel_columns(surface_data, bounds, max_h)
-	_carve_subterranean_caves(v_data, surface_data, coord, bounds, max_h)
+	_carve_subterranean_caves(v_data, surface_data, coord, bounds, v_data.max_height)
 	return v_data
 
 func generate_chasm_data(
@@ -188,9 +188,25 @@ func generate(coord: ChunkCoord, bounds: WorldBounds) -> RefCounted:
 	var surface_data = generate_surface(coord, bounds)
 	return generate_subterranean(surface_data, coord, bounds)
 
+func _calculate_surface_max_elevation(surface_data: SurfaceChunkData) -> int:
+	var max_elev = 0
+	for h in surface_data.heights:
+		if h > max_elev:
+			max_elev = h
+	for w in surface_data.water_heights:
+		if w > max_elev:
+			max_elev = w
+	return max_elev
+
 func _populate_voxel_columns(surface_data: SurfaceChunkData, bounds: WorldBounds, max_h: int) -> VoxelChunkData:
 	var c_size = bounds.chunk_size
-	var v_data = VoxelChunkData.new(c_size, max_h)
+	var max_elev = _calculate_surface_max_elevation(surface_data)
+
+	# Tighten vertical allocation to strata below open sky, aligned to 16m sections
+	var required_h = ceili(float(max_elev + 2) / float(VoxelChunkData.SECTION_HEIGHT)) * VoxelChunkData.SECTION_HEIGHT
+	var eff_max_h = clampi(required_h, VoxelChunkData.SECTION_HEIGHT, max_h)
+
+	var v_data = VoxelChunkData.new(c_size, eff_max_h)
 
 	for lz in range(-1, c_size + 1):
 		for lx in range(-1, c_size + 1):
@@ -200,8 +216,8 @@ func _populate_voxel_columns(surface_data: SurfaceChunkData, bounds: WorldBounds
 			var top_mat = surface_data.get_top_material(lx, lz)
 			var side_mat = surface_data.get_side_material(lx, lz)
 
-			var clamped_h = mini(h, max_h)
-			var clamped_w = mini(water_h, max_h)
+			var clamped_h = mini(h, eff_max_h)
+			var clamped_w = mini(water_h, eff_max_h)
 
 			# Bedrock (Y=0..2)
 			for ly in range(0, mini(3, clamped_h)):
@@ -243,10 +259,13 @@ func _carve_subterranean_caves(
 
 	# Find highest surface elevation in chunk to clamp vertical carving ceiling
 	var max_chunk_h = 0
-	for lz in range(c_size):
-		for lx in range(c_size):
-			max_chunk_h = maxi(max_chunk_h, surface_data.get_height(lx, lz))
-	var carve_ceiling = mini(max_h, max_chunk_h + 2)
+	for h in surface_data.heights:
+		if h > max_chunk_h:
+			max_chunk_h = h
+
+	var chasm_ceiling = maxi(cave_config.chasm_max_y + 4, cave_config.arena_ceiling_y if cave_config.arena_enabled else 0)
+	var carve_ceiling = mini(v_data.max_height, max_chunk_h + 2 if surface_data.has_cave_mouth else mini(max_chunk_h + 2, chasm_ceiling))
+	var carve_floor = maxi(3, cave_config.chasm_min_y - 2)
 
 	# Reusable column result allocated once per chunk generation (thread-safe local variable)
 	var chasm_col = ChasmColumnResult.new()
@@ -272,7 +291,7 @@ func _carve_subterranean_caves(
 					cell_min_h = minf(cell_min_h, col_h)
 					cell_max_h = maxf(cell_max_h, col_h)
 
-			for by in range(3, carve_ceiling, block_size):
+			for by in range(carve_floor, carve_ceiling, block_size):
 				var min_wy = float(by) * bounds.voxel_size
 				var max_wy = float(mini(by + block_size, carve_ceiling)) * bounds.voxel_size
 
@@ -326,7 +345,7 @@ func _carve_subterranean_caves(
 							chasm_col.reset()
 
 						for ly in range(by, mini(by + block_size, carve_ceiling)):
-							if ly <= 2:
+							if ly < carve_floor:
 								continue
 
 							var wy = float(ly) * bounds.voxel_size

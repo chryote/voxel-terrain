@@ -30,6 +30,7 @@ extends Resource
 @export_range(0.5, 2.0) var tunnel_vertical_squish: float = 1.15 ## Vertical squish factor (>1 compresses vertically for flatter floors)
 @export_range(1.5, 4.0) var min_clearance: float = 2.2 ## Guaranteed minimum vertical clearance for player movement
 @export var use_trilinear_tunnel_grid: bool = false ## Evaluate 3D worm tunnels via direct continuous 3D noise (false) or trilinear interpolation (true)
+@export var use_directed_worm_corridors: bool = true ## When true, 3D worm tunnels follow deterministic seeded spline trajectories from allowed cave mouths to chasm chambers, with O(1) chunk containment. When false, falls back to legacy unbounded continuous 3D simplex noise.
 
 @export_group("Continuity & Dead Ends")
 @export_range(0.001, 0.03) var continuity_frequency: float = 0.006 ## Frequency of modulation noise controlling tunnel continuity

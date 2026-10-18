@@ -88,6 +88,8 @@ func _ready() -> void:
 			generator.cave_carver.set_continent_mask(generator.continent_gen.mask, bounds)
 	if generator is LayeredTerrainGenerator:
 		generator.init_cave_mouths(bounds)
+		if generator.cave_carver != null and generator.cave_carver.worm_registry != null:
+			subterranean_coordinator.worm_registry = generator.cave_carver.worm_registry
 	if mesher == null:
 		var voxel_mesher = VoxelMesher.new()
 		voxel_mesher.sea_level = world_config.sea_level

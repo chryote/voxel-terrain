@@ -203,6 +203,7 @@ func test_subterranean_chunk_boundary_seam_integrity() -> void:
 	var world_config = WorldConfig.new()
 	var gen_config = ContinentGeneratorConfig.new()
 	var cave_config = CaveGeneratorConfig.new()
+	cave_config.use_directed_worm_corridors = false
 	var bounds = world_config.create_world_bounds()
 	var generator = VolumetricTerrainGenerator.new(world_config.world_seed, gen_config, cave_config)
 	if "cave_carver" in generator and generator.cave_carver != null:

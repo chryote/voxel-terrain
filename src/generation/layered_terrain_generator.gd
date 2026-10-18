@@ -107,7 +107,7 @@ func generate_subterranean(surface_data: SurfaceChunkData, coord: ChunkCoord, bo
 		var cell_min_p = Vector3(min_wx, 3.0 * bounds.voxel_size, min_wz)
 		var cell_max_p = Vector3(max_wx, carve_ceiling, max_wz)
 
-		var can_tunnel = cave_config.enabled and cave_carver.tunnel_sampler.can_tunnel_intersect_cell(cell_min_p, cell_max_p)
+		var can_tunnel = cave_config.enabled and cave_carver.tunnel_sampler.can_tunnel_intersect_chunk(coord, cell_min_p, cell_max_p)
 		var can_mouth = cave_config.enabled and cave_carver.mouth_sampler.can_mouth_intersect_cell(cell_min_p, cell_max_p, float(max_surf_h), config.sea_level)
 
 		# Task 1.3: Suppress 3D worm tunnels in combat arenas (keep fast 2.5D heightfield path)
@@ -118,7 +118,7 @@ func generate_subterranean(surface_data: SurfaceChunkData, coord: ChunkCoord, bo
 		if not can_tunnel and not can_mouth:
 			return generate_chasm_data(surface_data, coord, bounds, max_h)
 
-	var v_data = _populate_voxel_columns(surface_data, bounds, max_h)
+	var v_data = _populate_voxel_columns(surface_data, bounds, max_h, coord)
 	_carve_subterranean_caves(v_data, surface_data, coord, bounds, v_data.max_height)
 	return v_data
 
@@ -205,13 +205,32 @@ func _calculate_surface_max_elevation(surface_data: SurfaceChunkData) -> int:
 			max_elev = w
 	return max_elev
 
-func _populate_voxel_columns(surface_data: SurfaceChunkData, bounds: WorldBounds, max_h: int) -> VoxelChunkData:
+func _populate_voxel_columns(surface_data: SurfaceChunkData, bounds: WorldBounds, max_h: int, coord: ChunkCoord = null) -> VoxelChunkData:
 	var c_size = bounds.chunk_size
 	var max_elev = _calculate_surface_max_elevation(surface_data)
 
 	# Tighten vertical allocation to strata below open sky, aligned to 16m sections
 	var required_h = ceili(float(max_elev + 2) / float(VoxelChunkData.SECTION_HEIGHT)) * VoxelChunkData.SECTION_HEIGHT
 	var eff_max_h = clampi(required_h, VoxelChunkData.SECTION_HEIGHT, max_h)
+
+	# If this chunk does NOT contain a surface cave mouth, any 3D voxel carving is strictly subterranean.
+	# We can tighten eff_max_h to the highest active vertical section needed by subterranean features!
+	if not surface_data.has_cave_mouth and coord != null and cave_carver != null and cave_carver.worm_registry != null and cave_carver.worm_registry.has_chunk(coord):
+		var mask = cave_carver.worm_registry.get_active_section_mask(coord)
+		if mask > 0:
+			var highest_section = 0
+			var temp_mask = mask
+			var bit = 0
+			while temp_mask > 0:
+				if (temp_mask & 1) != 0:
+					highest_section = bit
+				temp_mask = temp_mask >> 1
+				bit += 1
+			var tunnel_top = (highest_section + 1) * int(cave_carver.worm_registry.section_height)
+			var chasm_ceiling = maxi(cave_config.chasm_max_y + 4, cave_config.arena_ceiling_y if cave_config.arena_enabled else 0)
+			var subterranean_top = maxi(tunnel_top, chasm_ceiling)
+			var needed_h = ceili(float(subterranean_top + 2) / float(VoxelChunkData.SECTION_HEIGHT)) * VoxelChunkData.SECTION_HEIGHT
+			eff_max_h = mini(eff_max_h, clampi(needed_h, VoxelChunkData.SECTION_HEIGHT, max_h))
 
 	var v_data = VoxelChunkData.new(c_size, eff_max_h)
 
@@ -315,7 +334,7 @@ func _carve_subterranean_caves(
 
 				# Check whether deep chasm voids or tunnels/mouths can intersect this active cell
 				var cell_can_chasm = cave_carver.chasm_sampler.can_chasm_intersect_cell(cell_min_p, cell_max_p)
-				var cell_can_tunnel = cave_carver.tunnel_sampler.can_tunnel_intersect_cell(cell_min_p, cell_max_p)
+				var cell_can_tunnel = cave_carver.tunnel_sampler.can_tunnel_intersect_chunk(coord, cell_min_p, cell_max_p)
 				var cell_can_mouth = cave_carver.mouth_sampler.can_mouth_intersect_cell(cell_min_p, cell_max_p, cell_max_h, sea_level)
 				var cell_can_tunnel_or_mouth = cell_can_tunnel or cell_can_mouth
 

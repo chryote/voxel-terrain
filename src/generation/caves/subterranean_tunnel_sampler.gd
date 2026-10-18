@@ -6,8 +6,12 @@ extends RefCounted
 ## Uses dual 3D simplex noise fields to carve continuous winding corridors,
 ## with a 3D continuity noise that pinches off branches into natural dead ends.
 
+const WormChunkRegistryClass = preload("res://src/generation/caves/worm_chunk_registry.gd")
+const WormCorridorSegmentClass = preload("res://src/generation/caves/worm_corridor_segment.gd")
+
 var config: CaveGeneratorConfig
 var chasm_sampler: UndergroundChasmSampler = null
+var worm_registry: WormChunkRegistry = null
 
 var tunnel_noise_a: FastNoiseLite
 var tunnel_noise_b: FastNoiseLite
@@ -45,6 +49,9 @@ func _init(seed_val: int = 1337, p_config: CaveGeneratorConfig = null, p_chasm_s
 func set_chasm_sampler(p_chasm_sampler: UndergroundChasmSampler) -> void:
 	chasm_sampler = p_chasm_sampler
 
+func set_worm_registry(p_registry: WormChunkRegistry) -> void:
+	worm_registry = p_registry
+
 func get_arena_suppression(wx: float, wz: float) -> float:
 	## Smooth Hermite suppression factor [0.0..1.0] for worm tunnels approaching core combat arenas.
 	## Returns 0.0 inside core arenas, 1.0 outside arena zone, and a continuous Hermite curve in-between.
@@ -68,6 +75,57 @@ func get_arena_suppression(wx: float, wz: float) -> float:
 	return 1.0 - (blend * blend * (3.0 - 2.0 * blend))
 
 func sample_tunnel(wx: float, wy: float, wz: float) -> Dictionary:
+	var arena_supp = get_arena_suppression(wx, wz)
+
+	if (config == null or config.use_directed_worm_corridors) and worm_registry != null and worm_registry.get_registered_chunk_count() > 0:
+		var c = worm_registry.world_to_chunk(Vector3(wx, wy, wz))
+		var segs = worm_registry.get_segments_for_chunk(c)
+		if segs.is_empty():
+			return {
+				"is_tunnel": false,
+				"density": 0.0,
+				"effective_radius": 0.0,
+				"is_dead_end": false,
+				"centerline_dist": INF
+			}
+
+		var p = Vector3(wx, wy, wz)
+		var min_dist = INF
+		var eff_radius = config.tunnel_radius_base
+		for seg in segs:
+			var d = seg.distance_to_point(p)
+			if d < min_dist:
+				min_dist = d
+				eff_radius = seg.get_interpolated_radius(p)
+
+		if arena_supp < 1.0:
+			eff_radius *= arena_supp
+
+		if eff_radius <= 0.0:
+			return {
+				"is_tunnel": false,
+				"density": 0.0,
+				"effective_radius": 0.0,
+				"is_dead_end": true,
+				"centerline_dist": min_dist
+			}
+
+		var perturb = perturb_noise.get_noise_3d(wx, wy, wz) * config.tunnel_radius_variation
+		var final_radius = eff_radius + perturb
+		var is_inside = min_dist < final_radius
+		var carve_density = 0.0
+		if is_inside:
+			var factor = 1.0 - (min_dist / final_radius)
+			carve_density = factor * factor * (3.0 - 2.0 * factor)
+
+		return {
+			"is_tunnel": is_inside,
+			"density": carve_density,
+			"effective_radius": eff_radius,
+			"is_dead_end": false,
+			"centerline_dist": min_dist
+		}
+
 	# Vertical squish allows wider, flatter floors for comfortable player walking
 	var squished_y = wy * config.tunnel_vertical_squish
 
@@ -90,7 +148,7 @@ func sample_tunnel(wx: float, wy: float, wz: float) -> Dictionary:
 		is_pinched = true
 
 	# Smooth arena suppression: tapers worm tunnels before reaching arena boundary
-	var arena_supp = get_arena_suppression(wx, wz)
+	arena_supp = get_arena_suppression(wx, wz)
 	if arena_supp < 1.0:
 		eff_radius *= arena_supp
 		is_pinched = true
@@ -129,10 +187,43 @@ func sample_tunnel(wx: float, wy: float, wz: float) -> Dictionary:
 		"centerline_dist": centerline_dist
 	}
 
+func can_tunnel_intersect_chunk(coord: ChunkCoord, min_p: Vector3 = Vector3.ZERO, max_p: Vector3 = Vector3.ZERO) -> bool:
+	## O(1) query checking if a chunk column or specific vertical range intersects any registered worm tunnel.
+	if (config == null or config.use_directed_worm_corridors) and worm_registry != null and worm_registry.get_registered_chunk_count() > 0:
+		if coord == null or not worm_registry.has_chunk(coord):
+			return false
+		if min_p != Vector3.ZERO or max_p != Vector3.ZERO:
+			var s_min = maxi(0, floori(min_p.y / worm_registry.section_height))
+			var s_max = maxi(0, floori(max_p.y / worm_registry.section_height))
+			for s in range(s_min, s_max + 1):
+				if worm_registry.is_section_active(coord, s):
+					return true
+			return false
+		return true
+
+	# Fallback when no worm registry is populated
+	if min_p == Vector3.ZERO and max_p == Vector3.ZERO:
+		return true
+	return can_tunnel_intersect_cell(min_p, max_p)
+
 func can_tunnel_intersect_cell(min_p: Vector3, max_p: Vector3) -> bool:
 	## Coarse culling: evaluates center and corners using calibrated Lipschitz bounds.
 	## Returns false if it is mathematically impossible for a worm tunnel to carve inside this cell.
 	if max_p.y <= min_p.y or max_p.x <= min_p.x or max_p.z <= min_p.z:
+		return false
+
+	if (config == null or config.use_directed_worm_corridors) and worm_registry != null and worm_registry.get_registered_chunk_count() > 0:
+		var c_min = worm_registry.world_to_chunk(min_p)
+		var c_max = worm_registry.world_to_chunk(max_p)
+		var cell_box = AABB(min_p, max_p - min_p)
+		for cz in range(c_min.z, c_max.z + 1):
+			for cx in range(c_min.x, c_max.x + 1):
+				var coord = ChunkCoord.new(cx, cz)
+				if worm_registry.has_chunk(coord):
+					var segs = worm_registry.get_segments_for_chunk(coord)
+					for seg in segs:
+						if seg.intersects_aabb(cell_box):
+							return true
 		return false
 
 	var span_x = max_p.x - min_p.x
@@ -275,6 +366,35 @@ func can_tunnel_intersect_cell(min_p: Vector3, max_p: Vector3) -> bool:
 func get_tunnel_carve(wx: float, wy: float, wz: float) -> float:
 	var arena_supp = get_arena_suppression(wx, wz)
 	if arena_supp <= 0.0:
+		return 0.0
+
+	if (config == null or config.use_directed_worm_corridors) and worm_registry != null and worm_registry.get_registered_chunk_count() > 0:
+		var c = worm_registry.world_to_chunk(Vector3(wx, wy, wz))
+		var segs = worm_registry.get_segments_for_chunk(c)
+		if segs.is_empty():
+			return 0.0
+
+		var p = Vector3(wx, wy, wz)
+		var min_dist = INF
+		var eff_radius = config.tunnel_radius_base
+		for seg in segs:
+			var d = seg.distance_to_point(p)
+			if d < min_dist:
+				min_dist = d
+				eff_radius = seg.get_interpolated_radius(p)
+
+		if arena_supp < 1.0:
+			eff_radius *= arena_supp
+
+		if eff_radius <= 0.0:
+			return 0.0
+
+		var perturb = perturb_noise.get_noise_3d(wx, wy, wz) * config.tunnel_radius_variation
+		var final_radius = eff_radius + perturb
+
+		if min_dist < final_radius:
+			var factor = 1.0 - (min_dist / final_radius)
+			return factor * factor * (3.0 - 2.0 * factor)
 		return 0.0
 
 	var squished_y = wy * config.tunnel_vertical_squish

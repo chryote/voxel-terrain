@@ -289,7 +289,9 @@ func test_arena_boundary_seams() -> void:
 	## Verifies that worm tunnels do not carve unmeshed holes into solid rock at the shared border.
 	var world_config = WorldConfig.new()
 	var bounds = world_config.create_world_bounds()
-	var gen = LayeredTerrainGenerator.new(1337)
+	var cave_config = CaveGeneratorConfig.new()
+	cave_config.use_directed_worm_corridors = false
+	var gen = LayeredTerrainGenerator.new(1337, null, cave_config)
 	var selector = preload("res://tests/benchmark/chunk_bench/benchmark_chunk_selector.gd").new()
 	var arena_coord = selector.find_arena_center(gen.cave_carver.chasm_sampler, bounds)
 

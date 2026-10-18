@@ -9,10 +9,16 @@ const STATUS_SOLID: int = -1
 const STATUS_MIXED: int = 0
 const STATUS_AIR: int = 1
 
+const CaveMouthDataClass = preload("res://src/map/cave_mouth_data.gd")
+const WormTrajectoryGeneratorClass = preload("res://src/generation/caves/worm_trajectory_generator.gd")
+const WormChunkRegistryClass = preload("res://src/generation/caves/worm_chunk_registry.gd")
+
 var config: CaveGeneratorConfig
 var mouth_sampler: CaveMouthSampler
 var tunnel_sampler: SubterraneanTunnelSampler
 var chasm_sampler: UndergroundChasmSampler
+var worm_generator: WormTrajectoryGenerator
+var worm_registry: WormChunkRegistry
 
 var crystal_noise: FastNoiseLite
 
@@ -22,6 +28,9 @@ func _init(seed_val: int = 1337, p_config: CaveGeneratorConfig = null) -> void:
 	mouth_sampler = CaveMouthSampler.new(seed_val, config)
 	chasm_sampler = UndergroundChasmSampler.new(seed_val, config)
 	tunnel_sampler = SubterraneanTunnelSampler.new(seed_val, config, chasm_sampler)
+	worm_generator = WormTrajectoryGeneratorClass.new(seed_val, config, chasm_sampler)
+	worm_registry = WormChunkRegistryClass.new(16, 1.0, 16.0)
+	tunnel_sampler.set_worm_registry(worm_registry)
 
 	# High-frequency vein noise for subterranean crystal deposits
 	crystal_noise = FastNoiseLite.new()
@@ -31,15 +40,40 @@ func _init(seed_val: int = 1337, p_config: CaveGeneratorConfig = null) -> void:
 
 func set_allowed_mouths(mouths: Array) -> void:
 	mouth_sampler.set_allowed_mouths(mouths)
+	_build_worm_trajectories_for_mouths(mouths)
+
+func _build_worm_trajectories_for_mouths(mouths: Array) -> void:
+	if worm_registry == null:
+		worm_registry = WormChunkRegistryClass.new(16, 1.0, 16.0)
+		tunnel_sampler.set_worm_registry(worm_registry)
+	worm_registry.clear()
+	if not config.use_directed_worm_corridors or worm_generator == null:
+		return
+
+	var mouth_id = 0
+	for m in mouths:
+		if m == null:
+			continue
+		if m.type == CaveMouthDataClass.Type.TUNNEL:
+			var traj = worm_generator.generate_trajectory_for_mouth(m, mouth_id)
+			if traj != null and traj.get_segment_count() > 0:
+				worm_registry.register_trajectory(traj)
+		mouth_id += 1
 
 func get_allowed_mouths() -> Array:
 	return mouth_sampler.allowed_mouths
 
 func clear_allowed_mouths() -> void:
 	mouth_sampler.clear_allowed_mouths()
+	if worm_registry != null:
+		worm_registry.clear()
 
 func set_continent_mask(p_mask, p_bounds: WorldBounds) -> void:
 	chasm_sampler.set_continent_mask(p_mask, p_bounds)
+	if p_bounds != null and worm_registry != null:
+		worm_registry.chunk_size = p_bounds.chunk_size
+		worm_registry.voxel_size = p_bounds.voxel_size
+		worm_registry.chunk_world_size = float(p_bounds.chunk_size) * p_bounds.voxel_size
 
 func sample_chasm_column(wx: float, wz: float, out: ChasmColumnResult = null, surface_h: float = -1.0) -> ChasmColumnResult:
 	## Delegates 2D column chasm evaluation to UndergroundChasmSampler.

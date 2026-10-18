@@ -216,7 +216,9 @@ func test_chunk_negative_17_negative_23_subterranean_generation() -> void:
 	## generates subterranean geometry rather than failing to load / leaving open void.
 	var world_config = WorldConfig.new()
 	var bounds = world_config.create_world_bounds()
-	var gen = VolumetricTerrainGenerator.new(world_config.world_seed)
+	var cave_config = CaveGeneratorConfig.new()
+	cave_config.use_directed_worm_corridors = false
+	var gen = VolumetricTerrainGenerator.new(world_config.world_seed, null, cave_config)
 	if gen.cave_carver != null and gen.continent_gen != null:
 		gen.cave_carver.set_continent_mask(gen.continent_gen.mask, bounds)
 

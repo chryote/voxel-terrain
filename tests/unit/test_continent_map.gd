@@ -262,3 +262,184 @@ func test_player_marker_overlay() -> void:
 	ui.queue_free()
 	overlay.queue_free()
 
+func test_underground_arena_palette_and_relief() -> void:
+	var palette = ContinentMapColorPaletteClass.new()
+
+	var arena_floor = palette.get_underground_color(true, false, false, false, false, false, 6)
+	var arena_ledge = palette.get_underground_color(true, true, false, false, false, false, 8)
+	var basalt = palette.get_underground_color(true, true, false, false, true, false, 8)
+	var pillar = palette.get_underground_color(false, false, true, true, false, false, 10)
+	var water = palette.get_underground_color(false, false, true, false, false, true, 4)
+	var chasm = palette.get_underground_color(false, false, true, false, false, false, 6)
+	var bedrock = palette.get_underground_color(false, false, false, false, false, false, 0)
+
+	assert_eq(arena_floor, palette.color_arena_floor, "Arena core floor must match arena color token")
+	assert_eq(arena_ledge, palette.color_arena_ledge, "Arena ledge must match ledge color token")
+	assert_eq(basalt, palette.color_basalt_column, "Basalt column must match basalt color token")
+	assert_eq(pillar, palette.color_pillar, "Support pillar must match pillar color token")
+	assert_eq(water, palette.color_subterranean_water, "Subterranean water must match water color token")
+	assert_eq(chasm, palette.color_chasm_floor, "Chasm floor must match chasm color token")
+	assert_eq(bedrock, palette.color_underground_rock, "Solid bedrock must match underground rock color token")
+
+	assert_true(arena_floor.a == 1.0 and bedrock.a == 1.0, "Subterranean colors must be opaque")
+
+	# Relief test on floor elevation
+	var low_relief = palette.apply_underground_relief(Color(0.4, 0.4, 0.4), 1.0, 4, true)
+	var high_relief = palette.apply_underground_relief(Color(0.4, 0.4, 0.4), 1.0, 24, true)
+	assert_true(high_relief.r > low_relief.r, "Elevated arena floor must feature hypsometric relief boost")
+
+func test_continent_map_baker_underground_generation_and_determinism() -> void:
+	var bounds = WorldBounds.new(Vector2i(32, 32), 32, 1.0)
+	var config = ContinentGeneratorConfig.new()
+	var gen1 = ContinentGenerator.new(4242, config)
+	var gen2 = ContinentGenerator.new(4242, config)
+
+	var baker = ContinentMapBakerClass.new()
+	var res = 64
+	var img1 = baker.bake_underground_map(gen1, bounds, res)
+	var img2 = baker.bake_underground_map(gen2, bounds, res)
+
+	assert_not_null(img1, "Underground baker must produce non-null Image")
+	assert_eq(img1.get_width(), res, "Image width must match requested resolution")
+	assert_eq(img1.get_height(), res, "Image height must match requested resolution")
+	assert_eq(img1.get_format(), Image.FORMAT_RGBA8, "Image format must be RGBA8")
+
+	# Bit-for-bit determinism test
+	assert_eq(img1.get_data(), img2.get_data(), "Identical seeds must bake identical underground map images")
+
+	# Verify non-trivial subterranean features
+	var found_bedrock = false
+	var palette = ContinentMapColorPaletteClass.new()
+	for y in range(res):
+		for x in range(res):
+			var c = img1.get_pixel(x, y)
+			assert_true(c.a == 1.0, "All map pixels must be opaque")
+			if c == palette.color_underground_rock:
+				found_bedrock = true
+
+	assert_true(found_bedrock, "Underground map must feature encasing bedrock")
+
+func test_continent_map_provider_multi_level_sync_and_caching() -> void:
+	var bounds = WorldBounds.new(Vector2i(32, 32), 32, 1.0)
+	var config = ContinentGeneratorConfig.new()
+	var gen = ContinentGenerator.new(5555, config)
+
+	var provider = ContinentMapProviderClass.new()
+	assert_false(provider.is_ready(ContinentMapProviderClass.MapLevel.SURFACE), "Surface must initially not be ready")
+	assert_false(provider.is_ready(ContinentMapProviderClass.MapLevel.UNDERGROUND), "Underground must initially not be ready")
+
+	# Bake surface
+	var surf_tex = provider.bake_sync(gen, bounds, 32, ContinentMapProviderClass.MapLevel.SURFACE)
+	assert_not_null(surf_tex, "Surface bake_sync must return valid ImageTexture")
+	assert_true(provider.is_ready(ContinentMapProviderClass.MapLevel.SURFACE), "Surface must be ready")
+	assert_false(provider.is_ready(ContinentMapProviderClass.MapLevel.UNDERGROUND), "Underground must still not be ready")
+	assert_eq(provider.get_texture(ContinentMapProviderClass.MapLevel.SURFACE), surf_tex)
+
+	# Bake underground
+	var under_tex = provider.bake_sync(gen, bounds, 32, ContinentMapProviderClass.MapLevel.UNDERGROUND)
+	assert_not_null(under_tex, "Underground bake_sync must return valid ImageTexture")
+	assert_true(provider.is_ready(ContinentMapProviderClass.MapLevel.UNDERGROUND), "Underground must be ready")
+	assert_eq(provider.get_texture(ContinentMapProviderClass.MapLevel.UNDERGROUND), under_tex)
+
+	# Textures should be distinct
+	assert_ne(surf_tex, under_tex, "Surface and underground textures must be distinct instances")
+
+	provider.clear()
+	assert_false(provider.is_ready(ContinentMapProviderClass.MapLevel.SURFACE))
+	assert_false(provider.is_ready(ContinentMapProviderClass.MapLevel.UNDERGROUND))
+
+func test_continent_map_ui_level_switching() -> void:
+	var ui = ContinentMapUIClass.new()
+	ui._build_ui()
+
+	assert_eq(ui.current_level, ContinentMapUIClass.MapLevel.SURFACE, "Default map level must be SURFACE")
+	assert_true(ui._title_label.text.contains("SURFACE"), "Header title must state SURFACE")
+
+	# Switch to Underground
+	ui.switch_level(ContinentMapUIClass.MapLevel.UNDERGROUND)
+	assert_eq(ui.current_level, ContinentMapUIClass.MapLevel.UNDERGROUND, "Level must switch to UNDERGROUND")
+	assert_true(ui._title_label.text.contains("UNDERGROUND ARENA"), "Header title must state UNDERGROUND ARENA")
+
+	# Switch back to Surface
+	ui.switch_level(ContinentMapUIClass.MapLevel.SURFACE)
+	assert_eq(ui.current_level, ContinentMapUIClass.MapLevel.SURFACE, "Level must switch back to SURFACE")
+
+	# Key shortcuts simulation
+	var key2 = InputEventKey.new()
+	key2.keycode = KEY_2
+	key2.pressed = true
+	ui.open_map()
+	ui._unhandled_input(key2)
+	assert_eq(ui.current_level, ContinentMapUIClass.MapLevel.UNDERGROUND, "KEY_2 must switch to UNDERGROUND")
+
+	var key1 = InputEventKey.new()
+	key1.keycode = KEY_1
+	key1.pressed = true
+	ui._unhandled_input(key1)
+	assert_eq(ui.current_level, ContinentMapUIClass.MapLevel.SURFACE, "KEY_1 must switch to SURFACE")
+
+	var key_tab = InputEventKey.new()
+	key_tab.keycode = KEY_TAB
+	key_tab.pressed = true
+	ui._unhandled_input(key_tab)
+	assert_eq(ui.current_level, ContinentMapUIClass.MapLevel.UNDERGROUND, "KEY_TAB must toggle to UNDERGROUND")
+	ui._unhandled_input(key_tab)
+	assert_eq(ui.current_level, ContinentMapUIClass.MapLevel.SURFACE, "KEY_TAB must toggle back to SURFACE")
+
+	ui.close_map()
+	ui.queue_free()
+
+func test_continent_map_ui_right_click_context_menu_and_teleport() -> void:
+	var ui = ContinentMapUIClass.new()
+	ui._build_ui()
+	ui.open_map()
+
+	assert_not_null(ui._context_menu, "Context menu node must exist")
+	assert_false(ui._is_context_menu_open(), "Context menu must initially be closed")
+
+	# Simulate right-click at screen coordinate (200, 200)
+	var rb_down = InputEventMouseButton.new()
+	rb_down.button_index = MOUSE_BUTTON_RIGHT
+	rb_down.pressed = true
+	rb_down.position = Vector2(200, 200)
+	ui._on_map_gui_input(rb_down)
+
+	var rb_up = InputEventMouseButton.new()
+	rb_up.button_index = MOUSE_BUTTON_RIGHT
+	rb_up.pressed = false
+	rb_up.position = Vector2(200, 200)
+	ui._on_map_gui_input(rb_up)
+
+	assert_true(ui._is_context_menu_open(), "Context menu must open upon right click on map")
+	assert_true(ui._context_menu.visible, "Context menu must be visible")
+	assert_true(ui._context_target_label.text.contains("Target:"), "Context menu must display target coordinates")
+
+	# Test closing context menu via ESC
+	var esc = InputEventKey.new()
+	esc.keycode = KEY_ESCAPE
+	esc.pressed = true
+	ui._unhandled_input(esc)
+	assert_false(ui._is_context_menu_open(), "ESC must close context menu first without closing map")
+	assert_true(ui.is_map_open(), "Map must remain open when dismissing context menu")
+
+	# Re-open context menu and test teleportation
+	ui.open_context_menu_at(Vector2(256, 256))
+	assert_true(ui._is_context_menu_open(), "Context menu must re-open")
+
+	# Track teleport signal
+	var teleport_tracker = [false, Vector3.ZERO]
+	ui.teleport_requested.connect(func(pos, lvl):
+		teleport_tracker[0] = true
+		teleport_tracker[1] = pos
+	)
+
+	# Simulate clicking teleport button
+	ui._on_context_teleport_pressed()
+
+	assert_true(teleport_tracker[0], "Teleport requested signal must be emitted")
+	assert_false(ui._is_context_menu_open(), "Context menu must be closed after teleport")
+	assert_false(ui.is_map_open(), "Map must close after teleporting player")
+
+	ui.queue_free()
+
+

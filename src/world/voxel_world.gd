@@ -56,9 +56,39 @@ var _chunks_root: Node3D
 var _loaded_chunks: Dictionary = {} # key -> ChunkNode
 var _initial_ready_emitted: bool = false
 var _last_collision_chunk: ChunkCoord = null
+var _last_streaming_chunk: ChunkCoord = null
+var _last_streaming_position: Vector3 = Vector3(INF, INF, INF)
+var _last_was_subterranean: bool = false
+@export var streaming_recheck_distance_meters: float = 4.0
 var visibility_coordinator: LayerVisibilityCoordinator = LayerVisibilityCoordinator.new()
 var subterranean_coordinator: SubterraneanStreamCoordinator = SubterraneanStreamCoordinator.new()
 var _mouth_cache: Dictionary = {} # key -> bool
+var _pending_completed_chunks: Array[Dictionary] = []
+var _chunk_node_pool: Array[ChunkNode] = []
+
+func _acquire_chunk_node(coord: ChunkCoord) -> ChunkNode:
+	var chunk_node: ChunkNode
+	if not _chunk_node_pool.is_empty():
+		chunk_node = _chunk_node_pool.pop_back()
+		chunk_node.name = "Chunk_%d_%d" % [coord.x, coord.z]
+		chunk_node.visible = true
+	else:
+		chunk_node = ChunkNode.new()
+		chunk_node.name = "Chunk_%d_%d" % [coord.x, coord.z]
+		_chunks_root.add_child(chunk_node)
+	return chunk_node
+
+func _recycle_chunk_node(chunk_node: ChunkNode) -> void:
+	if not is_instance_valid(chunk_node):
+		return
+	chunk_node.prepare_for_pool()
+	_chunk_node_pool.push_back(chunk_node)
+
+func _cleanup_chunk_pool() -> void:
+	for node in _chunk_node_pool:
+		if is_instance_valid(node):
+			node.queue_free()
+	_chunk_node_pool.clear()
 
 
 func _ready() -> void:
@@ -131,7 +161,7 @@ func _ready() -> void:
 	_initial_ready_emitted = true
 	initial_area_ready.emit()
 
-	_update_streaming()
+	_update_streaming(true)
 	_update_layer_visibility(true)
 	_update_chunk_collisions(true)
 
@@ -146,10 +176,20 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_PREDELETE:
 		if scheduler != null:
 			scheduler.clear()
+		_pending_completed_chunks.clear()
+		_cleanup_chunk_pool()
+		_last_streaming_chunk = null
+		_last_streaming_position = Vector3(INF, INF, INF)
+		_last_was_subterranean = false
 
 func _exit_tree() -> void:
 	if scheduler != null:
 		scheduler.clear()
+	_pending_completed_chunks.clear()
+	_cleanup_chunk_pool()
+	_last_streaming_chunk = null
+	_last_streaming_position = Vector3(INF, INF, INF)
+	_last_was_subterranean = false
 
 var _spawn_point: Vector3 = Vector3.ZERO
 var _spawn_point_cached: bool = false
@@ -202,9 +242,7 @@ func _load_chunk_sync(coord: ChunkCoord) -> void:
 	var chunk_data = generator.generate(coord, bounds)
 	var mesh_data = mesher.build_mesh(chunk_data, material_registry)
 
-	var chunk_node = ChunkNode.new()
-	chunk_node.name = "Chunk_%d_%d" % [coord.x, coord.z]
-	_chunks_root.add_child(chunk_node)
+	var chunk_node = _acquire_chunk_node(coord)
 	_loaded_chunks[key] = chunk_node
 
 	var origin = bounds.chunk_origin(coord)
@@ -220,9 +258,23 @@ func _process_completed_chunks() -> void:
 	var focus_pos = _get_focus_position()
 	var focus_chunk = bounds.world_to_chunk(focus_pos)
 
-	var completed = scheduler.poll_completed(world_config.max_mesh_applies_per_frame)
+	var max_poll = world_config.max_mesh_applies_per_frame if world_config != null else 4
+	var completed = scheduler.poll_completed(max_poll)
+	if not completed.is_empty():
+		_pending_completed_chunks.append_array(completed)
+
+	if _pending_completed_chunks.is_empty():
+		return
+
+	var budget_ms = world_config.max_mesh_apply_budget_ms if world_config != null else 1.0
+	var budget_usec = int(budget_ms * 1000.0)
+	var start_time_usec = Time.get_ticks_usec()
 	var needs_visibility_update = false
-	for item in completed:
+	var chunks_processed = 0
+
+	while not _pending_completed_chunks.is_empty():
+		var item = _pending_completed_chunks.pop_front()
+		chunks_processed += 1
 		var coord: ChunkCoord = item.coord
 		var mesh_data: MeshData = item.mesh_data
 		var key = coord.to_key()
@@ -238,6 +290,8 @@ func _process_completed_chunks() -> void:
 				if visibility_coordinator.last_state == LayerVisibilityCoordinator.PlayerLayerState.SUBTERRANEAN:
 					node.set_subterranean_visible(true)
 				needs_visibility_update = true
+			if chunks_processed >= 1 and (Time.get_ticks_usec() - start_time_usec) >= budget_usec:
+				break
 			continue
 
 		var dist_to_focus = focus_chunk.chebyshev_distance_to(coord)
@@ -247,9 +301,7 @@ func _process_completed_chunks() -> void:
 		if _loaded_chunks.has(key):
 			chunk_node = _loaded_chunks[key]
 		else:
-			chunk_node = ChunkNode.new()
-			chunk_node.name = "Chunk_%d_%d" % [coord.x, coord.z]
-			_chunks_root.add_child(chunk_node)
+			chunk_node = _acquire_chunk_node(coord)
 			_loaded_chunks[key] = chunk_node
 
 		var origin = bounds.chunk_origin(coord)
@@ -269,14 +321,31 @@ func _process_completed_chunks() -> void:
 
 		chunk_loaded.emit(coord)
 
+		# Guarantee at least 1 chunk per frame is processed, but stop if budget is exceeded
+		if chunks_processed >= 1 and (Time.get_ticks_usec() - start_time_usec) >= budget_usec:
+			break
+
 	if needs_visibility_update:
 		_update_layer_visibility(true)
 
-func _update_streaming() -> void:
+func _update_streaming(force: bool = false) -> void:
 	var focus_pos = _get_focus_position()
 	var focus_chunk = bounds.world_to_chunk(focus_pos)
 	var surf_h = get_height_at(focus_pos.x, focus_pos.z)
 	var is_player_subterranean = (focus_pos.y < (surf_h - 4.0)) or (focus_pos.y <= 12.0)
+
+	var chunk_changed = (_last_streaming_chunk == null or not focus_chunk.equals(_last_streaming_chunk))
+	var pos_delta_sq = focus_pos.distance_squared_to(_last_streaming_position)
+	var pos_threshold_sq = streaming_recheck_distance_meters * streaming_recheck_distance_meters
+	var pos_changed = (pos_delta_sq >= pos_threshold_sq)
+	var sub_state_changed = (is_player_subterranean != _last_was_subterranean)
+
+	if not force and not chunk_changed and not pos_changed and not sub_state_changed:
+		return
+
+	_last_streaming_chunk = focus_chunk
+	_last_streaming_position = focus_pos
+	_last_was_subterranean = is_player_subterranean
 
 	# 1. Enqueue new chunks to load (Phase A surface-first)
 	var to_load = streamer.get_chunks_to_load(
@@ -317,12 +386,18 @@ func _update_streaming() -> void:
 		var key = coord.to_key()
 		scheduler.cancel_chunk(coord)
 		subterranean_coordinator.unregister_chunk(coord)
+		if not _pending_completed_chunks.is_empty():
+			_pending_completed_chunks = _pending_completed_chunks.filter(
+				func(item: Dictionary) -> bool:
+					var c: ChunkCoord = item.get("coord", null)
+					return c == null or not c.equals(coord)
+			)
 		if _loaded_chunks.has(key):
 			var node = _loaded_chunks[key]
 			_loaded_chunks.erase(key)
 			_mouth_cache.erase(key)
 			if is_instance_valid(node):
-				node.queue_free()
+				_recycle_chunk_node(node)
 			chunk_unloaded.emit(coord)
 
 func _get_camera_position() -> Vector3:
@@ -488,7 +563,7 @@ func teleport_focus_to(target_pos: Vector3) -> void:
 			focus_target.velocity = Vector3.ZERO
 
 	if is_inside_tree():
-		_update_streaming()
+		_update_streaming(true)
 		_update_layer_visibility(true)
 		_update_chunk_collisions(true)
 
@@ -505,3 +580,13 @@ func get_world_bounds() -> WorldBounds:
 
 func get_loaded_chunk_count() -> int:
 	return _loaded_chunks.size()
+
+func get_pending_completed_chunk_count() -> int:
+	return _pending_completed_chunks.size()
+
+func clear_pending_chunks() -> void:
+	_pending_completed_chunks.clear()
+
+func get_pooled_chunk_count() -> int:
+	return _chunk_node_pool.size()
+

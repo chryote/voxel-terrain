@@ -114,3 +114,56 @@ func test_collision_updates_when_player_moves_past_100_blocks() -> void:
 	spawn_node.free()
 	distant_node.free()
 	world.free()
+
+func test_subterranean_visibility_without_prebaked_shape_does_not_stall() -> void:
+	var mesh_data = _create_test_mesh_data()
+	var chunk_node = ChunkNode.new()
+	var coord = ChunkCoord.new(0, 0)
+
+	# Setup with cave geometry but null pre-baked cave shape
+	chunk_node.setup(coord, Vector3.ZERO, mesh_data, true, null, null)
+	# Inject a cave visual mesh simulating a loaded subterranean mesh without pre-baked shape
+	chunk_node.cave_mesh_instance.mesh = mesh_data.create_array_mesh()
+
+	# Activating subterranean layer must not block or construct on-the-fly trimesh shape
+	chunk_node.set_subterranean_visible(true)
+	assert_true(chunk_node.is_subterranean_visible(), "Subterranean visual layer should be visible")
+	assert_null(chunk_node.cave_collision_shape.shape, "Cave collision shape must remain null when unbaked")
+	assert_true(chunk_node.cave_collision_shape.disabled, "Cave collision shape must remain disabled when unbaked")
+
+	chunk_node.free()
+
+func test_late_binding_prebaked_shape_activates_collision() -> void:
+	var mesh_data = _create_test_mesh_data()
+	var chunk_node = ChunkNode.new()
+	var coord = ChunkCoord.new(0, 0)
+
+	# Initial surface setup with collision distance enabled
+	chunk_node.setup(coord, Vector3.ZERO, mesh_data, true, null, null)
+
+	# Subterranean layer becomes visible before subterranean bundle arrives
+	chunk_node.set_subterranean_visible(true)
+	assert_true(chunk_node.is_subterranean_visible())
+	assert_null(chunk_node.cave_collision_shape.shape)
+	assert_true(chunk_node.cave_collision_shape.disabled)
+
+	# Background thread finishes subterranean generation and bakes shape
+	var bundle = DualMeshBundle.new()
+	bundle.cave_mesh_data.vertices.append(Vector3(0, -5, 0))
+	bundle.cave_mesh_data.vertices.append(Vector3(1, -5, 0))
+	bundle.cave_mesh_data.vertices.append(Vector3(0, -5, 1))
+	bundle.cave_mesh_data.indices.append(0)
+	bundle.cave_mesh_data.indices.append(1)
+	bundle.cave_mesh_data.indices.append(2)
+
+	var baker = OffThreadCollisionBaker.new()
+	var shapes = baker.bake_shapes_for_bundle(bundle)
+
+	# Late-binding: subterranean bundle arrives
+	chunk_node.apply_subterranean_bundle(bundle, shapes.cave_shape)
+
+	# Cave collision must be instantly bound and enabled without stalling
+	assert_eq(chunk_node.cave_collision_shape.shape, shapes.cave_shape, "Pre-baked cave shape must be bound via late-binding")
+	assert_false(chunk_node.cave_collision_shape.disabled, "Cave collision shape must be enabled automatically")
+
+	chunk_node.free()

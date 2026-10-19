@@ -6,12 +6,14 @@ extends Node3D
 signal chunk_loaded(coord: ChunkCoord)
 signal chunk_unloaded(coord: ChunkCoord)
 signal initial_area_ready()
+signal spawn_mode_changed(is_underground: bool, spawn_position: Vector3)
 
 @export var world_config: WorldConfig
 @export var generator_config: ContinentGeneratorConfig
 @export var cave_config: CaveGeneratorConfig
 @export var material_registry: MaterialRegistry
 @export var focus_target: Node3D
+@export var spawn_on_underground_arena: bool = true
 @export var caves_enabled: bool = true:
 	set(val):
 		caves_enabled = val
@@ -25,6 +27,18 @@ signal initial_area_ready()
 			for node in _loaded_chunks.values():
 				if node is ChunkNode and node.is_subterranean_visible():
 					node.set_subterranean_visible(false)
+@export var cave_water_enabled: bool = false:
+	set(val):
+		cave_water_enabled = val
+		if cave_config != null:
+			cave_config.cave_water_enabled = val
+		if mesher != null and "cave_water_enabled" in mesher:
+			mesher.cave_water_enabled = val
+		if not is_inside_tree():
+			return
+		for node in _loaded_chunks.values():
+			if node is ChunkNode and node.cave_water_instance != null:
+				node.cave_water_instance.visible = val and node.is_subterranean_visible()
 
 const SpawnFinder = preload("res://src/world/spawn_finder.gd")
 
@@ -63,15 +77,27 @@ func _ready() -> void:
 	cave_config.enabled = caves_enabled
 	subterranean_coordinator.enabled = caves_enabled
 
+	if not world_config.cave_water_enabled:
+		cave_water_enabled = false
+	cave_config.cave_water_enabled = cave_water_enabled
+
 	bounds = world_config.create_world_bounds()
 	if generator == null:
 		generator = VolumetricTerrainGenerator.new(world_config.world_seed, generator_config, cave_config)
+	if "cave_carver" in generator and generator.cave_carver != null:
+		if "continent_gen" in generator and generator.continent_gen != null and generator.continent_gen.mask != null:
+			generator.cave_carver.set_continent_mask(generator.continent_gen.mask, bounds)
 	if generator is LayeredTerrainGenerator:
 		generator.init_cave_mouths(bounds)
+		if generator.cave_carver != null and generator.cave_carver.worm_registry != null:
+			subterranean_coordinator.worm_registry = generator.cave_carver.worm_registry
 	if mesher == null:
 		var voxel_mesher = VoxelMesher.new()
 		voxel_mesher.sea_level = world_config.sea_level
+		voxel_mesher.cave_water_enabled = cave_water_enabled
 		mesher = voxel_mesher
+	elif "cave_water_enabled" in mesher:
+		mesher.cave_water_enabled = cave_water_enabled
 	streamer = ChunkStreamer.new()
 	scheduler = ChunkScheduler.new()
 
@@ -93,7 +119,10 @@ func _ready() -> void:
 	var spawn_pos = get_spawn_point()
 	var spawn_chunk = bounds.world_to_chunk(spawn_pos)
 	if is_instance_valid(focus_target):
-		focus_target.global_position = spawn_pos
+		if focus_target.is_inside_tree():
+			focus_target.global_position = spawn_pos
+		else:
+			focus_target.position = spawn_pos
 
 	for dz in range(-1, 2):
 		for dx in range(-1, 2):
@@ -103,8 +132,8 @@ func _ready() -> void:
 	initial_area_ready.emit()
 
 	_update_streaming()
-	_update_chunk_collisions(true)
 	_update_layer_visibility(true)
+	_update_chunk_collisions(true)
 
 func _process(_delta: float) -> void:
 	_process_completed_chunks()
@@ -124,6 +153,10 @@ func _exit_tree() -> void:
 
 var _spawn_point: Vector3 = Vector3.ZERO
 var _spawn_point_cached: bool = false
+var _surface_spawn_point: Vector3 = Vector3.ZERO
+var _surface_spawn_cached: bool = false
+var _underground_spawn_point: Vector3 = Vector3.ZERO
+var _underground_spawn_cached: bool = false
 
 func _get_focus_position() -> Vector3:
 	if is_instance_valid(focus_target):
@@ -135,7 +168,24 @@ func _get_focus_position() -> Vector3:
 	return Vector3.ZERO
 
 func _get_focus_forward() -> Vector3:
+	if is_inside_tree() and get_viewport() != null:
+		var cam = get_viewport().get_camera_3d()
+		if is_instance_valid(cam):
+			return -cam.global_transform.basis.z.normalized()
 	if is_instance_valid(focus_target):
+		var rig = focus_target.camera_rig if ("camera_rig" in focus_target) else focus_target.get_node_or_null("camera_rig")
+		if is_instance_valid(rig):
+			var cam = rig.camera if ("camera" in rig) else rig.get_node_or_null("camera")
+			if is_instance_valid(cam):
+				if cam.is_inside_tree():
+					return -cam.global_transform.basis.z.normalized()
+				return -cam.transform.basis.z.normalized()
+			if rig.has_method("get_camera_yaw"):
+				var yaw = rig.get_camera_yaw()
+				return -Vector3(sin(yaw), 0.0, cos(yaw)).normalized()
+			if rig.is_inside_tree():
+				return -rig.global_transform.basis.z.normalized()
+			return -rig.transform.basis.z.normalized()
 		if focus_target.is_inside_tree():
 			return -focus_target.global_transform.basis.z.normalized()
 		return -focus_target.transform.basis.z.normalized()
@@ -171,6 +221,7 @@ func _process_completed_chunks() -> void:
 	var focus_chunk = bounds.world_to_chunk(focus_pos)
 
 	var completed = scheduler.poll_completed(world_config.max_mesh_applies_per_frame)
+	var needs_visibility_update = false
 	for item in completed:
 		var coord: ChunkCoord = item.coord
 		var mesh_data: MeshData = item.mesh_data
@@ -184,6 +235,9 @@ func _process_completed_chunks() -> void:
 				node.apply_subterranean_bundle(mesh_data, cave_shape)
 				_mouth_cache[key] = node.has_cave_mouth
 				subterranean_coordinator.mark_subterranean_ready(coord)
+				if visibility_coordinator.last_state == LayerVisibilityCoordinator.PlayerLayerState.SUBTERRANEAN:
+					node.set_subterranean_visible(true)
+				needs_visibility_update = true
 			continue
 
 		var dist_to_focus = focus_chunk.chebyshev_distance_to(coord)
@@ -215,11 +269,14 @@ func _process_completed_chunks() -> void:
 
 		chunk_loaded.emit(coord)
 
+	if needs_visibility_update:
+		_update_layer_visibility(true)
+
 func _update_streaming() -> void:
 	var focus_pos = _get_focus_position()
 	var focus_chunk = bounds.world_to_chunk(focus_pos)
 	var surf_h = get_height_at(focus_pos.x, focus_pos.z)
-	var is_player_subterranean = focus_pos.y < (surf_h - 4.0)
+	var is_player_subterranean = (focus_pos.y < (surf_h - 4.0)) or (focus_pos.y <= 12.0)
 
 	# 1. Enqueue new chunks to load (Phase A surface-first)
 	var to_load = streamer.get_chunks_to_load(
@@ -240,22 +297,13 @@ func _update_streaming() -> void:
 	if caves_enabled:
 		var look_dir = _get_focus_forward()
 		var to_promote = subterranean_coordinator.get_chunks_to_promote(focus_pos, focus_chunk, surf_h, _mouth_cache, look_dir, true)
-		var is_near_mouth = false
-		for dz in range(-1, 2):
-			for dx in range(-1, 2):
-				var n_coord = ChunkCoord.new(focus_chunk.x + dx, focus_chunk.z + dz)
-				if _mouth_cache.get(n_coord.to_key(), false):
-					is_near_mouth = true
-					break
-			if is_near_mouth:
-				break
 
 		for p_coord in to_promote:
 			if not scheduler.is_phase_in_flight(p_coord, ChunkScheduler.GenerationPhase.PHASE_SUBTERRANEAN):
 				var cached_surf = subterranean_coordinator.get_cached_surface_data(p_coord)
-				var has_mouth = _mouth_cache.get(p_coord.to_key(), false)
-				var should_bake_cave = is_player_subterranean or has_mouth or is_near_mouth
-				scheduler.schedule_subterranean_chunk(p_coord, bounds, generator, mesher, material_registry, cached_surf, false, should_bake_cave)
+				# OffThreadCollisionBaker compiles shapes on worker threads in < 1 ms.
+				# Always bake cave collision off-thread so chunk_node never has a null cache.
+				scheduler.schedule_subterranean_chunk(p_coord, bounds, generator, mesher, material_registry, cached_surf, false, true)
 				subterranean_coordinator.mark_subterranean_queued(p_coord)
 
 	# 3. Unload chunks out of range
@@ -277,24 +325,71 @@ func _update_streaming() -> void:
 				node.queue_free()
 			chunk_unloaded.emit(coord)
 
+func _get_camera_position() -> Vector3:
+	if is_inside_tree() and get_viewport() != null:
+		var cam = get_viewport().get_camera_3d()
+		if is_instance_valid(cam):
+			return cam.global_position
+	if is_instance_valid(focus_target):
+		if "camera_rig" in focus_target and is_instance_valid(focus_target.camera_rig):
+			if "camera" in focus_target.camera_rig and is_instance_valid(focus_target.camera_rig.camera):
+				return focus_target.camera_rig.camera.global_position
+	return _get_focus_position()
+
+func is_in_underground_chasm(pos: Vector3) -> bool:
+	if not caves_enabled:
+		return false
+	if generator == null or not ("cave_carver" in generator) or generator.cave_carver == null:
+		return false
+	var surf_h = get_height_at(pos.x, pos.z)
+	var col = generator.cave_carver.sample_chasm_column(pos.x, pos.z, null, surf_h)
+	if col == null or not col.is_chasm:
+		return false
+	var chasm_floor = float(col.floor_y)
+	var chasm_ceil = float(col.ceil_y)
+	if pos.y < (surf_h - 2.0) and pos.y >= (chasm_floor - 2.0) and pos.y <= chasm_ceil:
+		return true
+	return false
+
+func is_subterranean_position(pos: Vector3) -> bool:
+	if not caves_enabled:
+		return false
+	var surf_h = get_height_at(pos.x, pos.z)
+	if is_in_underground_chasm(pos):
+		return true
+	var sea_threshold = (float(world_config.sea_level) * world_config.voxel_size + 3.0) if world_config != null else 12.0
+	if surf_h > sea_threshold and pos.y < (surf_h - 3.0):
+		return true
+	return false
+
 func _update_layer_visibility(force: bool = false) -> void:
 	if not caves_enabled:
 		for node in _loaded_chunks.values():
 			if node is ChunkNode and node.is_subterranean_visible():
 				node.set_subterranean_visible(false)
+		if water_plane != null:
+			water_plane.set_ocean_visible(true)
 		return
 
 	var focus_pos = _get_focus_position()
 	var focus_chunk = bounds.world_to_chunk(focus_pos)
 	var surf_h = get_height_at(focus_pos.x, focus_pos.z)
-	visibility_coordinator.update_chunk_visibility(
+	var sea_level_h = float(world_config.sea_level) * world_config.voxel_size if world_config != null else 9.0
+	var current_state = visibility_coordinator.update_chunk_visibility(
 		focus_pos,
 		focus_chunk,
 		surf_h,
 		_loaded_chunks,
 		_mouth_cache,
-		force
+		force,
+		sea_level_h
 	)
+
+	if water_plane != null:
+		var cam_pos = _get_camera_position()
+		var in_chasm = is_in_underground_chasm(focus_pos) or is_in_underground_chasm(cam_pos)
+		var is_subterranean = (current_state == LayerVisibilityCoordinator.PlayerLayerState.SUBTERRANEAN) or in_chasm
+		water_plane.set_ocean_visible(not is_subterranean)
 
 func _update_chunk_collisions(force: bool = false) -> void:
 	var focus_pos = _get_focus_position()
@@ -319,13 +414,91 @@ func get_height_at(world_x: float, world_z: float) -> float:
 	var h = generator.height_at(col, bounds)
 	return float(h) * bounds.voxel_size
 
-func get_spawn_point() -> Vector3:
-	if not _spawn_point_cached:
+func get_surface_spawn_point() -> Vector3:
+	if not _surface_spawn_cached:
 		if generator == null or bounds == null or world_config == null:
 			return Vector3(0.0, 30.0, 0.0)
-		_spawn_point = _spawn_finder.find_spawn_point(generator, bounds, world_config.sea_level)
-		_spawn_point_cached = true
+		_surface_spawn_point = _spawn_finder.find_spawn_point(generator, bounds, world_config.sea_level)
+		_surface_spawn_cached = true
+	return _surface_spawn_point
+
+func get_underground_spawn_point() -> Vector3:
+	if not _underground_spawn_cached:
+		if generator == null or bounds == null or world_config == null:
+			return Vector3(0.0, 10.0, 0.0)
+		_underground_spawn_point = _spawn_finder.find_underground_arena_spawn_point(generator, bounds, world_config.sea_level)
+		_underground_spawn_cached = true
+	return _underground_spawn_point
+
+func get_spawn_point() -> Vector3:
+	if spawn_on_underground_arena and caves_enabled:
+		_spawn_point = get_underground_spawn_point()
+	else:
+		_spawn_point = get_surface_spawn_point()
+	_spawn_point_cached = true
 	return _spawn_point
+
+func clear_spawn_cache() -> void:
+	_surface_spawn_cached = false
+	_underground_spawn_cached = false
+	_spawn_point_cached = false
+
+func toggle_spawn_location() -> Vector3:
+	spawn_on_underground_arena = not spawn_on_underground_arena
+	if spawn_on_underground_arena and not caves_enabled:
+		caves_enabled = true
+	var target_pos = get_spawn_point()
+	teleport_focus_to(target_pos)
+	spawn_mode_changed.emit(spawn_on_underground_arena, target_pos)
+	return target_pos
+
+func teleport_focus_to(target_pos: Vector3) -> void:
+	_spawn_point = target_pos
+	_spawn_point_cached = true
+
+	if bounds != null and generator != null and mesher != null and _chunks_root != null:
+		var target_chunk = bounds.world_to_chunk(target_pos)
+		for dz in range(-1, 2):
+			for dx in range(-1, 2):
+				var coord = ChunkCoord.new(target_chunk.x + dx, target_chunk.z + dz)
+				if not bounds.contains_chunk(coord):
+					continue
+				var key = coord.to_key()
+				if not _loaded_chunks.has(key):
+					_load_chunk_sync(coord)
+				else:
+					var node = _loaded_chunks[key] as ChunkNode
+					if node != null:
+						node.set_collision_enabled(true)
+						if spawn_on_underground_arena and caves_enabled:
+							if node.cave_collision_shape == null or node.cave_collision_shape.shape == null:
+								var c_data = generator.generate(coord, bounds)
+								var m_data = mesher.build_mesh(c_data, material_registry)
+								var baker = OffThreadCollisionBaker.new()
+								var shapes = baker.bake_shapes_for_bundle(m_data)
+								node.apply_subterranean_bundle(m_data, shapes.cave_shape)
+								subterranean_coordinator.mark_subterranean_ready(coord)
+
+	if is_instance_valid(focus_target):
+		if focus_target.is_inside_tree():
+			focus_target.global_position = target_pos
+		else:
+			focus_target.position = target_pos
+		if focus_target is CharacterBody3D:
+			focus_target.velocity = Vector3.ZERO
+
+	if is_inside_tree():
+		_update_streaming()
+		_update_layer_visibility(true)
+		_update_chunk_collisions(true)
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.physical_keycode == KEY_F4 or event.keycode == KEY_F4 or event.is_action_pressed("toggle_spawn"):
+			toggle_spawn_location()
+			var vp = get_viewport()
+			if vp != null:
+				vp.set_input_as_handled()
 
 func get_world_bounds() -> WorldBounds:
 	return bounds

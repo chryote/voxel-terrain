@@ -210,3 +210,55 @@ func test_layered_terrain_generator_methods() -> void:
 	assert_not_null(v_data)
 	assert_eq(v_data.chunk_size, 16)
 	assert_eq(v_data.get_voxel(0, 0, 0), MaterialDef.ID_STONE, "Bedrock must be solid stone")
+
+func test_chunk_negative_17_negative_23_subterranean_generation() -> void:
+	## Regression test: validates that chunk (-17, -23) properly detects worm tunnels and
+	## generates subterranean geometry rather than failing to load / leaving open void.
+	var world_config = WorldConfig.new()
+	var bounds = world_config.create_world_bounds()
+	var cave_config = CaveGeneratorConfig.new()
+	cave_config.use_directed_worm_corridors = false
+	var gen = VolumetricTerrainGenerator.new(world_config.world_seed, null, cave_config)
+	if gen.cave_carver != null and gen.continent_gen != null:
+		gen.cave_carver.set_continent_mask(gen.continent_gen.mask, bounds)
+
+	var coord = ChunkCoord.new(-17, -23)
+	var surf_data = gen.generate_surface(coord, bounds)
+	var sub_data = gen.generate_subterranean(surf_data, coord, bounds)
+
+	assert_not_null(sub_data, "Subterranean data for (-17, -23) must not be null")
+
+	var mesher = VoxelMesher.new()
+	var reg = MaterialRegistry.create_default_registry()
+	var bundle = mesher.build_mesh(sub_data, reg)
+
+	assert_true(bundle is DualMeshBundle, "Meshed chunk must produce a DualMeshBundle")
+	assert_true(bundle.has_cave_geometry(), "Chunk (-17, -23) must contain cave geometry")
+	assert_true(bundle.cave_mesh_data.vertices.size() > 1000, "Chunk (-17, -23) must generate comprehensive cave mesh (got %d vertices)" % bundle.cave_mesh_data.vertices.size())
+
+func test_tightened_vertical_carving_and_allocation_extents() -> void:
+	## Validates Task 2.1: Tighten Vertical Carving Extents for 3D Fallback
+	var bounds = WorldBounds.new(Vector2i(16, 16), 16, 1.0)
+	var cave_config = CaveGeneratorConfig.new()
+	cave_config.bypass_chasm_voxelization = false # Force 3D fallback voxel allocation
+	var gen = LayeredTerrainGenerator.new(1337, null, cave_config)
+	var coord = ChunkCoord.new(0, 0)
+
+	var s_data = gen.generate_surface(coord, bounds)
+	var max_elev = gen._calculate_surface_max_elevation(s_data)
+
+	var v_data = gen.generate_subterranean(s_data, coord, bounds) as VoxelChunkData
+	assert_not_null(v_data, "Subterranean voxel data must not be null")
+
+	# 1. Open sky strata must not be allocated (must be clamped to needed 16m sections, not 160m)
+	assert_true(v_data.max_height < 160, "VoxelChunkData max_height (%d) must be tightened below 160m" % v_data.max_height)
+	var expected_sections = ceili(float(max_elev + 2) / float(VoxelChunkData.SECTION_HEIGHT))
+	assert_eq(v_data.get_section_count(), expected_sections, "Section count must match expected required strata")
+	assert_true(v_data.total_voxels < 60000, "Voxel count (%d) must be substantially reduced from 185k" % v_data.total_voxels)
+
+	# 2. Bedrock protection invariant: strata below carve_floor (Y <= 2) must remain 100% solid stone
+	for lz in range(bounds.chunk_size):
+		for lx in range(bounds.chunk_size):
+			for ly in range(3):
+				assert_eq(v_data.get_voxel(lx, ly, lz), MaterialDef.ID_STONE, "Bedrock voxel at (%d, %d, %d) must remain solid stone" % [lx, ly, lz])
+

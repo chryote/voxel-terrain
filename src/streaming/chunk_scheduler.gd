@@ -256,6 +256,7 @@ func wait_all_tasks() -> void:
 	for task_id in tasks_copy:
 		WorkerThreadPool.wait_for_task_completion(task_id)
 
+
 func get_active_task_count() -> int:
 	_mutex.lock()
 	var count = _active_tasks.size()

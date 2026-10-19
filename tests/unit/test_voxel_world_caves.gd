@@ -53,3 +53,28 @@ func test_voxel_world_chunk_node_geometry_and_collision() -> void:
 	if world.scheduler != null:
 		world.scheduler.clear()
 	world.free()
+
+func test_voxel_world_underground_arena_spawn_collision() -> void:
+	var world = VoxelWorld.new()
+	world.world_config = WorldConfig.new()
+	world.world_config.map_size_chunks = Vector2i(256, 256)
+	world.world_config.chunk_size = 32
+	world.world_config.view_distance_chunks = 0
+	world.world_config.collision_distance_chunks = 1
+	world.spawn_on_underground_arena = true
+	world.cave_water_enabled = false
+
+	world._ready()
+
+	var spawn_pos = world.get_spawn_point()
+	var spawn_chunk = world.bounds.world_to_chunk(spawn_pos)
+	var chunk_node = world._loaded_chunks.get(spawn_chunk.to_key(), null) as ChunkNode
+
+	assert_not_null(chunk_node, "Arena spawn chunk node must exist")
+	assert_true(chunk_node.is_collision_enabled(), "Arena spawn chunk must have collision enabled")
+	assert_not_null(chunk_node.cave_collision_shape.shape, "Arena spawn chunk must have cave collision shape")
+	assert_false(chunk_node.cave_collision_shape.disabled, "Arena cave collision shape must NOT be disabled")
+
+	if world.scheduler != null:
+		world.scheduler.clear()
+	world.free()

@@ -73,3 +73,64 @@ func test_dead_end_pinch_off() -> void:
 			break
 
 	assert_true(found_dead_end, "Must find at least one dead-end point with dead_end_threshold=0.2")
+
+func test_can_tunnel_intersect_cell_bounding_box() -> void:
+	var config = CaveGeneratorConfig.new()
+	var sampler = SubterraneanTunnelSampler.new(1337, config)
+
+	# 1. Invalid degenerate boxes must return false
+	assert_false(sampler.can_tunnel_intersect_cell(Vector3(10, 10, 10), Vector3(10, 10, 10)), "Degenerate box must return false")
+	assert_false(sampler.can_tunnel_intersect_cell(Vector3(20, 20, 20), Vector3(10, 10, 10)), "Inverted box must return false")
+
+	# 2. Large chunk volume (-17, -23) known to contain tunnels must return true
+	var min_p = Vector3(-544.0, 3.0, -736.0)
+	var max_p = Vector3(-512.0, 43.0, -704.0)
+	assert_true(sampler.can_tunnel_intersect_cell(min_p, max_p), "Chunk (-17, -23) volume containing 3D worm tunnels must return true")
+
+	# 3. Solid rock block away from tunnel zero-crossings must cull to false
+	var void_cell_found = false
+	for x in range(0, 500, 20):
+		var b_min = Vector3(float(x), 20.0, 0.0)
+		var b_max = Vector3(float(x) + 4.0, 24.0, 4.0)
+		if not sampler.can_tunnel_intersect_cell(b_min, b_max):
+			void_cell_found = true
+			break
+	assert_true(void_cell_found, "Solid rock cell far from tunnel zero-crossings must cull to false")
+
+func test_arena_tunnel_suppression() -> void:
+	var config = CaveGeneratorConfig.new()
+	config.arena_enabled = true
+	config.arena_rift_threshold = 0.80
+	var chasm_sampler = UndergroundChasmSampler.new(1337, config)
+	var tunnel_sampler = SubterraneanTunnelSampler.new(1337, config, chasm_sampler)
+
+	# 1. Without chasm_sampler, suppression is always 1.0 (no reduction)
+	var isolated_sampler = SubterraneanTunnelSampler.new(1337, config)
+	assert_eq(isolated_sampler.get_arena_suppression(0.0, 0.0), 1.0, "Isolated sampler must return 1.0")
+
+	# 2. Locate an arena center and check suppression
+	var col = ChasmColumnResult.new()
+	var found_arena = false
+	var arena_pos = Vector2.ZERO
+	for ix in range(-200, 200, 4):
+		for iz in range(-200, 200, 4):
+			var wx = float(ix) * 5.0
+			var wz = float(iz) * 5.0
+			chasm_sampler.sample_column(wx, wz, col)
+			if col.is_arena and col.raw_rift >= 0.82:
+				found_arena = true
+				arena_pos = Vector2(wx, wz)
+				break
+		if found_arena:
+			break
+
+	assert_true(found_arena, "Must locate core arena")
+
+	# 3. Inside the core arena, suppression must be 0.0 and tunnel carve must be 0.0
+	assert_eq(tunnel_sampler.get_arena_suppression(arena_pos.x, arena_pos.y), 0.0, "Suppression inside core arena must be 0.0")
+	for y in range(5, 30, 2):
+		assert_eq(tunnel_sampler.get_tunnel_carve(arena_pos.x, float(y), arena_pos.y), 0.0, "Worm tunnels must be strictly 0 inside core arena")
+
+	# 4. Far from any arena, suppression must be 1.0
+	var supp_outside = tunnel_sampler.get_arena_suppression(0.0, 0.0)
+	assert_eq(supp_outside, 1.0, "Suppression outside arena must be 1.0")

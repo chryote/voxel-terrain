@@ -3,7 +3,10 @@ extends MeshInstance3D
 
 ## Visual ocean water plane covering the continent at sea level.
 
-func setup(bounds: WorldBounds, sea_level_height: float) -> void:
+var sea_level_height: float = 9.0
+
+func setup(bounds: WorldBounds, p_sea_level_height: float) -> void:
+	sea_level_height = p_sea_level_height
 	var total_w = bounds.max_world_x - bounds.min_world_x
 	var total_d = bounds.max_world_z - bounds.min_world_z
 
@@ -23,3 +26,8 @@ func setup(bounds: WorldBounds, sea_level_height: float) -> void:
 	mat.roughness = 0.1
 	mat.metallic = 0.15
 	material_override = mat
+
+func set_ocean_visible(p_visible: bool) -> void:
+	if visible != p_visible:
+		visible = p_visible
+

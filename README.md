@@ -88,6 +88,8 @@ res://
 | **Swap Shoulder** | V |
 | **Toggle Mouse Capture** | Tab or Escape |
 | **Toggle Debug Overlay** | F3 |
+| **Toggle Spawn Location** | F4 (Surface ↔ Underground Arena) |
+| **Toggle Map** | M |
 
 ---
 

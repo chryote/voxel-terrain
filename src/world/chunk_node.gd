@@ -90,6 +90,7 @@ func _ensure_nodes_exist() -> void:
 		add_child(static_body)
 
 var _cached_prebaked_cave_shape: ConcavePolygonShape3D = null
+var _collision_distance_enabled: bool = false
 
 func setup(
 	p_coord: ChunkCoord,
@@ -190,17 +191,14 @@ func apply_subterranean_bundle(
 	elif mesh_data is DualMeshBundle and mesh_data.cave_shape != null:
 		_cached_prebaked_cave_shape = mesh_data.cave_shape
 
-	if is_subterranean_visible() and not collision_shape.disabled:
+	if is_subterranean_visible() and _collision_distance_enabled:
 		if cave_collision_shape != null:
-			if cave_collision_shape.shape == null:
-				if _cached_prebaked_cave_shape != null:
-					cave_collision_shape.shape = _cached_prebaked_cave_shape
-				elif cave_mesh_instance != null and cave_mesh_instance.mesh != null and cave_mesh_instance.mesh.get_surface_count() > 0:
-					var c_shape = cave_mesh_instance.mesh.create_trimesh_shape()
-					if c_shape != null:
-						c_shape.backface_collision = true
-					cave_collision_shape.shape = c_shape
-			cave_collision_shape.disabled = false
+			if cave_collision_shape.shape == null and _cached_prebaked_cave_shape != null:
+				cave_collision_shape.shape = _cached_prebaked_cave_shape
+			if cave_collision_shape.shape != null:
+				cave_collision_shape.disabled = false
+			else:
+				cave_collision_shape.disabled = true
 
 func set_subterranean_visible(visible: bool) -> void:
 	if cave_mesh_instance != null:
@@ -208,16 +206,15 @@ func set_subterranean_visible(visible: bool) -> void:
 	if cave_water_instance != null:
 		cave_water_instance.visible = visible
 	if cave_collision_shape != null:
-		if visible and cave_collision_shape.shape == null:
-			if _cached_prebaked_cave_shape != null:
+		if visible:
+			if cave_collision_shape.shape == null and _cached_prebaked_cave_shape != null:
 				cave_collision_shape.shape = _cached_prebaked_cave_shape
-			elif cave_mesh_instance != null and cave_mesh_instance.mesh != null and cave_mesh_instance.mesh.get_surface_count() > 0:
-				var c_shape = cave_mesh_instance.mesh.create_trimesh_shape()
-				if c_shape != null:
-					c_shape.backface_collision = true
-				cave_collision_shape.shape = c_shape
-		if not collision_shape.disabled:
-			cave_collision_shape.disabled = not visible
+			if _collision_distance_enabled and cave_collision_shape.shape != null:
+				cave_collision_shape.disabled = false
+			else:
+				cave_collision_shape.disabled = true
+		else:
+			cave_collision_shape.disabled = true
 
 func is_subterranean_visible() -> bool:
 	return cave_mesh_instance != null and cave_mesh_instance.visible
@@ -228,6 +225,7 @@ func has_cave_mesh() -> bool:
 func set_collision_enabled(enable: bool) -> void:
 	if static_body == null or collision_shape == null:
 		return
+	_collision_distance_enabled = enable
 
 	if enable:
 		# Surface collision shape
@@ -243,17 +241,14 @@ func set_collision_enabled(enable: bool) -> void:
 			collision_shape.disabled = true
 
 		# Cave collision shape (bound only if subterranean collision is active)
-		if cave_collision_shape != null and cave_mesh_instance != null and cave_mesh_instance.mesh != null:
+		if cave_collision_shape != null:
 			if is_subterranean_visible():
-				if cave_collision_shape.shape == null:
-					if _cached_prebaked_cave_shape != null:
-						cave_collision_shape.shape = _cached_prebaked_cave_shape
-					elif cave_mesh_instance.mesh.get_surface_count() > 0:
-						var c_shape = cave_mesh_instance.mesh.create_trimesh_shape()
-						if c_shape != null:
-							c_shape.backface_collision = true
-						cave_collision_shape.shape = c_shape
-				cave_collision_shape.disabled = false
+				if cave_collision_shape.shape == null and _cached_prebaked_cave_shape != null:
+					cave_collision_shape.shape = _cached_prebaked_cave_shape
+				if cave_collision_shape.shape != null:
+					cave_collision_shape.disabled = false
+				else:
+					cave_collision_shape.disabled = true
 			else:
 				cave_collision_shape.disabled = true
 	else:
@@ -263,4 +258,6 @@ func set_collision_enabled(enable: bool) -> void:
 
 
 func is_collision_enabled() -> bool:
-	return collision_shape != null and not collision_shape.disabled and collision_shape.shape != null
+	var surf_active = (collision_shape != null and not collision_shape.disabled and collision_shape.shape != null)
+	var cave_active = (cave_collision_shape != null and not cave_collision_shape.disabled and cave_collision_shape.shape != null)
+	return surf_active or cave_active

@@ -29,7 +29,8 @@ extends Resource
 @export_range(0.0, 3.0) var tunnel_radius_variation: float = 0.8 ## High-frequency perturbation on tunnel walls
 @export_range(0.5, 2.0) var tunnel_vertical_squish: float = 1.15 ## Vertical squish factor (>1 compresses vertically for flatter floors)
 @export_range(1.5, 4.0) var min_clearance: float = 2.2 ## Guaranteed minimum vertical clearance for player movement
-@export var use_trilinear_tunnel_grid: bool = true ## Evaluate 3D worm tunnels via trilinear density interpolation for 8x faster carving
+@export var use_trilinear_tunnel_grid: bool = false ## Evaluate 3D worm tunnels via direct continuous 3D noise (false) or trilinear interpolation (true)
+@export var use_directed_worm_corridors: bool = true ## When true, 3D worm tunnels follow deterministic seeded spline trajectories from allowed cave mouths to chasm chambers, with O(1) chunk containment. When false, falls back to legacy unbounded continuous 3D simplex noise.
 
 @export_group("Continuity & Dead Ends")
 @export_range(0.001, 0.03) var continuity_frequency: float = 0.006 ## Frequency of modulation noise controlling tunnel continuity
@@ -46,7 +47,8 @@ extends Resource
 @export_range(1.0, 6.0) var chasm_floor_variation: float = 3.0 ## Amplitude of floor height undulations
 @export_range(1.0, 6.0) var chasm_ceil_variation: float = 4.0 ## Amplitude of ceiling height undulations
 @export_range(3.0, 10.0) var min_chasm_height: float = 5.0 ## Guaranteed clearance between floor and ceiling
-@export var chasm_water_level: int = 10 ## Elevation below which cavern voids pool water
+@export var chasm_water_level: int = 4 ## Elevation below which cavern voids pool water
+@export var cave_water_enabled: bool = true ## Enable or disable subterranean cave water table pooling
 @export_range(0.001, 0.02) var pillar_frequency: float = 0.008 ## Frequency of stone support pillars
 @export_range(0.1, 0.9) var pillar_threshold: float = 0.60 ## Density above which pillars remain solid
 
@@ -66,4 +68,8 @@ var chasm_frequency: float:
 var chasm_threshold: float:
 	get: return chasm_rift_threshold
 	set(val): chasm_rift_threshold = val
+
+var cave_water_table_enabled: bool:
+	get: return cave_water_enabled
+	set(val): cave_water_enabled = val
 

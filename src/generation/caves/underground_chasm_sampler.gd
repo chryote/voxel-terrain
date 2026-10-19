@@ -5,6 +5,7 @@ extends RefCounted
 ## Replaces volumetric 3D Simplex noise with two 2D heightfield noise maps (floor and ceiling)
 ## bounded laterally by a domain-warped 2D tectonic rift corridor mask with vertical walls.
 ## Guarantees minimum vertical clearance and indestructible bedrock protection.
+const WALL_MARGIN: float = 0.03
 
 var config: CaveGeneratorConfig
 
@@ -53,6 +54,33 @@ func _init_noises(seed_val: int) -> void:
 	pillar_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 	pillar_noise.frequency = config.pillar_frequency
 
+func sample_unwarped_rift(wx: float, wz: float) -> float:
+	## Fast normalized [0.0, 1.0] 2D rift corridor density without domain warping or continental mask evaluation.
+	return (rift_noise.get_noise_2d(wx, wz) + 1.0) * 0.5
+
+func get_wall_warp_margin() -> float:
+	## Conservative margin for unwarped rift early-exit.
+	## Accounts for maximum horizontal displacement under 2D domain warping
+	## (sqrt(2) * amplitude) scaled by rift noise frequency and noise gradient factor.
+	var max_reach = config.chasm_wall_warp_amplitude * 1.4142
+	return max_reach * config.chasm_rift_frequency * 2.0
+
+func can_column_contain_chasm(wx: float, wz: float) -> bool:
+	## Fast unwarped query to determine if (wx, wz) could possibly be within a chasm void.
+	var unwarped_rift = sample_unwarped_rift(wx, wz)
+	return unwarped_rift >= (config.chasm_rift_threshold - get_wall_warp_margin())
+
+func _reset_column_to_empty(out: ChasmColumnResult, p_raw_rift: float) -> void:
+	out.raw_rift = p_raw_rift
+	out.is_chasm = false
+	out.is_pillar = false
+	out.is_wall = false
+	out.is_arena = false
+	out.is_arena_ledge = false
+	out.is_basalt_column = false
+	out.floor_y = 0
+	out.ceil_y = 0
+
 func get_warped_coordinates(wx: float, wz: float) -> Vector2:
 	## Domain-warps horizontal sampling coordinates using decorrelated offsets
 	## to eliminate sterile straight cliff walls and generate natural fracture fault lines.
@@ -61,9 +89,53 @@ func get_warped_coordinates(wx: float, wz: float) -> Vector2:
 	return Vector2(wx + warp_x, wz + warp_z)
 
 
+const DEEP_INLAND_LAND_THRESHOLD: float = 0.20
+
+var continent_mask = null
+var world_bounds: WorldBounds = null
+var is_deep_inland: bool = false
+
+func set_continent_mask(p_mask, p_bounds: WorldBounds) -> void:
+	continent_mask = p_mask
+	world_bounds = p_bounds
+	is_deep_inland = false
+
+func reset_inland_cache() -> void:
+	is_deep_inland = false
+
+func update_deep_inland_status(min_x: float, min_z: float, max_x: float, max_z: float) -> bool:
+	## Samples continent land factor at the 4 cell/chunk corners.
+	## If all corners exceed DEEP_INLAND_LAND_THRESHOLD (0.20), the entire cell is deep inland,
+	## meaning ocean fade is guaranteed to be 1.0 and continent mask sampling can be bypassed.
+	if continent_mask == null or world_bounds == null:
+		is_deep_inland = false
+		return false
+
+	var c0 = continent_mask.get_land_raw(min_x, min_z, world_bounds)
+	var c1 = continent_mask.get_land_raw(max_x, min_z, world_bounds)
+	var c2 = continent_mask.get_land_raw(min_x, max_z, world_bounds)
+	var c3 = continent_mask.get_land_raw(max_x, max_z, world_bounds)
+
+	is_deep_inland = (
+		c0 > DEEP_INLAND_LAND_THRESHOLD and
+		c1 > DEEP_INLAND_LAND_THRESHOLD and
+		c2 > DEEP_INLAND_LAND_THRESHOLD and
+		c3 > DEEP_INLAND_LAND_THRESHOLD
+	)
+	return is_deep_inland
+
 func sample_rift_mask(sample_x: float, sample_z: float) -> float:
 	## Normalized [0.0, 1.0] 2D rift corridor density.
-	return (rift_noise.get_noise_2d(sample_x, sample_z) + 1.0) * 0.5
+	var rift = (rift_noise.get_noise_2d(sample_x, sample_z) + 1.0) * 0.5
+	if not is_deep_inland and continent_mask != null and world_bounds != null:
+		var land_raw = continent_mask.get_land_raw(sample_x, sample_z, world_bounds)
+		# Encase subterranean chasms and arenas in solid land before ocean falloff:
+		# Ocean falloff slope starts at land_raw ~ 0.12 and reaches sea level at land_raw ~ 0.065.
+		# Fading between 0.08 and 0.12 guarantees rock walls encase the cave while surface elevation >= 35.
+		var ocean_fade = clampf((land_raw - 0.08) / 0.04, 0.0, 1.0)
+		ocean_fade = ocean_fade * ocean_fade * (3.0 - 2.0 * ocean_fade)
+		rift *= ocean_fade
+	return rift
 
 func is_support_pillar(sample_x: float, sample_z: float) -> bool:
 	## Returns true if the 2D column falls inside a solid vertical stone support pillar.
@@ -111,29 +183,79 @@ func is_arena(wx: float, wz: float) -> bool:
 	## Returns true if world position falls within a subterranean battle arena.
 	if not config.arena_enabled:
 		return false
+	var unwarped_rift = sample_unwarped_rift(wx, wz)
+	if unwarped_rift < (config.arena_rift_threshold - get_wall_warp_margin()):
+		return false
 	var warped_pos = get_warped_coordinates(wx, wz)
 	return sample_rift_mask(warped_pos.x, warped_pos.y) >= config.arena_rift_threshold
 
-func sample_column(wx: float, wz: float, out: ChasmColumnResult = null) -> ChasmColumnResult:
+func can_arena_intersect_box(min_x: float, min_z: float, max_x: float, max_z: float) -> bool:
+	## Coarse AABB query: returns true if any part of the horizontal bounding box
+	## intersects an active subterranean battle arena or its perimeter spectator ledges.
+	if not config.arena_enabled:
+		return false
+
+	var mid_x = (min_x + max_x) * 0.5
+	var mid_z = (min_z + max_z) * 0.5
+	var unwarped_mid = sample_unwarped_rift(mid_x, mid_z)
+	var half_diag = Vector2(max_x - min_x, max_z - min_z).length() * 0.5
+	var max_reach = half_diag + get_wall_warp_margin()
+	var margin = maxf(0.12, max_reach * config.chasm_rift_frequency * 2.5)
+
+	# 1. Fast O(1) early exit: if unwarped rift at box center cannot reach arena threshold
+	# even with maximum domain warp reach and radial distance, exit early.
+	if unwarped_mid < (config.arena_rift_threshold - margin):
+		return false
+
+	# 2. Check box center point
+	if is_arena(mid_x, mid_z):
+		return true
+
+	# 3. Check 4 corners
+	if is_arena(min_x, min_z) or is_arena(max_x, min_z) or is_arena(min_x, max_z) or is_arena(max_x, max_z):
+		return true
+
+	# 4. Check edge midpoints (total 9 sample points)
+	if is_arena(mid_x, min_z) or is_arena(mid_x, max_z) or is_arena(min_x, mid_z) or is_arena(max_x, mid_z):
+		return true
+
+	# 5. Check warped center proximity to arena transition threshold
+	var warped_pos = get_warped_coordinates(mid_x, mid_z)
+	var raw_rift = sample_rift_mask(warped_pos.x, warped_pos.y)
+	return raw_rift >= (config.arena_rift_threshold - 0.02)
+
+func can_arena_intersect_chunk(coord: ChunkCoord, bounds: WorldBounds) -> bool:
+	## High-level chunk query testing whether the specified chunk intersects an arena.
+	if bounds == null or not config.arena_enabled:
+		return false
+	var c_size = bounds.chunk_size
+	var min_x = float(coord.x * c_size) * bounds.voxel_size
+	var min_z = float(coord.z * c_size) * bounds.voxel_size
+	var max_x = float((coord.x + 1) * c_size) * bounds.voxel_size
+	var max_z = float((coord.z + 1) * c_size) * bounds.voxel_size
+	return can_arena_intersect_box(min_x, min_z, max_x, max_z)
+
+func sample_column(wx: float, wz: float, out: ChasmColumnResult = null, surface_h: float = -1.0) -> ChasmColumnResult:
 	## Evaluates the dual-2D heightmap chasm column at world coordinates (wx, wz).
 	## Populates 'out' to avoid per-column heap allocations in hot chunk-carving loops.
 	if out == null:
 		out = ChasmColumnResult.new()
 
+	# Fast Early-Exit Corridor Masking (Task 1.1)
+	# Check unwarped rift noise first. If outside conservative corridor boundary,
+	# bypass domain warping, continent mask, floor, ceiling, and pillar noise evaluations.
+	var unwarped_rift = sample_unwarped_rift(wx, wz)
+	var early_exit_margin = get_wall_warp_margin() + WALL_MARGIN
+	if unwarped_rift < (config.chasm_rift_threshold - early_exit_margin):
+		_reset_column_to_empty(out, unwarped_rift)
+		return out
+
 	var warped_pos = get_warped_coordinates(wx, wz)
 	var raw_rift = sample_rift_mask(warped_pos.x, warped_pos.y)
 	out.raw_rift = raw_rift
 
-	var wall_margin = 0.03
-	if raw_rift < (config.chasm_rift_threshold - wall_margin):
-		out.is_chasm = false
-		out.is_pillar = false
-		out.is_wall = false
-		out.is_arena = false
-		out.is_arena_ledge = false
-		out.is_basalt_column = false
-		out.floor_y = 0
-		out.ceil_y = 0
+	if raw_rift < (config.chasm_rift_threshold - WALL_MARGIN):
+		_reset_column_to_empty(out, raw_rift)
 		return out
 
 	var is_arena_zone = config.arena_enabled and raw_rift >= config.arena_rift_threshold
@@ -142,6 +264,23 @@ func sample_column(wx: float, wz: float, out: ChasmColumnResult = null) -> Chasm
 	out.is_arena_ledge = is_arena_zone and raw_rift < core_arena_threshold
 
 	var bounds = calculate_floor_and_ceiling(warped_pos.x, warped_pos.y, raw_rift)
+
+	# Enforce surface crust barrier: subterranean voids cannot pierce outer terrain crust
+	if surface_h >= 0.0:
+		var max_allowed_ceil = int(surface_h) - int(config.crust_depth)
+		if bounds.y > max_allowed_ceil:
+			if max_allowed_ceil - bounds.x < int(config.min_chasm_height):
+				out.is_chasm = false
+				out.is_pillar = false
+				out.is_wall = true
+				out.is_arena = false
+				out.is_arena_ledge = false
+				out.is_basalt_column = false
+				out.floor_y = bounds.x
+				out.ceil_y = bounds.y
+				return out
+			else:
+				bounds.y = max_allowed_ceil
 
 	if raw_rift < config.chasm_rift_threshold:
 		out.is_chasm = false
@@ -181,22 +320,43 @@ func can_chasm_intersect_cell(min_p: Vector3, max_p: Vector3) -> bool:
 	## Coarse lattice culling: returns false if deep chasm voids cannot intersect this AABB cell.
 	# 1. Fast bedrock check
 	if max_p.y <= float(config.chasm_min_y):
+		is_deep_inland = false
 		return false
 
-	# 2. 2D Coarse AABB check with conservative margin scaled to cell size and wall warp
+	# 2. Update chunk-level deep inland status across the 4 corners
+	update_deep_inland_status(min_p.x, min_p.z, max_p.x, max_p.z)
+
+	# 3. 2D Coarse AABB check with conservative multi-point sampling across cell & apron
 	var mid_x = (min_p.x + max_p.x) * 0.5
 	var mid_z = (min_p.z + max_p.z) * 0.5
-	var raw_rift = sample_rift_mask(mid_x, mid_z)
+
+	# Sample center, 4 corners, and 4 edge midpoints to prevent single-sample false negatives
+	# near ocean falloff boundaries or localized rift ridges
+	var max_rift = maxf(
+		sample_rift_mask(mid_x, mid_z),
+		maxf(
+			maxf(sample_rift_mask(min_p.x, min_p.z), sample_rift_mask(max_p.x, min_p.z)),
+			maxf(sample_rift_mask(min_p.x, max_p.z), sample_rift_mask(max_p.x, max_p.z))
+		)
+	)
+	max_rift = maxf(
+		max_rift,
+		maxf(
+			maxf(sample_rift_mask(mid_x, min_p.z), sample_rift_mask(mid_x, max_p.z)),
+			maxf(sample_rift_mask(min_p.x, mid_z), sample_rift_mask(max_p.x, mid_z))
+		)
+	)
 
 	var half_diag = Vector2(max_p.x - min_p.x, max_p.z - min_p.z).length() * 0.5
-	var max_reach = half_diag + config.chasm_wall_warp_amplitude
+	# With 9-point sampling, max distance to nearest sample point is half_diag * 0.5
+	var max_reach = (half_diag * 0.5) + config.chasm_wall_warp_amplitude
 	var margin = maxf(0.12, max_reach * config.chasm_rift_frequency * 2.5)
 
-	if raw_rift < (config.chasm_rift_threshold - margin):
+	if max_rift < (config.chasm_rift_threshold - margin):
 		return false
 
-	# 3. Vertical ceiling check: only expand to arena dome ceiling if arena threshold is reachable in this cell
-	var can_arena = config.arena_enabled and (raw_rift >= (config.arena_rift_threshold - margin))
+	# 4. Vertical ceiling check: only expand to arena dome ceiling if arena threshold is reachable in this cell
+	var can_arena = config.arena_enabled and (max_rift >= (config.arena_rift_threshold - margin))
 	var effective_max_y = float(config.arena_ceiling_y) if can_arena else float(config.chasm_max_y)
 	if min_p.y >= effective_max_y:
 		return false
@@ -209,6 +369,9 @@ func get_chasm_carve(wx: float, wy: float, wz: float) -> float:
 	## Returns 1.0 if (wx, wy, wz) is inside carved chasm air void, 0.0 otherwise.
 	var effective_max_y = float(config.arena_ceiling_y) if config.arena_enabled else float(config.chasm_max_y)
 	if wy <= 2.0 or wy >= effective_max_y:
+		return 0.0
+
+	if not can_column_contain_chasm(wx, wz):
 		return 0.0
 
 	var warped_pos = get_warped_coordinates(wx, wz)
@@ -231,12 +394,24 @@ func get_chasm_carve(wx: float, wy: float, wz: float) -> float:
 
 func is_subterranean_water(wx: float, wy: float, wz: float) -> bool:
 	## Returns true if voxel is hollow chasm void at or below the chasm water level.
+	if not config.cave_water_enabled:
+		return false
 	if wy > float(config.chasm_water_level):
+		return false
+	if is_arena(wx, wz):
 		return false
 	return get_chasm_carve(wx, wy, wz) > 0.05
 
 func sample_chasm(wx: float, wy: float, wz: float) -> Dictionary:
 	## Structured point-query compatibility method.
+	if not can_column_contain_chasm(wx, wz):
+		return {
+			"is_chasm": false,
+			"density": 0.0,
+			"is_water": false,
+			"is_pillar": false
+		}
+
 	var warped_pos = get_warped_coordinates(wx, wz)
 	var raw_rift = sample_rift_mask(warped_pos.x, warped_pos.y)
 
@@ -248,6 +423,7 @@ func sample_chasm(wx: float, wy: float, wz: float) -> Dictionary:
 			"is_pillar": false
 		}
 
+	var is_arena_col = config.arena_enabled and raw_rift >= config.arena_rift_threshold
 	var is_pillar_col = is_support_pillar(warped_pos.x, warped_pos.y)
 	if config.arena_enabled and raw_rift >= (config.arena_rift_threshold + 0.02):
 		is_pillar_col = false
@@ -262,7 +438,7 @@ func sample_chasm(wx: float, wy: float, wz: float) -> Dictionary:
 
 	var bounds = calculate_floor_and_ceiling(warped_pos.x, warped_pos.y, raw_rift)
 	var is_void = wy > float(bounds.x) and wy < float(bounds.y)
-	var is_water = is_void and wy <= float(config.chasm_water_level)
+	var is_water = is_void and config.cave_water_enabled and (not is_arena_col) and wy <= float(config.chasm_water_level)
 
 	return {
 		"is_chasm": is_void,

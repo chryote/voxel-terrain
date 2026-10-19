@@ -17,6 +17,6 @@ func _ready() -> void:
 	if map_ui != null:
 		map_ui.voxel_world = voxel_world
 
-	# Position player on safe surface column
+	# Position player on active spawn point (surface or underground arena)
 	var spawn_pos = voxel_world.get_spawn_point()
 	player.global_position = spawn_pos

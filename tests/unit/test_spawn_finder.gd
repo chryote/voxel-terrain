@@ -100,3 +100,22 @@ func test_spawn_finder_with_continent_generator() -> void:
 	assert_true(h > config.sea_level + 1, "Spawn must be above sea level")
 	assert_true(h >= wh, "Spawn must not be submerged under water")
 	assert_false(gen.is_water_at(spawn_col, bounds), "is_water_at must be false for spawn column")
+
+const LayeredTerrainGeneratorClass = preload("res://src/generation/layered_terrain_generator.gd")
+const ChasmColumnResultClass = preload("res://src/generation/caves/chasm_column_result.gd")
+
+func test_spawn_finder_underground_arena() -> void:
+	var bounds = WorldBounds.new(Vector2i(32, 32), 32, 1.0)
+	var gen = LayeredTerrainGeneratorClass.new(1337)
+	var finder = SpawnFinder.new()
+
+	var spawn_pos = finder.find_underground_arena_spawn_point(gen, bounds, 24)
+	assert_true(spawn_pos != Vector3.ZERO, "Spawn position should be non-zero")
+
+	var col = ChasmColumnResultClass.new()
+	gen.cave_carver.sample_chasm_column(spawn_pos.x, spawn_pos.z, col)
+	assert_true(col.is_arena, "Spawn point must be inside an arena")
+	assert_false(col.is_pillar, "Spawn point must not be inside a pillar")
+	assert_true(col.ceil_y - col.floor_y >= 5, "Spawn point arena must have at least 5m clearance")
+	assert_almost_eq(spawn_pos.y, float(col.floor_y + 1), 0.1, "Spawn Y should be 1 unit above arena floor")
+

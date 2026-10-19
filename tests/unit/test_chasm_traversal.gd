@@ -195,3 +195,45 @@ func test_cavern_collision_mesh_presence() -> void:
 	if bundle.has_cave_geometry():
 		assert_not_null(shapes.cave_shape, "Cave collision shape must be generated for subterranean geometry")
 		assert_true(shapes.cave_shape.get_faces().size() > 0, "Cave collision shape must contain triangular faces")
+
+func test_subterranean_chunk_boundary_seam_integrity() -> void:
+	## Validates that adjacent subterranean chunks with 3D tunnels and chasms
+	## have 100% consistent boundary aprons with zero air-vs-solid seam mismatches,
+	## preventing X-ray rendering glitches and traversable out-of-bounds gaps.
+	var world_config = WorldConfig.new()
+	var gen_config = ContinentGeneratorConfig.new()
+	var cave_config = CaveGeneratorConfig.new()
+	cave_config.use_directed_worm_corridors = false
+	var bounds = world_config.create_world_bounds()
+	var generator = VolumetricTerrainGenerator.new(world_config.world_seed, gen_config, cave_config)
+	if "cave_carver" in generator and generator.cave_carver != null:
+		generator.cave_carver.set_continent_mask(generator.continent_gen.mask, bounds)
+	generator.init_cave_mouths(bounds)
+
+	var cA = ChunkCoord.new(-16, -8)
+	var cB = ChunkCoord.new(-16, -7)
+
+	var sA = generator.generate_surface(cA, bounds)
+	var subA = generator.generate_subterranean(sA, cA, bounds) as VoxelChunkData
+
+	var sB = generator.generate_surface(cB, bounds)
+	var subB = generator.generate_subterranean(sB, cB, bounds) as VoxelChunkData
+
+	assert_not_null(subA, "Chunk A subterranean data must exist")
+	assert_not_null(subB, "Chunk B subterranean data must exist")
+
+	var air_mismatches = 0
+	for lx in range(bounds.chunk_size):
+		for y in range(bounds.chunk_size):
+			var vA_inside = subA.get_voxel(lx, y, 31)
+			var vB_apron  = subB.get_voxel(lx, y, -1)
+			if vA_inside != vB_apron and (vA_inside == 0 or vB_apron == 0):
+				air_mismatches += 1
+
+			var vA_apron  = subA.get_voxel(lx, y, 32)
+			var vB_inside = subB.get_voxel(lx, y, 0)
+			if vA_apron != vB_inside and (vA_apron == 0 or vB_inside == 0):
+				air_mismatches += 1
+
+	assert_eq(air_mismatches, 0, "Must have 0 air-vs-solid seam mismatches across chunk boundary (found %d)" % air_mismatches)
+

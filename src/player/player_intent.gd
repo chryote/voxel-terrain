@@ -12,6 +12,7 @@ var fire_requested: bool = false
 var swap_shoulder_requested: bool = false
 var toggle_mouse_requested: bool = false
 var toggle_debug_requested: bool = false
+var toggle_spawn_requested: bool = false
 var toggle_map_requested: bool = false
 
 func reset() -> void:
@@ -24,4 +25,5 @@ func reset() -> void:
 	swap_shoulder_requested = false
 	toggle_mouse_requested = false
 	toggle_debug_requested = false
+	toggle_spawn_requested = false
 	toggle_map_requested = false

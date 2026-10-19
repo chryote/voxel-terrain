@@ -182,4 +182,20 @@ func test_coastal_continent_mask_falloff_preservation() -> void:
 	var _intersect = sampler.can_chasm_intersect_cell(Vector3(mid_x, 4.0, mid_z), Vector3(mid_x + 16.0, 24.0, mid_z + 16.0))
 	assert_true(sampler.is_deep_inland, "can_chasm_intersect_cell must set is_deep_inland on inland cell")
 
+func test_multi_point_culling_no_false_negatives_near_ocean_falloff() -> void:
+	var world_config = WorldConfig.new()
+	var gen_config = ContinentGeneratorConfig.new()
+	var cave_config = CaveGeneratorConfig.new()
+	var bounds = world_config.create_world_bounds()
+	var cont_gen = ContinentGenerator.new(1337, gen_config)
+	var sampler = UndergroundChasmSampler.new(1337, cave_config)
+	sampler.set_continent_mask(cont_gen.mask, bounds)
+
+	# Chunk (79, 4) world box [2528, 0, 128] to [2560, 160, 160]
+	var min_p = Vector3(2528.0, 0.0, 128.0)
+	var max_p = Vector3(2560.0, 160.0, 160.0)
+
+	var can_intersect = sampler.can_chasm_intersect_cell(min_p, max_p)
+	assert_true(can_intersect, "can_chasm_intersect_cell must return true for Chunk (79, 4) where a chasm traverses the corner")
+
 

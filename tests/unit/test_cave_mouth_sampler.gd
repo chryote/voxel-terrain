@@ -113,3 +113,39 @@ func test_crust_sealed_outside_mouth() -> void:
 			var subterranean_y = surface_h - 10.0
 			var sealed_sub = sampler.is_crust_sealed(float(x), subterranean_y, float(z), surface_h, sea_level)
 			assert_false(sealed_sub, "Deep subterranean rock is not part of protected surface crust")
+
+func test_cave_mouth_chunk_apron_candidate_detection() -> void:
+	var world_config = WorldConfig.new()
+	var bounds = world_config.create_world_bounds()
+	var gen_config = ContinentGeneratorConfig.new()
+	var cave_config = CaveGeneratorConfig.new()
+	var generator = VolumetricTerrainGenerator.new(world_config.world_seed, gen_config, cave_config)
+	generator.init_cave_mouths(bounds)
+
+	# Chunk (81, 3) has the cave mouth, Chunk (81, 4) directly borders it in its North apron
+	var c81_3 = ChunkCoord.new(81, 3)
+	var c81_4 = ChunkCoord.new(81, 4)
+	var s81_3 = generator.generate_surface(c81_3, bounds)
+	var s81_4 = generator.generate_surface(c81_4, bounds)
+
+	assert_true(s81_3.has_cave_mouth, "Chunk (81, 3) must have has_cave_mouth = true")
+	assert_true(s81_4.has_cave_mouth, "Chunk (81, 4) must have has_cave_mouth = true due to apron mouth border")
+
+	var sub81_4 = generator.generate_subterranean(s81_4, c81_4, bounds)
+	assert_true(sub81_4 is VoxelChunkData, "Chunk (81, 4) must be promoted to VoxelChunkData")
+
+	var mesher = VoxelMesher.new()
+	var registry = MaterialRegistry.create_default_registry()
+	var bundle = mesher.build_mesh(sub81_4, registry) as DualMeshBundle
+	assert_not_null(bundle, "Must produce DualMeshBundle")
+	assert_true(bundle.has_cave_mouth, "Bundle must have has_cave_mouth = true")
+
+	# Check for North-facing wall at z=0 (facing 81, 3)
+	var has_north_wall = false
+	for i in range(bundle.vertices.size()):
+		var v = bundle.vertices[i]
+		var n = bundle.normals[i]
+		if absf(v.z) < 0.01 and n.z < -0.9:
+			has_north_wall = true
+			break
+	assert_true(has_north_wall, "Chunk (81, 4) must mesh a North-facing wall at z=0 to seal the cave mouth opening")

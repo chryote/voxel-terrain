@@ -58,17 +58,18 @@ func check_has_cave_mouth(surface_data: SurfaceChunkData, coord: ChunkCoord, bou
 	if cave_carver.mouth_sampler.use_allowed_mouths:
 		var chunk_origin = bounds.chunk_origin(coord)
 		var c_span = float(c_size) * bounds.voxel_size
+		var apron_margin = bounds.voxel_size
 		if not cave_carver.mouth_sampler.limiter.can_box_intersect_mouths(
-			chunk_origin.x, chunk_origin.z,
-			chunk_origin.x + c_span, chunk_origin.z + c_span,
+			chunk_origin.x - apron_margin, chunk_origin.z - apron_margin,
+			chunk_origin.x + c_span + apron_margin, chunk_origin.z + c_span + apron_margin,
 			cave_carver.mouth_sampler.allowed_mouths,
 			cave_carver.config.mouth_radius
 		):
 			return false
 
 	var sea_level = config.sea_level
-	for lz in range(c_size):
-		for lx in range(c_size):
+	for lz in range(-1, c_size + 1):
+		for lx in range(-1, c_size + 1):
 			var gx = coord.x * c_size + lx
 			var gz = coord.z * c_size + lz
 			var wx = (float(gx) + 0.5) * bounds.voxel_size
@@ -138,10 +139,11 @@ func generate_chasm_data(
 	if not cave_config.enabled:
 		return chasm_data
 
-	var min_wx = float(coord.x * c_size) * bounds.voxel_size
-	var min_wz = float(coord.z * c_size) * bounds.voxel_size
-	var max_wx = float((coord.x + 1) * c_size) * bounds.voxel_size
-	var max_wz = float((coord.z + 1) * c_size) * bounds.voxel_size
+	var apron_margin = bounds.voxel_size
+	var min_wx = float(coord.x * c_size) * bounds.voxel_size - apron_margin
+	var min_wz = float(coord.z * c_size) * bounds.voxel_size - apron_margin
+	var max_wx = float((coord.x + 1) * c_size) * bounds.voxel_size + apron_margin
+	var max_wz = float((coord.z + 1) * c_size) * bounds.voxel_size + apron_margin
 	var cell_min_p = Vector3(min_wx, 0.0, min_wz)
 	var cell_max_p = Vector3(max_wx, float(max_h) * bounds.voxel_size, max_wz)
 
@@ -166,20 +168,24 @@ func generate_chasm_data(
 			chasm_data.floor_heights[col_idx] = chasm_col.floor_y
 			chasm_data.ceil_heights[col_idx] = chasm_col.ceil_y
 
+			var is_interior = (lx >= 0 and lx < c_size and lz >= 0 and lz < c_size)
 			var flag = 0
 			if chasm_col.is_chasm:
 				flag |= ChasmChunkDataClass.FLAG_CHASM
-				chasm_data.has_chasm = true
+				if is_interior:
+					chasm_data.has_chasm = true
 			if chasm_col.is_pillar:
 				flag |= ChasmChunkDataClass.FLAG_PILLAR
 			if chasm_col.is_wall:
 				flag |= ChasmChunkDataClass.FLAG_WALL
 			if chasm_col.is_arena:
 				flag |= ChasmChunkDataClass.FLAG_ARENA
-				chasm_data.has_arena = true
+				if is_interior:
+					chasm_data.has_arena = true
 			if chasm_col.is_arena_ledge:
 				flag |= ChasmChunkDataClass.FLAG_ARENA_LEDGE
-				chasm_data.has_arena = true
+				if is_interior:
+					chasm_data.has_arena = true
 			if chasm_col.is_basalt_column:
 				flag |= ChasmChunkDataClass.FLAG_BASALT_COLUMN
 

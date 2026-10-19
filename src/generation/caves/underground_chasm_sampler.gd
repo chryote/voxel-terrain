@@ -326,20 +326,37 @@ func can_chasm_intersect_cell(min_p: Vector3, max_p: Vector3) -> bool:
 	# 2. Update chunk-level deep inland status across the 4 corners
 	update_deep_inland_status(min_p.x, min_p.z, max_p.x, max_p.z)
 
-	# 3. 2D Coarse AABB check with conservative margin scaled to cell size and wall warp
+	# 3. 2D Coarse AABB check with conservative multi-point sampling across cell & apron
 	var mid_x = (min_p.x + max_p.x) * 0.5
 	var mid_z = (min_p.z + max_p.z) * 0.5
-	var raw_rift = sample_rift_mask(mid_x, mid_z)
+
+	# Sample center, 4 corners, and 4 edge midpoints to prevent single-sample false negatives
+	# near ocean falloff boundaries or localized rift ridges
+	var max_rift = maxf(
+		sample_rift_mask(mid_x, mid_z),
+		maxf(
+			maxf(sample_rift_mask(min_p.x, min_p.z), sample_rift_mask(max_p.x, min_p.z)),
+			maxf(sample_rift_mask(min_p.x, max_p.z), sample_rift_mask(max_p.x, max_p.z))
+		)
+	)
+	max_rift = maxf(
+		max_rift,
+		maxf(
+			maxf(sample_rift_mask(mid_x, min_p.z), sample_rift_mask(mid_x, max_p.z)),
+			maxf(sample_rift_mask(min_p.x, mid_z), sample_rift_mask(max_p.x, mid_z))
+		)
+	)
 
 	var half_diag = Vector2(max_p.x - min_p.x, max_p.z - min_p.z).length() * 0.5
-	var max_reach = half_diag + config.chasm_wall_warp_amplitude
+	# With 9-point sampling, max distance to nearest sample point is half_diag * 0.5
+	var max_reach = (half_diag * 0.5) + config.chasm_wall_warp_amplitude
 	var margin = maxf(0.12, max_reach * config.chasm_rift_frequency * 2.5)
 
-	if raw_rift < (config.chasm_rift_threshold - margin):
+	if max_rift < (config.chasm_rift_threshold - margin):
 		return false
 
-	# 3. Vertical ceiling check: only expand to arena dome ceiling if arena threshold is reachable in this cell
-	var can_arena = config.arena_enabled and (raw_rift >= (config.arena_rift_threshold - margin))
+	# 4. Vertical ceiling check: only expand to arena dome ceiling if arena threshold is reachable in this cell
+	var can_arena = config.arena_enabled and (max_rift >= (config.arena_rift_threshold - margin))
 	var effective_max_y = float(config.arena_ceiling_y) if can_arena else float(config.chasm_max_y)
 	if min_p.y >= effective_max_y:
 		return false

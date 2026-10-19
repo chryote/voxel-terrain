@@ -89,6 +89,7 @@ func _ensure_nodes_exist() -> void:
 
 		add_child(static_body)
 
+var _cached_prebaked_surface_shape: ConcavePolygonShape3D = null
 var _cached_prebaked_cave_shape: ConcavePolygonShape3D = null
 var _collision_distance_enabled: bool = false
 
@@ -104,18 +105,23 @@ func setup(
 	position = origin
 	has_cave_mouth = mesh_data.has_cave_mouth if mesh_data != null else false
 	_ensure_nodes_exist()
+	visible = true
 
-	# Assign pre-baked surface shape immediately
+	# Cache surface shape; defer binding to PhysicsServer until collision is enabled
 	if prebaked_surface_shape != null:
-		collision_shape.shape = prebaked_surface_shape
+		_cached_prebaked_surface_shape = prebaked_surface_shape
 	elif mesh_data is DualMeshBundle and mesh_data.surface_shape != null:
-		collision_shape.shape = mesh_data.surface_shape
+		_cached_prebaked_surface_shape = mesh_data.surface_shape
+	else:
+		_cached_prebaked_surface_shape = null
 
 	# Cache cave shape; defer binding to PhysicsServer until cave layer is activated
 	if prebaked_cave_shape != null:
 		_cached_prebaked_cave_shape = prebaked_cave_shape
 	elif mesh_data is DualMeshBundle and mesh_data.cave_shape != null:
 		_cached_prebaked_cave_shape = mesh_data.cave_shape
+	else:
+		_cached_prebaked_cave_shape = null
 
 	# 1. Surface Mesh Setup
 	var array_mesh = mesh_data.create_array_mesh() if mesh_data != null else null
@@ -132,6 +138,7 @@ func setup(
 		water_instance.visible = true
 	elif water_instance != null:
 		water_instance.visible = false
+		water_instance.mesh = null
 
 	# 3. Subterranean Cave Mesh & Cave Water Setup (DualMeshBundle)
 	if mesh_data is DualMeshBundle and mesh_data.has_cave_geometry():
@@ -148,13 +155,43 @@ func setup(
 			cave_water_instance.mesh = c_mesh_data.water_mesh_data.create_array_mesh()
 		elif cave_water_instance != null:
 			cave_water_instance.visible = false
+			cave_water_instance.mesh = null
 	else:
 		cave_mesh_instance.mesh = null
 		cave_mesh_instance.visible = false
 		if cave_water_instance != null:
 			cave_water_instance.visible = false
+			cave_water_instance.mesh = null
 
 	set_collision_enabled(enable_collision)
+
+func prepare_for_pool() -> void:
+	coord = null
+	has_cave_mouth = false
+	_collision_distance_enabled = false
+	_cached_prebaked_surface_shape = null
+	_cached_prebaked_cave_shape = null
+
+	if mesh_instance != null:
+		mesh_instance.mesh = null
+	if cave_mesh_instance != null:
+		cave_mesh_instance.mesh = null
+		cave_mesh_instance.visible = false
+	if water_instance != null:
+		water_instance.mesh = null
+		water_instance.visible = false
+	if cave_water_instance != null:
+		cave_water_instance.mesh = null
+		cave_water_instance.visible = false
+
+	if collision_shape != null:
+		collision_shape.shape = null
+		collision_shape.disabled = true
+	if cave_collision_shape != null:
+		cave_collision_shape.shape = null
+		cave_collision_shape.disabled = true
+
+	visible = false
 
 func apply_subterranean_bundle(
 	mesh_data: MeshData,
@@ -184,7 +221,9 @@ func apply_subterranean_bundle(
 		if mesh_data.has_cave_mouth and not mesh_data.is_empty():
 			mesh_instance.mesh = mesh_data.create_array_mesh()
 			if mesh_data.surface_shape != null:
-				collision_shape.shape = mesh_data.surface_shape
+				_cached_prebaked_surface_shape = mesh_data.surface_shape
+				if _collision_distance_enabled:
+					collision_shape.shape = mesh_data.surface_shape
 
 	if prebaked_cave_shape != null:
 		_cached_prebaked_cave_shape = prebaked_cave_shape
@@ -228,9 +267,11 @@ func set_collision_enabled(enable: bool) -> void:
 	_collision_distance_enabled = enable
 
 	if enable:
-		# Surface collision shape
-		if collision_shape.shape == null and mesh_instance != null and mesh_instance.mesh != null:
-			if mesh_instance.mesh.get_surface_count() > 0:
+		# Surface collision shape (bind cached pre-baked shape or fallback to trimesh)
+		if collision_shape.shape == null:
+			if _cached_prebaked_surface_shape != null:
+				collision_shape.shape = _cached_prebaked_surface_shape
+			elif mesh_instance != null and mesh_instance.mesh != null and mesh_instance.mesh.get_surface_count() > 0:
 				var shape = mesh_instance.mesh.create_trimesh_shape()
 				if shape != null:
 					shape.backface_collision = true

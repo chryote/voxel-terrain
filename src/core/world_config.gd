@@ -20,6 +20,7 @@ extends Resource
 @export_range(1, 32) var view_distance_chunks: int = 8
 @export_range(0, 16) var collision_distance_chunks: int = 3
 @export_range(1, 32) var max_mesh_applies_per_frame: int = 4
+@export_range(0.2, 5.0, 0.1) var max_mesh_apply_budget_ms: float = 1.0
 @export_range(1, 16) var shell_depth: int = 3
 
 @export_group("World Features")

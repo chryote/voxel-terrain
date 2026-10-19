@@ -167,3 +167,33 @@ func test_late_binding_prebaked_shape_activates_collision() -> void:
 	assert_false(chunk_node.cave_collision_shape.disabled, "Cave collision shape must be enabled automatically")
 
 	chunk_node.free()
+
+func test_lazy_surface_collision_binding_deferred_until_in_range() -> void:
+	var mesh_data = _create_test_mesh_data()
+	var baker = OffThreadCollisionBaker.new()
+	var shapes = baker.bake_shapes_for_bundle(mesh_data)
+	assert_not_null(shapes.surface_shape, "Pre-baked surface shape must be valid")
+
+	var chunk_node = ChunkNode.new()
+	var coord = ChunkCoord.new(5, 5)
+
+	# Setup with collision disabled (simulating chunk spawned at view horizon)
+	chunk_node.setup(coord, Vector3(160, 0, 160), mesh_data, false, shapes.surface_shape, null)
+
+	# CollisionShape3D must NOT be bound to PhysicsServer yet
+	assert_null(chunk_node.collision_shape.shape, "Surface shape must remain null when spawned out of range")
+	assert_true(chunk_node.collision_shape.disabled, "Surface collision shape must be disabled")
+	assert_eq(chunk_node._cached_prebaked_surface_shape, shapes.surface_shape, "Shape must be cached for future binding")
+
+	# When player approaches and enables collision:
+	chunk_node.set_collision_enabled(true)
+	assert_eq(chunk_node.collision_shape.shape, shapes.surface_shape, "Surface shape must be bound from cache")
+	assert_false(chunk_node.collision_shape.disabled, "Collision must now be enabled")
+
+	# When player moves away and disables collision:
+	chunk_node.set_collision_enabled(false)
+	assert_true(chunk_node.collision_shape.disabled, "Collision must be disabled")
+	assert_eq(chunk_node.collision_shape.shape, shapes.surface_shape, "Shape reference remains cached")
+
+	chunk_node.free()
+

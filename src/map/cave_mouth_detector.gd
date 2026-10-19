@@ -182,13 +182,15 @@ func classify_cave_mouth(
 	# -------------------------------------------------------------------------
 	# 1. Check for connection to Underground Chasm (Highest Priority: Green)
 	# -------------------------------------------------------------------------
+	var mouth_bottom_y = surface_h - mouth_info.carve_depth
 	for off in sample_offsets:
 		var sx = wx + off.x
 		var sz = wz + off.y
 		chasm_sampler.sample_column(sx, sz, chasm_col)
 
 		if chasm_col.is_chasm and not chasm_col.is_pillar:
-			return CaveMouthDataClass.Type.CHASM
+			if mouth_bottom_y <= float(chasm_col.ceil_y + 1):
+				return CaveMouthDataClass.Type.CHASM
 
 	# -------------------------------------------------------------------------
 	# 2. Check for connection to Interconnected 3D Worm Tunnels (Medium Priority: Yellow)

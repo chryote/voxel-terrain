@@ -137,10 +137,26 @@ func sample_rift_mask(sample_x: float, sample_z: float) -> float:
 		rift *= ocean_fade
 	return rift
 
-func is_support_pillar(sample_x: float, sample_z: float) -> bool:
+func is_support_pillar(sample_x: float, sample_z: float, raw_rift: float = -1.0) -> bool:
 	## Returns true if the 2D column falls inside a solid vertical stone support pillar.
+	# 1. Battle Arena & Approach Corridor Protection:
+	# Within active battle arenas and their approach/connecting avenues, support pillars
+	# are strictly suppressed to guarantee open multi-directional traversal and prevent entombment.
+	if config.arena_enabled:
+		var rift = raw_rift if raw_rift >= 0.0 else sample_rift_mask(sample_x, sample_z)
+		if rift >= (config.arena_rift_threshold - 0.08):
+			return false
+
+	# 2. Primary 2D Column Noise Density Check
 	var pil_val = (pillar_noise.get_noise_2d(sample_x, sample_z) + 1.0) * 0.5
-	return pil_val > config.pillar_threshold
+	if pil_val <= config.pillar_threshold:
+		return false
+
+	# 3. Discrete Column Shaping (Cross-Noise Intersection):
+	# Intersecting decorrelated 2D noise restricts support pillars to localized circular/oval
+	# columns (3-6m radius) rather than continuous wall-like dams spanning across chunk boundaries.
+	var pil_val2 = (pillar_noise.get_noise_2d(sample_x * 1.8 + 61.7, sample_z * 1.8 + 43.1) + 1.0) * 0.5
+	return pil_val2 > (config.pillar_threshold * 0.92)
 
 func calculate_floor_and_ceiling(sample_x: float, sample_z: float, raw_rift: float = 0.0) -> Vector2i:
 	## Evaluates floor and ceiling elevations, strictly enforcing bedrock protection and clearance.
@@ -152,24 +168,33 @@ func calculate_floor_and_ceiling(sample_x: float, sample_z: float, raw_rift: flo
 	var cl_y = int(round(float(config.chasm_max_y) + ceil_offset))
 
 	# Arena POI feature: wide, flat battle amphitheater floor with perimeter stepped ledges
-	if config.arena_enabled and raw_rift >= config.arena_rift_threshold:
+	if config.arena_enabled:
 		var target_floor = float(config.arena_floor_y)
-		var blend = clampf((raw_rift - config.arena_rift_threshold) / 0.02, 0.0, 1.0)
-		if blend >= 1.0:
-			# Combat Pit / Arena Center: flat floor
-			fl_y = int(target_floor)
-			cl_y = maxi(cl_y, config.arena_ceiling_y)
-		else:
-			# Perimeter spectator ledges: stepped tiers overlooking the battle floor
-			var ledge_elev = float(config.arena_ledge_step_height) * sin(blend * PI)
-			fl_y = int(round(lerpf(raw_fl_y, target_floor, blend) + ledge_elev))
-			cl_y = maxi(cl_y, int(lerpf(float(cl_y), float(config.arena_ceiling_y), blend)))
+		if raw_rift >= config.arena_rift_threshold:
+			var blend = clampf((raw_rift - config.arena_rift_threshold) / 0.02, 0.0, 1.0)
+			if blend >= 1.0:
+				# Combat Pit / Arena Center: flat floor
+				fl_y = int(target_floor)
+				cl_y = maxi(cl_y, config.arena_ceiling_y)
+			else:
+				# Perimeter spectator ledges: stepped tiers overlooking the battle floor
+				var ledge_elev = float(config.arena_ledge_step_height) * sin(blend * PI)
+				fl_y = int(round(lerpf(raw_fl_y, target_floor, blend) + ledge_elev))
+				cl_y = maxi(cl_y, int(lerpf(float(cl_y), float(config.arena_ceiling_y), blend)))
+		elif raw_rift >= (config.arena_rift_threshold - 0.06):
+			# Approach / Connecting Avenue: smoothly transitions floor and vaults ceiling
+			# so adjacent arena chambers are guaranteed connected by open, walkable thoroughfares
+			var approach_blend = (raw_rift - (config.arena_rift_threshold - 0.06)) / 0.06
+			fl_y = int(round(lerpf(raw_fl_y, target_floor, approach_blend * 0.75)))
+			if config.cave_water_enabled:
+				fl_y = maxi(fl_y, config.chasm_water_level + 1)
+			cl_y = maxi(cl_y, int(lerpf(float(cl_y), float(config.arena_ceiling_y), approach_blend * 0.75)))
 
 	# Bedrock protection: bedrock is Y=0..2, so floor must never drop below Y=3
 	fl_y = maxi(fl_y, 3)
 
-	# Ceiling boundary: ensure ceiling never exceeds configured maximum elevation (unless arena dome)
-	if not (config.arena_enabled and raw_rift >= config.arena_rift_threshold):
+	# Ceiling boundary: ensure ceiling never exceeds configured maximum elevation (unless arena or approach dome)
+	if not (config.arena_enabled and raw_rift >= (config.arena_rift_threshold - 0.06)):
 		cl_y = mini(cl_y, config.chasm_max_y)
 
 	# Enforce minimum vertical clearance invariant (prevent player/camera trap crevices)
@@ -291,14 +316,15 @@ func sample_column(wx: float, wz: float, out: ChasmColumnResult = null, surface_
 		out.ceil_y = bounds.y
 		return out
 
-	var is_pillar_col = is_support_pillar(warped_pos.x, warped_pos.y)
+	var is_pillar_col = is_support_pillar(warped_pos.x, warped_pos.y, raw_rift)
 	if is_arena_zone:
-		if raw_rift >= core_arena_threshold:
-			# Pillars are strictly suppressed inside the combat arena
-			is_pillar_col = false
-		else:
-			# On perimeter ledges, pillars form basalt colonnade accents
-			if is_pillar_col:
+		# Pillars are strictly suppressed inside the combat arena and its perimeter rings
+		is_pillar_col = false
+		if raw_rift < core_arena_threshold:
+			# On perimeter ledges, basalt column styling can decorate the stepped ledge floor
+			# using the column noise pattern, while remaining 100% open traversable void!
+			var pil_val = (pillar_noise.get_noise_2d(warped_pos.x, warped_pos.y) + 1.0) * 0.5
+			if pil_val > config.pillar_threshold:
 				out.is_basalt_column = true
 
 	if is_pillar_col:
@@ -379,8 +405,8 @@ func get_chasm_carve(wx: float, wy: float, wz: float) -> float:
 	if raw_rift < config.chasm_rift_threshold:
 		return 0.0
 
-	var is_pillar_col = is_support_pillar(warped_pos.x, warped_pos.y)
-	if config.arena_enabled and raw_rift >= (config.arena_rift_threshold + 0.02):
+	var is_pillar_col = is_support_pillar(warped_pos.x, warped_pos.y, raw_rift)
+	if config.arena_enabled and raw_rift >= config.arena_rift_threshold:
 		is_pillar_col = false
 
 	if is_pillar_col:
@@ -424,8 +450,8 @@ func sample_chasm(wx: float, wy: float, wz: float) -> Dictionary:
 		}
 
 	var is_arena_col = config.arena_enabled and raw_rift >= config.arena_rift_threshold
-	var is_pillar_col = is_support_pillar(warped_pos.x, warped_pos.y)
-	if config.arena_enabled and raw_rift >= (config.arena_rift_threshold + 0.02):
+	var is_pillar_col = is_support_pillar(warped_pos.x, warped_pos.y, raw_rift)
+	if is_arena_col:
 		is_pillar_col = false
 
 	if is_pillar_col:

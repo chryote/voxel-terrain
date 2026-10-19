@@ -351,5 +351,124 @@ func test_arena_boundary_seams() -> void:
 	assert_true(checked_points > 0, "Must check boundary coordinates")
 	assert_true(suppressed_points > 0, "Tunnel suppression must be active along arena boundary")
 
+func test_arena_interconnectivity_and_approach_avenues() -> void:
+	## Validates that arena complexes span across multiple connected chunks
+	## and that transition corridors maintain elevated dry floors and vaulted ceilings.
+	var world_config = WorldConfig.new()
+	var bounds = world_config.create_world_bounds()
+	var gen_config = ContinentGeneratorConfig.new()
+	var cont_gen = ContinentGenerator.new(1337, gen_config)
+	var cave_config = CaveGeneratorConfig.new()
+
+	var sampler = UndergroundChasmSampler.new(1337, cave_config)
+	sampler.set_continent_mask(cont_gen.mask, bounds)
+	var col = ChasmColumnResult.new()
+
+	# 1. Locate arena complex chunks
+	var arena_chunks: Array[Vector2i] = []
+	for cz in range(bounds.min_chunk_z + 10, bounds.max_chunk_z - 10):
+		for cx in range(bounds.min_chunk_x + 10, bounds.max_chunk_x - 10):
+			var wx = float(cx * 32 + 16)
+			var wz = float(cz * 32 + 16)
+			sampler.sample_column(wx, wz, col)
+			if col.is_arena and col.raw_rift >= cave_config.arena_rift_threshold:
+				arena_chunks.push_back(Vector2i(cx, cz))
+
+	assert_true(arena_chunks.size() >= 100, "Subterranean arena complexes must form extensive connected networks (found %d chunks)" % arena_chunks.size())
+
+	# 2. Verify that arena rifts connect across adjacent chunks
+	var connected_pairs = 0
+	for c in arena_chunks:
+		for d in [Vector2i(1, 0), Vector2i(0, 1)]:
+			if arena_chunks.has(c + d):
+				connected_pairs += 1
+
+	assert_true(connected_pairs >= 50, "Arena chunks must connect into multi-chamber complexes (found %d connected pairs)" % connected_pairs)
+
+	# 3. Test approach corridor transitions between rifts
+	var sample_chunk = arena_chunks[0]
+	var tested_approach = 0
+	for lz in range(32):
+		for lx in range(32):
+			var wx = float(sample_chunk.x * 32 + lx)
+			var wz = float(sample_chunk.y * 32 + lz)
+			sampler.sample_column(wx, wz, col)
+			if (not col.is_arena) and col.raw_rift >= (cave_config.arena_rift_threshold - 0.06):
+				tested_approach += 1
+				# Approach avenues must maintain elevated dry floors above abyssal water
+				assert_true(col.floor_y > cave_config.chasm_water_level, "Approach avenues must remain above water table")
+				# Headroom clearance must remain generous for battle traversal
+				assert_true(col.ceil_y - col.floor_y >= int(cave_config.min_chasm_height), "Headroom clearance invariant must hold")
+
+func test_pillar_non_entombment_and_directional_clearance() -> void:
+	## Validates that procedural pillars never entomb arena sections or block directions of the arena,
+	## even when pillar thresholds are set aggressively low.
+	var world_config = WorldConfig.new()
+	var bounds = world_config.create_world_bounds()
+	var gen_config = ContinentGeneratorConfig.new()
+	var cont_gen = ContinentGenerator.new(1337, gen_config)
+	var config = CaveGeneratorConfig.new()
+	config.arena_enabled = true
+	config.pillar_threshold = 0.05 # Very low threshold forcing heavy pillar generation
+	var sampler = UndergroundChasmSampler.new(1337, config)
+	sampler.set_continent_mask(cont_gen.mask, bounds)
+	var col = ChasmColumnResult.new()
+
+	# 1. Locate arena center
+	var arena_center = Vector2.ZERO
+	var arena_chunk = Vector2i.ZERO
+	var found = false
+	for ix in range(-200, 200, 4):
+		for iz in range(-200, 200, 4):
+			var wx = float(ix) * 5.0
+			var wz = float(iz) * 5.0
+			sampler.sample_column(wx, wz, col)
+			if col.is_arena and col.raw_rift >= (config.arena_rift_threshold + 0.02):
+				arena_center = Vector2(wx, wz)
+				arena_chunk = Vector2i(int(floor(wx / 32.0)), int(floor(wz / 32.0)))
+				found = true
+				break
+		if found:
+			break
+
+	assert_true(found, "Must locate arena chamber")
+
+	# 2. Test arena and approach corridor columns: none should be solid pillars
+	var arena_col_count = 0
+	var approach_col_count = 0
+	for dx in range(-35, 36, 2):
+		for dz in range(-35, 36, 2):
+			var wx = arena_center.x + float(dx)
+			var wz = arena_center.y + float(dz)
+			sampler.sample_column(wx, wz, col)
+
+			if col.is_arena:
+				arena_col_count += 1
+				assert_false(col.is_pillar, "Arena columns must never be marked as pillars at (%f, %f)" % [wx, wz])
+				assert_true(col.is_chasm, "Arena columns must remain open chasm void")
+				assert_eq(sampler.get_chasm_carve(wx, 18.0, wz), 1.0, "Arena point query must be carved void")
+			elif col.raw_rift >= (config.arena_rift_threshold - 0.06):
+				approach_col_count += 1
+				assert_false(col.is_pillar, "Approach avenues must never be blocked by pillars at (%f, %f)" % [wx, wz])
+
+	assert_true(arena_col_count >= 50, "Must test at least 50 arena columns")
+	assert_true(approach_col_count >= 20, "Must test at least 20 approach columns")
+
+	# 3. Test that all boundary connections of the arena chunk have open void thoroughfares
+	var open_boundary_count = 0
+	for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		var open_cols = 0
+		for l in range(32):
+			var ex = float(arena_chunk.x * 32 + (31 if d.x > 0 else (0 if d.x < 0 else l)))
+			var ez = float(arena_chunk.y * 32 + (31 if d.y > 0 else (0 if d.y < 0 else l)))
+			sampler.sample_column(ex, ez, col)
+			if col.is_chasm:
+				open_cols += 1
+		if open_cols > 0:
+			open_boundary_count += 1
+
+	assert_true(open_boundary_count >= 3, "Arena chunk must not be entombed; must connect to open neighbors in >= 3 directions (found %d)" % open_boundary_count)
+
+
 
 

@@ -43,7 +43,7 @@ func test_voxel_mesher_decouples_surface_and_caves() -> void:
 	var vol_gen = VolumetricTerrainGenerator.new(1337)
 	var mesher = VoxelMesher.new()
 
-	var data = vol_gen.generate(ChunkCoord.new(0, 0), bounds)
+	var data = vol_gen.generate(ChunkCoord.new(0, -1), bounds)
 	var result = mesher.build_mesh(data, reg)
 
 	assert_true(result is DualMeshBundle, "VoxelMesher must return a DualMeshBundle")

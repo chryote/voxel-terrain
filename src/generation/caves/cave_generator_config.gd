@@ -54,7 +54,7 @@ extends Resource
 
 @export_group("Chasm Battle Arenas & POIs")
 @export var arena_enabled: bool = true ## Enable procedural subterranean battle arenas
-@export_range(0.70, 0.95) var arena_rift_threshold: float = 0.80 ## Rift corridor density threshold to anchor arenas
+@export_range(0.70, 0.95) var arena_rift_threshold: float = 0.74 ## Rift corridor density threshold to anchor arenas
 @export var arena_floor_y: int = 6 ## Flattened arena combat elevation (elevated above water level)
 @export var arena_ceiling_y: int = 28 ## Vaulted ceiling dome elevation in battle arenas
 @export var arena_ledge_step_height: int = 2 ## Height delta for stepped spectator ledges along perimeter

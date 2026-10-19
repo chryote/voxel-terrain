@@ -193,16 +193,12 @@ func apply_subterranean_bundle(
 
 	if is_subterranean_visible() and _collision_distance_enabled:
 		if cave_collision_shape != null:
-			if cave_collision_shape.shape == null:
-				if _cached_prebaked_cave_shape != null:
-					cave_collision_shape.shape = _cached_prebaked_cave_shape
-				elif cave_mesh_instance != null and cave_mesh_instance.mesh != null and cave_mesh_instance.mesh.get_surface_count() > 0:
-					var c_shape = cave_mesh_instance.mesh.create_trimesh_shape()
-					if c_shape != null:
-						c_shape.backface_collision = true
-					cave_collision_shape.shape = c_shape
+			if cave_collision_shape.shape == null and _cached_prebaked_cave_shape != null:
+				cave_collision_shape.shape = _cached_prebaked_cave_shape
 			if cave_collision_shape.shape != null:
 				cave_collision_shape.disabled = false
+			else:
+				cave_collision_shape.disabled = true
 
 func set_subterranean_visible(visible: bool) -> void:
 	if cave_mesh_instance != null:
@@ -211,14 +207,8 @@ func set_subterranean_visible(visible: bool) -> void:
 		cave_water_instance.visible = visible
 	if cave_collision_shape != null:
 		if visible:
-			if cave_collision_shape.shape == null:
-				if _cached_prebaked_cave_shape != null:
-					cave_collision_shape.shape = _cached_prebaked_cave_shape
-				elif cave_mesh_instance != null and cave_mesh_instance.mesh != null and cave_mesh_instance.mesh.get_surface_count() > 0:
-					var c_shape = cave_mesh_instance.mesh.create_trimesh_shape()
-					if c_shape != null:
-						c_shape.backface_collision = true
-					cave_collision_shape.shape = c_shape
+			if cave_collision_shape.shape == null and _cached_prebaked_cave_shape != null:
+				cave_collision_shape.shape = _cached_prebaked_cave_shape
 			if _collision_distance_enabled and cave_collision_shape.shape != null:
 				cave_collision_shape.disabled = false
 			else:
@@ -253,14 +243,8 @@ func set_collision_enabled(enable: bool) -> void:
 		# Cave collision shape (bound only if subterranean collision is active)
 		if cave_collision_shape != null:
 			if is_subterranean_visible():
-				if cave_collision_shape.shape == null:
-					if _cached_prebaked_cave_shape != null:
-						cave_collision_shape.shape = _cached_prebaked_cave_shape
-					elif cave_mesh_instance != null and cave_mesh_instance.mesh != null and cave_mesh_instance.mesh.get_surface_count() > 0:
-						var c_shape = cave_mesh_instance.mesh.create_trimesh_shape()
-						if c_shape != null:
-							c_shape.backface_collision = true
-						cave_collision_shape.shape = c_shape
+				if cave_collision_shape.shape == null and _cached_prebaked_cave_shape != null:
+					cave_collision_shape.shape = _cached_prebaked_cave_shape
 				if cave_collision_shape.shape != null:
 					cave_collision_shape.disabled = false
 				else:

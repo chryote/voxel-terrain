@@ -42,11 +42,10 @@ func update_chunk_visibility(
 ) -> PlayerLayerState:
 	var is_near_mouth = false
 	if focus_coord != null:
-		# Check if focus chunk or adjacent chunk contains a mouth
+		# Check if focus chunk or adjacent chunk contains a mouth (bitwise key, zero object allocations)
 		for dz in range(-mouth_visibility_radius_chunks, mouth_visibility_radius_chunks + 1):
 			for dx in range(-mouth_visibility_radius_chunks, mouth_visibility_radius_chunks + 1):
-				var neighbor_coord = ChunkCoord.new(focus_coord.x + dx, focus_coord.z + dz)
-				var key = neighbor_coord.to_key()
+				var key = ((focus_coord.x + dx) & 0xFFFFFFFF) | (((focus_coord.z + dz) & 0xFFFFFFFF) << 32)
 				if mouth_cache.get(key, false):
 					is_near_mouth = true
 					break
@@ -63,33 +62,27 @@ func update_chunk_visibility(
 	last_state = current_state
 	_last_chunk_count = loaded_chunks.size()
 
+	var is_sub = (current_state == PlayerLayerState.SUBTERRANEAN)
+
 	for key in loaded_chunks:
 		var node = loaded_chunks[key]
 		if not (node is ChunkNode):
 			continue
 
-		var coord: ChunkCoord = node.coord
-		var chunk_has_mouth_nearby = false
-		for dz in range(-mouth_visibility_radius_chunks, mouth_visibility_radius_chunks + 1):
-			for dx in range(-mouth_visibility_radius_chunks, mouth_visibility_radius_chunks + 1):
-				var n_coord = ChunkCoord.new(coord.x + dx, coord.z + dz)
-				if mouth_cache.get(n_coord.to_key(), false):
-					chunk_has_mouth_nearby = true
+		var target_visible = true
+		if not is_sub:
+			var coord: ChunkCoord = node.coord
+			target_visible = false
+			for dz in range(-mouth_visibility_radius_chunks, mouth_visibility_radius_chunks + 1):
+				for dx in range(-mouth_visibility_radius_chunks, mouth_visibility_radius_chunks + 1):
+					var n_key = ((coord.x + dx) & 0xFFFFFFFF) | (((coord.z + dz) & 0xFFFFFFFF) << 32)
+					if mouth_cache.get(n_key, false):
+						target_visible = true
+						break
+				if target_visible:
 					break
-			if chunk_has_mouth_nearby:
-				break
 
-		match current_state:
-			PlayerLayerState.SURFACE:
-				# On surface: only chunks near active cave mouths are visible
-				node.set_subterranean_visible(chunk_has_mouth_nearby)
-
-			PlayerLayerState.NEAR_CAVE_MOUTH:
-				# Near cave mouth: mouth neighborhood is visible
-				node.set_subterranean_visible(chunk_has_mouth_nearby)
-
-			PlayerLayerState.SUBTERRANEAN:
-				# Underground: all loaded cave chunks are visible
-				node.set_subterranean_visible(true)
+		if node.is_subterranean_visible() != target_visible:
+			node.set_subterranean_visible(target_visible)
 
 	return current_state

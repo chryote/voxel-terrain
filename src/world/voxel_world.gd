@@ -221,6 +221,7 @@ func _process_completed_chunks() -> void:
 	var focus_chunk = bounds.world_to_chunk(focus_pos)
 
 	var completed = scheduler.poll_completed(world_config.max_mesh_applies_per_frame)
+	var needs_visibility_update = false
 	for item in completed:
 		var coord: ChunkCoord = item.coord
 		var mesh_data: MeshData = item.mesh_data
@@ -236,7 +237,7 @@ func _process_completed_chunks() -> void:
 				subterranean_coordinator.mark_subterranean_ready(coord)
 				if visibility_coordinator.last_state == LayerVisibilityCoordinator.PlayerLayerState.SUBTERRANEAN:
 					node.set_subterranean_visible(true)
-				_update_layer_visibility(true)
+				needs_visibility_update = true
 			continue
 
 		var dist_to_focus = focus_chunk.chebyshev_distance_to(coord)
@@ -268,6 +269,9 @@ func _process_completed_chunks() -> void:
 
 		chunk_loaded.emit(coord)
 
+	if needs_visibility_update:
+		_update_layer_visibility(true)
+
 func _update_streaming() -> void:
 	var focus_pos = _get_focus_position()
 	var focus_chunk = bounds.world_to_chunk(focus_pos)
@@ -293,22 +297,13 @@ func _update_streaming() -> void:
 	if caves_enabled:
 		var look_dir = _get_focus_forward()
 		var to_promote = subterranean_coordinator.get_chunks_to_promote(focus_pos, focus_chunk, surf_h, _mouth_cache, look_dir, true)
-		var is_near_mouth = false
-		for dz in range(-1, 2):
-			for dx in range(-1, 2):
-				var n_coord = ChunkCoord.new(focus_chunk.x + dx, focus_chunk.z + dz)
-				if _mouth_cache.get(n_coord.to_key(), false):
-					is_near_mouth = true
-					break
-			if is_near_mouth:
-				break
 
 		for p_coord in to_promote:
 			if not scheduler.is_phase_in_flight(p_coord, ChunkScheduler.GenerationPhase.PHASE_SUBTERRANEAN):
 				var cached_surf = subterranean_coordinator.get_cached_surface_data(p_coord)
-				var has_mouth = _mouth_cache.get(p_coord.to_key(), false)
-				var should_bake_cave = is_player_subterranean or has_mouth or is_near_mouth
-				scheduler.schedule_subterranean_chunk(p_coord, bounds, generator, mesher, material_registry, cached_surf, false, should_bake_cave)
+				# OffThreadCollisionBaker compiles shapes on worker threads in < 1 ms.
+				# Always bake cave collision off-thread so chunk_node never has a null cache.
+				scheduler.schedule_subterranean_chunk(p_coord, bounds, generator, mesher, material_registry, cached_surf, false, true)
 				subterranean_coordinator.mark_subterranean_queued(p_coord)
 
 	# 3. Unload chunks out of range

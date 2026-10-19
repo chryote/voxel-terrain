@@ -1,0 +1,109 @@
+{
+  "disparity": {
+    "bake_ratio": 0.559735394915119,
+    "gen_ratio": 1.64201990316154,
+    "mesh_ratio": 1.2273230622638,
+    "total_ratio": 1.40884080095221
+  },
+  "surface": {
+    "bake_stats": {
+      "avg": 1.75658,
+      "max": 5.598,
+      "median": 1.5245,
+      "min": 0.345,
+      "p95": 3.632,
+      "pct": 12.8426375156093,
+      "total": 175.658
+    },
+    "chunk_count": 100,
+    "gen_stats": {
+      "avg": 8.81468,
+      "max": 10.242,
+      "median": 8.7505,
+      "min": 8.332,
+      "p95": 9.354,
+      "pct": 64.4455362443449,
+      "total": 881.468
+    },
+    "geometry": {
+      "avg_triangles": 2021.88,
+      "avg_vertices": 4043.76,
+      "total_cave_triangles": 0,
+      "total_cave_vertices": 0,
+      "total_triangles": 202188,
+      "total_vertices": 404376
+    },
+    "mesh_stats": {
+      "avg": 3.10646,
+      "max": 5.708,
+      "median": 2.9695,
+      "min": 1.602,
+      "p95": 4.782,
+      "pct": 22.7118262400458,
+      "total": 310.646
+    },
+    "name": "Surface Overland",
+    "throughput_chunks_per_sec": 73.1116004714236,
+    "total_duration_ms": 1367.772,
+    "total_stats": {
+      "avg": 13.67772,
+      "max": 20.171,
+      "median": 13.4195,
+      "min": 10.507,
+      "p95": 17.036,
+      "pct": 100.0,
+      "total": 1367.772
+    }
+  },
+  "timestamp": "2026-10-19T13:36:55",
+  "underground_arena": {
+    "bake_stats": {
+      "avg": 0.98322,
+      "max": 2.454,
+      "median": 0.847,
+      "min": 0.285,
+      "p95": 2.011,
+      "pct": 5.10240672806521,
+      "total": 98.322
+    },
+    "chunk_count": 100,
+    "gen_stats": {
+      "avg": 14.47388,
+      "max": 16.267,
+      "median": 14.665,
+      "min": 9.694,
+      "p95": 15.664,
+      "pct": 75.1120020882494,
+      "total": 1447.388
+    },
+    "geometry": {
+      "avg_triangles": 1340.32,
+      "avg_vertices": 2680.64,
+      "total_cave_triangles": 42304,
+      "total_cave_vertices": 84608,
+      "total_triangles": 134032,
+      "total_vertices": 268064
+    },
+    "mesh_stats": {
+      "avg": 3.81263,
+      "max": 6.049,
+      "median": 3.913,
+      "min": 1.635,
+      "p95": 5.009,
+      "pct": 19.7855911836855,
+      "total": 381.263
+    },
+    "name": "Underground Arena",
+    "throughput_chunks_per_sec": 51.894863083188,
+    "total_duration_ms": 1926.973,
+    "total_stats": {
+      "avg": 19.26973,
+      "max": 23.976,
+      "median": 19.353,
+      "min": 12.075,
+      "p95": 22.129,
+      "pct": 100.0,
+      "total": 1926.973
+    }
+  }
+}

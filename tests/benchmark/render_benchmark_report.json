@@ -1,0 +1,122 @@
+{
+  "settings": {
+    "frames_sampled": 60,
+    "mode": "both",
+    "seed": 1337,
+    "view_distance": 6,
+    "warmup_frames": 20
+  },
+  "surface": {
+    "avg_loaded_chunks": 30.4,
+    "draw_calls": {
+      "avg": 22.3166666666667,
+      "max": 31.0,
+      "median": 21.5,
+      "min": 12.0,
+      "p95": 31.0,
+      "std_dev": 5.14292934252671
+    },
+    "environment": "Surface Overland",
+    "fps": {
+      "avg": 23.5333333333333,
+      "max": 53.0,
+      "median": 1.0,
+      "min": 1.0,
+      "p95": 53.0,
+      "std_dev": 25.7678524953521
+    },
+    "frame_delta_ms": {
+      "avg": 6.06005,
+      "max": 10.089,
+      "median": 6.049,
+      "min": 3.744,
+      "p95": 7.803,
+      "std_dev": 1.13197834821755
+    },
+    "max_loaded_chunks": 46,
+    "objects_in_frame": {
+      "avg": 22.3166666666667,
+      "max": 31.0,
+      "median": 21.5,
+      "min": 12.0,
+      "p95": 31.0,
+      "std_dev": 5.14292934252671
+    },
+    "primitives": {
+      "avg": 31050.5666666667,
+      "max": 43776.0,
+      "median": 30272.0,
+      "min": 15716.0,
+      "p95": 43776.0,
+      "std_dev": 7340.03426051647
+    },
+    "process_time_ms": {
+      "avg": 10.5131,
+      "max": 10.814,
+      "median": 10.283,
+      "min": 10.283,
+      "p95": 10.814,
+      "std_dev": 0.263129416827537
+    },
+    "sample_count": 60,
+    "total_duration_ms": 363.603,
+    "warmup_frames": 20
+  },
+  "timestamp": "2026-10-19T13:58:13",
+  "underground_arena": {
+    "avg_loaded_chunks": 20.4166666666667,
+    "draw_calls": {
+      "avg": 19.5333333333333,
+      "max": 28.0,
+      "median": 21.0,
+      "min": 10.0,
+      "p95": 28.0,
+      "std_dev": 6.37041774314858
+    },
+    "environment": "Underground Arena",
+    "fps": {
+      "avg": 34.5166666666667,
+      "max": 68.0,
+      "median": 27.0,
+      "min": 27.0,
+      "p95": 68.0,
+      "std_dev": 15.8645219138667
+    },
+    "frame_delta_ms": {
+      "avg": 6.0805,
+      "max": 7.633,
+      "median": 6.047,
+      "min": 4.504,
+      "p95": 6.626,
+      "std_dev": 0.382225086391078
+    },
+    "max_loaded_chunks": 27,
+    "objects_in_frame": {
+      "avg": 19.5333333333333,
+      "max": 28.0,
+      "median": 21.0,
+      "min": 10.0,
+      "p95": 28.0,
+      "std_dev": 6.37041774314858
+    },
+    "primitives": {
+      "avg": 12686.1333333333,
+      "max": 17554.0,
+      "median": 12966.0,
+      "min": 7456.0,
+      "p95": 17554.0,
+      "std_dev": 3539.6965381544
+    },
+    "process_time_ms": {
+      "avg": 1180.27808333333,
+      "max": 1443.839,
+      "median": 1443.839,
+      "min": 6.234,
+      "p95": 1443.839,
+      "std_dev": 556.266244536203
+    },
+    "sample_count": 60,
+    "total_duration_ms": 364.83,
+    "warmup_frames": 20
+  }
+}

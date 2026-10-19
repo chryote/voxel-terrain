@@ -111,11 +111,18 @@ func _update_debug_text() -> void:
 			chunk_str = "(%d, %d)" % [c.x, c.z]
 		spawn_str = "Underground Arena" if voxel_world.spawn_on_underground_arena else "Surface"
 
+	var dc = int(RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME))
+	if dc <= 0:
+		dc = int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
+	var proc_ms = Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0
+	var prims = int(RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME))
+	if prims <= 0:
+		prims = int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME))
+
 	_debug_label.text = """[Voxel Continent Framework]
-FPS: %d
-Pos: %s
-Chunk: %s
-Loaded Chunks: %d
+FPS: %d | Frame (Proc): %.2f ms | Draw Calls: %d
+Primitives: %d | Loaded Chunks: %d
+Pos: %s | Chunk: %s
 Aiming: %s | Shoulder: %s
 Spawn: %s [F4 to toggle]
 
@@ -123,7 +130,7 @@ Controls:
 WASD: Move | Shift: Sprint | Space: Jump
 RMB: Aim Zoom | LMB: Fire (Hitscan)
 V: Swap Shoulder | Tab/Esc: Toggle Mouse | F3: Toggle Info | F4: Toggle Spawn | M: Map""" % [
-		fps, pos_str, chunk_str, loaded_count, str(is_aim), shoulder, spawn_str
+		fps, proc_ms, dc, prims, loaded_count, pos_str, chunk_str, str(is_aim), shoulder, spawn_str
 	]
 
 func _draw() -> void:

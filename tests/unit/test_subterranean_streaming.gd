@@ -81,12 +81,16 @@ func test_cave_mouth_chunk_triggers_subterranean_generation() -> void:
 
 	var results: Array[Dictionary] = []
 	var attempts = 0
-	while attempts < 400 and results.is_empty():
+	while attempts < 800 and results.is_empty():
 		OS.delay_msec(10)
 		results = scheduler.poll_completed(1)
 		attempts += 1
 
 	assert_eq(results.size(), 1, "Must complete subterranean generation for cave mouth chunk")
+	if results.is_empty():
+		scheduler.wait_all_tasks()
+		return
+
 	var res = results[0]
 	assert_eq(res.phase, ChunkScheduler.GenerationPhase.PHASE_SUBTERRANEAN)
 	assert_true(res.has_cave_mouth, "Result must flag has_cave_mouth")

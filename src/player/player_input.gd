@@ -52,6 +52,7 @@ func get_intent() -> PlayerIntent:
 		intent.toggle_mouse_requested = true
 
 	intent.toggle_debug_requested = Input.is_action_just_pressed("toggle_debug")
+	intent.toggle_spawn_requested = Input.is_action_just_pressed("toggle_spawn")
 
 	if _is_mouse_captured:
 		intent.look_delta = _look_delta

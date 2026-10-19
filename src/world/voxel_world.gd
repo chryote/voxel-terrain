@@ -6,6 +6,7 @@ extends Node3D
 signal chunk_loaded(coord: ChunkCoord)
 signal chunk_unloaded(coord: ChunkCoord)
 signal initial_area_ready()
+signal spawn_mode_changed(is_underground: bool, spawn_position: Vector3)
 
 @export var world_config: WorldConfig
 @export var generator_config: ContinentGeneratorConfig
@@ -118,7 +119,10 @@ func _ready() -> void:
 	var spawn_pos = get_spawn_point()
 	var spawn_chunk = bounds.world_to_chunk(spawn_pos)
 	if is_instance_valid(focus_target):
-		focus_target.global_position = spawn_pos
+		if focus_target.is_inside_tree():
+			focus_target.global_position = spawn_pos
+		else:
+			focus_target.position = spawn_pos
 
 	for dz in range(-1, 2):
 		for dx in range(-1, 2):
@@ -149,6 +153,10 @@ func _exit_tree() -> void:
 
 var _spawn_point: Vector3 = Vector3.ZERO
 var _spawn_point_cached: bool = false
+var _surface_spawn_point: Vector3 = Vector3.ZERO
+var _surface_spawn_cached: bool = false
+var _underground_spawn_point: Vector3 = Vector3.ZERO
+var _underground_spawn_cached: bool = false
 
 func _get_focus_position() -> Vector3:
 	if is_instance_valid(focus_target):
@@ -411,16 +419,91 @@ func get_height_at(world_x: float, world_z: float) -> float:
 	var h = generator.height_at(col, bounds)
 	return float(h) * bounds.voxel_size
 
-func get_spawn_point() -> Vector3:
-	if not _spawn_point_cached:
+func get_surface_spawn_point() -> Vector3:
+	if not _surface_spawn_cached:
 		if generator == null or bounds == null or world_config == null:
 			return Vector3(0.0, 30.0, 0.0)
-		if spawn_on_underground_arena and caves_enabled:
-			_spawn_point = _spawn_finder.find_underground_arena_spawn_point(generator, bounds, world_config.sea_level)
-		else:
-			_spawn_point = _spawn_finder.find_spawn_point(generator, bounds, world_config.sea_level)
-		_spawn_point_cached = true
+		_surface_spawn_point = _spawn_finder.find_spawn_point(generator, bounds, world_config.sea_level)
+		_surface_spawn_cached = true
+	return _surface_spawn_point
+
+func get_underground_spawn_point() -> Vector3:
+	if not _underground_spawn_cached:
+		if generator == null or bounds == null or world_config == null:
+			return Vector3(0.0, 10.0, 0.0)
+		_underground_spawn_point = _spawn_finder.find_underground_arena_spawn_point(generator, bounds, world_config.sea_level)
+		_underground_spawn_cached = true
+	return _underground_spawn_point
+
+func get_spawn_point() -> Vector3:
+	if spawn_on_underground_arena and caves_enabled:
+		_spawn_point = get_underground_spawn_point()
+	else:
+		_spawn_point = get_surface_spawn_point()
+	_spawn_point_cached = true
 	return _spawn_point
+
+func clear_spawn_cache() -> void:
+	_surface_spawn_cached = false
+	_underground_spawn_cached = false
+	_spawn_point_cached = false
+
+func toggle_spawn_location() -> Vector3:
+	spawn_on_underground_arena = not spawn_on_underground_arena
+	if spawn_on_underground_arena and not caves_enabled:
+		caves_enabled = true
+	var target_pos = get_spawn_point()
+	teleport_focus_to(target_pos)
+	spawn_mode_changed.emit(spawn_on_underground_arena, target_pos)
+	return target_pos
+
+func teleport_focus_to(target_pos: Vector3) -> void:
+	_spawn_point = target_pos
+	_spawn_point_cached = true
+
+	if bounds != null and generator != null and mesher != null and _chunks_root != null:
+		var target_chunk = bounds.world_to_chunk(target_pos)
+		for dz in range(-1, 2):
+			for dx in range(-1, 2):
+				var coord = ChunkCoord.new(target_chunk.x + dx, target_chunk.z + dz)
+				if not bounds.contains_chunk(coord):
+					continue
+				var key = coord.to_key()
+				if not _loaded_chunks.has(key):
+					_load_chunk_sync(coord)
+				else:
+					var node = _loaded_chunks[key] as ChunkNode
+					if node != null:
+						node.set_collision_enabled(true)
+						if spawn_on_underground_arena and caves_enabled:
+							if node.cave_collision_shape == null or node.cave_collision_shape.shape == null:
+								var c_data = generator.generate(coord, bounds)
+								var m_data = mesher.build_mesh(c_data, material_registry)
+								var baker = OffThreadCollisionBaker.new()
+								var shapes = baker.bake_shapes_for_bundle(m_data)
+								node.apply_subterranean_bundle(m_data, shapes.cave_shape)
+								subterranean_coordinator.mark_subterranean_ready(coord)
+
+	if is_instance_valid(focus_target):
+		if focus_target.is_inside_tree():
+			focus_target.global_position = target_pos
+		else:
+			focus_target.position = target_pos
+		if focus_target is CharacterBody3D:
+			focus_target.velocity = Vector3.ZERO
+
+	if is_inside_tree():
+		_update_streaming()
+		_update_layer_visibility(true)
+		_update_chunk_collisions(true)
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.physical_keycode == KEY_F4 or event.keycode == KEY_F4 or event.is_action_pressed("toggle_spawn"):
+			toggle_spawn_location()
+			var vp = get_viewport()
+			if vp != null:
+				vp.set_input_as_handled()
 
 func get_world_bounds() -> WorldBounds:
 	return bounds

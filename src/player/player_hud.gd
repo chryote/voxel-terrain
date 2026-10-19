@@ -4,12 +4,21 @@ extends Control
 ## Third-person shooter interface: crosshair, hit markers, and debug overlay.
 
 @export var player_motor: PlayerMotor
-@export var voxel_world: VoxelWorld
+@export var voxel_world: VoxelWorld:
+	set(val):
+		if voxel_world != null and voxel_world.spawn_mode_changed.is_connected(_on_spawn_mode_changed):
+			voxel_world.spawn_mode_changed.disconnect(_on_spawn_mode_changed)
+		voxel_world = val
+		if voxel_world != null:
+			if not voxel_world.spawn_mode_changed.is_connected(_on_spawn_mode_changed):
+				voxel_world.spawn_mode_changed.connect(_on_spawn_mode_changed)
 
 var show_debug: bool = true
 var _hit_marker_time: float = 0.0
+var _status_timer: float = 0.0
 
 var _debug_label: Label
+var _status_banner: Label
 
 func _ready() -> void:
 	mouse_filter = MOUSE_FILTER_IGNORE
@@ -23,13 +32,38 @@ func _ready() -> void:
 	_debug_label.add_theme_constant_override("shadow_offset_y", 1)
 	add_child(_debug_label)
 
+	_status_banner = Label.new()
+	_status_banner.anchor_left = 0.5
+	_status_banner.anchor_top = 0.0
+	_status_banner.anchor_right = 0.5
+	_status_banner.anchor_bottom = 0.0
+	_status_banner.offset_left = -250
+	_status_banner.offset_top = 32
+	_status_banner.offset_right = 250
+	_status_banner.offset_bottom = 64
+	_status_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_status_banner.add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
+	_status_banner.add_theme_color_override("font_shadow_color", Color.BLACK)
+	_status_banner.add_theme_constant_override("shadow_offset_x", 1)
+	_status_banner.add_theme_constant_override("shadow_offset_y", 1)
+	_status_banner.visible = false
+	add_child(_status_banner)
+
 	if player_motor != null:
 		player_motor.fired.connect(_on_player_fired)
+
+	if voxel_world != null and not voxel_world.spawn_mode_changed.is_connected(_on_spawn_mode_changed):
+		voxel_world.spawn_mode_changed.connect(_on_spawn_mode_changed)
 
 func _process(delta: float) -> void:
 	if _hit_marker_time > 0.0:
 		_hit_marker_time -= delta
 		queue_redraw()
+
+	if _status_timer > 0.0:
+		_status_timer -= delta
+		if _status_timer <= 0.0 and _status_banner != null:
+			_status_banner.visible = false
 
 	if Input.is_action_just_pressed("toggle_debug"):
 		show_debug = not show_debug
@@ -45,6 +79,15 @@ func _on_player_fired(hit: Dictionary) -> void:
 		_hit_marker_time = 0.14
 		queue_redraw()
 
+func _on_spawn_mode_changed(is_underground: bool, spawn_pos: Vector3) -> void:
+	if _status_banner != null:
+		var mode_name = "Underground Arena" if is_underground else "Surface"
+		_status_banner.text = "[F4] Spawn Mode: %s (%d, %d, %d)" % [
+			mode_name, int(spawn_pos.x), int(spawn_pos.y), int(spawn_pos.z)
+		]
+		_status_banner.visible = true
+		_status_timer = 2.5
+
 func _update_debug_text() -> void:
 	var fps = Engine.get_frames_per_second()
 	var pos_str = "(0.0, 0.0, 0.0)"
@@ -52,6 +95,7 @@ func _update_debug_text() -> void:
 	var loaded_count = 0
 	var is_aim = false
 	var shoulder = "Right"
+	var spawn_str = "Unknown"
 
 	if player_motor != null:
 		var p = player_motor.global_position
@@ -65,6 +109,7 @@ func _update_debug_text() -> void:
 		if player_motor != null and voxel_world.bounds != null:
 			var c = voxel_world.bounds.world_to_chunk(player_motor.global_position)
 			chunk_str = "(%d, %d)" % [c.x, c.z]
+		spawn_str = "Underground Arena" if voxel_world.spawn_on_underground_arena else "Surface"
 
 	_debug_label.text = """[Voxel Continent Framework]
 FPS: %d
@@ -72,12 +117,13 @@ Pos: %s
 Chunk: %s
 Loaded Chunks: %d
 Aiming: %s | Shoulder: %s
+Spawn: %s [F4 to toggle]
 
 Controls:
 WASD: Move | Shift: Sprint | Space: Jump
 RMB: Aim Zoom | LMB: Fire (Hitscan)
-V: Swap Shoulder | Tab/Esc: Toggle Mouse | F3: Toggle Info | M: Map""" % [
-		fps, pos_str, chunk_str, loaded_count, str(is_aim), shoulder
+V: Swap Shoulder | Tab/Esc: Toggle Mouse | F3: Toggle Info | F4: Toggle Spawn | M: Map""" % [
+		fps, pos_str, chunk_str, loaded_count, str(is_aim), shoulder, spawn_str
 	]
 
 func _draw() -> void:

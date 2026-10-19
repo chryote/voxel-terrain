@@ -11,6 +11,12 @@ func get_spawn_point() -> Vector3:
 	push_error("TerrainQuery.get_spawn_point() must be overridden")
 	return Vector3.ZERO
 
+func get_surface_spawn_point() -> Vector3:
+	return get_spawn_point()
+
+func get_underground_spawn_point() -> Vector3:
+	return get_spawn_point()
+
 func get_world_bounds() -> WorldBounds:
 	push_error("TerrainQuery.get_world_bounds() must be overridden")
 	return null

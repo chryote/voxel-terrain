@@ -10,7 +10,7 @@ const ContinentMapColorPaletteClass = preload("res://src/map/continent_map_color
 const CaveMouthDataClass = preload("res://src/map/cave_mouth_data.gd")
 const CaveMouthDetectorClass = preload("res://src/map/cave_mouth_detector.gd")
 const ChasmColumnResultClass = preload("res://src/generation/caves/chasm_column_result.gd")
-const MIN_UNDERGROUND_ISLAND_PIXELS: int = 25 ## Reference threshold at 512x512 resolution below which isolated subterranean cavern pockets are culled to solid bedrock
+const MIN_UNDERGROUND_ISLAND_PIXELS: int = 600 ## Reference threshold at 512x512 resolution below which isolated subterranean cavern pockets are culled to solid bedrock
 
 enum MapLevel {
 	SURFACE = 0,

@@ -20,15 +20,13 @@ func _init(seed_val: int = 1337, p_config: CaveGeneratorConfig = null) -> void:
 	_init_noises(seed_val)
 
 func _init_noises(seed_val: int) -> void:
-	# 1. 2D Rift Corridor Noise (Simplex Smooth, low-octave FBM to suppress high-frequency island chatter)
+	# 1. 2D Rift Corridor Noise (Cellular Voronoi Edge Network for connected subterranean passages)
 	rift_noise = FastNoiseLite.new()
 	rift_noise.seed = seed_val + 1010
-	rift_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	rift_noise.noise_type = FastNoiseLite.TYPE_CELLULAR
 	rift_noise.frequency = config.chasm_rift_frequency
-	rift_noise.fractal_type = FastNoiseLite.FRACTAL_FBM
-	rift_noise.fractal_octaves = 2
-	rift_noise.fractal_lacunarity = 2.0
-	rift_noise.fractal_gain = 0.20
+	rift_noise.cellular_distance_function = FastNoiseLite.DISTANCE_EUCLIDEAN
+	rift_noise.cellular_return_type = FastNoiseLite.RETURN_DISTANCE2_SUB
 
 	# 2. 2D Wall Domain Warp Noise (2-octave Fractal FBM for organic fracture fault lines)
 	wall_warp_noise = FastNoiseLite.new()
@@ -60,7 +58,10 @@ func _init_noises(seed_val: int) -> void:
 
 func sample_unwarped_rift(wx: float, wz: float) -> float:
 	## Fast normalized [0.0, 1.0] 2D rift corridor density without domain warping or continental mask evaluation.
-	return (rift_noise.get_noise_2d(wx, wz) + 1.0) * 0.5
+	## In Cellular RETURN_DISTANCE2_SUB, -1.0 is the exact cell boundary (center line of corridor).
+	var raw = rift_noise.get_noise_2d(wx, wz)
+	var dist_val = raw + 1.0
+	return 1.0 - clampf(dist_val / 0.42, 0.0, 1.0)
 
 func get_wall_warp_margin() -> float:
 	## Conservative margin for unwarped rift early-exit.
@@ -130,7 +131,9 @@ func update_deep_inland_status(min_x: float, min_z: float, max_x: float, max_z: 
 
 func sample_rift_mask(sample_x: float, sample_z: float) -> float:
 	## Normalized [0.0, 1.0] 2D rift corridor density.
-	var rift = (rift_noise.get_noise_2d(sample_x, sample_z) + 1.0) * 0.5
+	var raw = rift_noise.get_noise_2d(sample_x, sample_z)
+	var dist_val = raw + 1.0
+	var rift = 1.0 - clampf(dist_val / 0.42, 0.0, 1.0)
 	if not is_deep_inland and continent_mask != null and world_bounds != null:
 		var land_raw = continent_mask.get_land_raw(sample_x, sample_z, world_bounds)
 		# Encase subterranean chasms and arenas in solid land before ocean falloff:

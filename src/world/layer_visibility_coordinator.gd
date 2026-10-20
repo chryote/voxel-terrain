@@ -20,8 +20,11 @@ func determine_player_state(
 	player_pos: Vector3,
 	surface_height: float,
 	is_near_mouth: bool,
-	sea_level_height: float = 9.0
+	sea_level_height: float = 9.0,
+	in_chasm: bool = false
 ) -> PlayerLayerState:
+	if in_chasm:
+		return PlayerLayerState.SUBTERRANEAN
 	var water_margin = sea_level_height + 0.5
 	var is_open_water = (surface_height <= water_margin and player_pos.y >= (surface_height - 1.0))
 	var low_elevation_threshold = maxf(12.0, sea_level_height + 3.0)
@@ -38,7 +41,8 @@ func update_chunk_visibility(
 	loaded_chunks: Dictionary,
 	mouth_cache: Dictionary, # key -> bool
 	force: bool = false,
-	sea_level_height: float = 9.0
+	sea_level_height: float = 9.0,
+	in_chasm: bool = false
 ) -> PlayerLayerState:
 	var is_near_mouth = false
 	if focus_coord != null:
@@ -52,7 +56,7 @@ func update_chunk_visibility(
 			if is_near_mouth:
 				break
 
-	var current_state = determine_player_state(focus_pos, surface_height, is_near_mouth, sea_level_height)
+	var current_state = determine_player_state(focus_pos, surface_height, is_near_mouth, sea_level_height, in_chasm)
 
 	# Avoid redundant iterations if neither chunk position nor state nor loaded chunk count changed
 	if not force and last_chunk_coord != null and last_chunk_coord.equals(focus_coord) and current_state == last_state and loaded_chunks.size() == _last_chunk_count:

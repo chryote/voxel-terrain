@@ -99,34 +99,81 @@ const DEEP_INLAND_LAND_THRESHOLD: float = 0.20
 var continent_mask = null
 var world_bounds: WorldBounds = null
 var is_deep_inland: bool = false
+var _inland_min_x: float = 0.0
+var _inland_max_x: float = -1.0
+var _inland_min_z: float = 0.0
+var _inland_max_z: float = -1.0
 
 func set_continent_mask(p_mask, p_bounds: WorldBounds) -> void:
 	continent_mask = p_mask
 	world_bounds = p_bounds
-	is_deep_inland = false
+	reset_inland_cache()
 
 func reset_inland_cache() -> void:
 	is_deep_inland = false
+	_inland_min_x = 0.0
+	_inland_max_x = -1.0
+	_inland_min_z = 0.0
+	_inland_max_z = -1.0
+
+func _get_effective_inland_raw(wx: float, wz: float) -> float:
+	if continent_mask == null or world_bounds == null:
+		return 1.0
+	var dist_left = wx - world_bounds.min_world_x
+	var dist_right = world_bounds.max_world_x - wx
+	var dist_bottom = wz - world_bounds.min_world_z
+	var dist_top = world_bounds.max_world_z - wz
+	var border_dist = minf(minf(dist_left, dist_right), minf(dist_bottom, dist_top))
+	if border_dist <= 0.0:
+		return -1.0
+
+	var land_raw: float = 0.0
+	if continent_mask.has_method("get_main_continent_raw"):
+		land_raw = continent_mask.get_main_continent_raw(wx, wz, world_bounds)
+	else:
+		land_raw = continent_mask.get_land_raw(wx, wz, world_bounds)
+
+	if land_raw <= 0.0:
+		return land_raw
+
+	var half_w = (world_bounds.max_world_x - world_bounds.min_world_x) * 0.5
+	var half_h = (world_bounds.max_world_z - world_bounds.min_world_z) * 0.5
+	var max_radius = minf(half_w, half_h)
+	var border_margin = maxf(minf(float(continent_mask.coast_falloff_distance), max_radius * 0.25), 1.0)
+	if border_dist < border_margin:
+		var border_land_cap = 0.20 * clampf(border_dist / border_margin, 0.0, 1.0)
+		land_raw = minf(land_raw, border_land_cap)
+
+	return land_raw
 
 func update_deep_inland_status(min_x: float, min_z: float, max_x: float, max_z: float) -> bool:
 	## Samples continent land factor at the 4 cell/chunk corners.
 	## If all corners exceed DEEP_INLAND_LAND_THRESHOLD (0.20), the entire cell is deep inland,
 	## meaning ocean fade is guaranteed to be 1.0 and continent mask sampling can be bypassed.
 	if continent_mask == null or world_bounds == null:
-		is_deep_inland = false
+		reset_inland_cache()
 		return false
 
-	var c0 = continent_mask.get_land_raw(min_x, min_z, world_bounds)
-	var c1 = continent_mask.get_land_raw(max_x, min_z, world_bounds)
-	var c2 = continent_mask.get_land_raw(min_x, max_z, world_bounds)
-	var c3 = continent_mask.get_land_raw(max_x, max_z, world_bounds)
+	var c0 = _get_effective_inland_raw(min_x, min_z)
+	var c1 = _get_effective_inland_raw(max_x, min_z)
+	var c2 = _get_effective_inland_raw(min_x, max_z)
+	var c3 = _get_effective_inland_raw(max_x, max_z)
 
-	is_deep_inland = (
+	var inland = (
 		c0 > DEEP_INLAND_LAND_THRESHOLD and
 		c1 > DEEP_INLAND_LAND_THRESHOLD and
 		c2 > DEEP_INLAND_LAND_THRESHOLD and
 		c3 > DEEP_INLAND_LAND_THRESHOLD
 	)
+	if inland:
+		var warp_pad = config.chasm_wall_warp_amplitude + 4.0
+		_inland_min_x = min_x - warp_pad
+		_inland_max_x = max_x + warp_pad
+		_inland_min_z = min_z - warp_pad
+		_inland_max_z = max_z + warp_pad
+		is_deep_inland = true
+	else:
+		reset_inland_cache()
 	return is_deep_inland
 
 func sample_rift_mask(sample_x: float, sample_z: float) -> float:
@@ -134,8 +181,15 @@ func sample_rift_mask(sample_x: float, sample_z: float) -> float:
 	var raw = rift_noise.get_noise_2d(sample_x, sample_z)
 	var dist_val = raw + 1.0
 	var rift = 1.0 - clampf(dist_val / 0.42, 0.0, 1.0)
-	if not is_deep_inland and continent_mask != null and world_bounds != null:
-		var land_raw = continent_mask.get_land_raw(sample_x, sample_z, world_bounds)
+	if rift <= 0.0:
+		return 0.0
+	var in_cached_inland = (
+		is_deep_inland and
+		sample_x >= _inland_min_x and sample_x <= _inland_max_x and
+		sample_z >= _inland_min_z and sample_z <= _inland_max_z
+	)
+	if not in_cached_inland and continent_mask != null and world_bounds != null:
+		var land_raw = _get_effective_inland_raw(sample_x, sample_z)
 		# Encase subterranean chasms and arenas in solid land before ocean falloff:
 		# Ocean falloff slope starts at land_raw ~ 0.12 and reaches sea level at land_raw ~ 0.065.
 		# Fading between 0.08 and 0.12 guarantees rock walls encase the cave while surface elevation >= 35.
@@ -284,6 +338,13 @@ func sample_column(wx: float, wz: float, out: ChasmColumnResult = null, surface_
 
 	var warped_pos = get_warped_coordinates(wx, wz)
 	var raw_rift = sample_rift_mask(warped_pos.x, warped_pos.y)
+	if surface_h >= 0.0:
+		# Smoothly fade rift density as surface elevation slopes down toward coastal shores / water table
+		# so chasms, arenas, and basalt columns are cleanly encased by curtain walls before being cut by the crust.
+		var min_safe_surf = float(config.chasm_min_y) + config.chasm_floor_variation + config.min_chasm_height + config.crust_depth + 2.0
+		var surf_fade = clampf((surface_h - min_safe_surf) / 8.0, 0.0, 1.0)
+		surf_fade = surf_fade * surf_fade * (3.0 - 2.0 * surf_fade)
+		raw_rift *= surf_fade
 	out.raw_rift = raw_rift
 
 	if raw_rift < (config.chasm_rift_threshold - WALL_MARGIN):
@@ -294,6 +355,7 @@ func sample_column(wx: float, wz: float, out: ChasmColumnResult = null, surface_
 	var core_arena_threshold = config.arena_rift_threshold + 0.02
 	out.is_arena = is_arena_zone
 	out.is_arena_ledge = is_arena_zone and raw_rift < core_arena_threshold
+	out.is_basalt_column = false
 
 	var bounds = calculate_floor_and_ceiling(warped_pos.x, warped_pos.y, raw_rift)
 
@@ -309,7 +371,7 @@ func sample_column(wx: float, wz: float, out: ChasmColumnResult = null, surface_
 				out.is_arena_ledge = false
 				out.is_basalt_column = false
 				out.floor_y = bounds.x
-				out.ceil_y = bounds.y
+				out.ceil_y = maxi(bounds.x, max_allowed_ceil)
 				return out
 			else:
 				bounds.y = max_allowed_ceil

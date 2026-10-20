@@ -472,6 +472,42 @@ func test_pillar_non_entombment_and_directional_clearance() -> void:
 
 	assert_true(open_boundary_count >= 3, "Arena chunk must not be entombed; must connect to open neighbors in >= 3 directions (found %d)" % open_boundary_count)
 
+func test_shore_and_border_ocean_falloff_basalt_column_encasing() -> void:
+	## Validates that underground chasms, arenas, and basalt columns near the surface shore
+	## and world-border coast_falloff_distance fade out cleanly before the coastal slope drops
+	## to sea level, preventing 1-voxel crust-cut basalt column X-ray glitches.
+	var world_config = WorldConfig.new()
+	var bounds = world_config.create_world_bounds()
+	var gen_config = ContinentGeneratorConfig.new()
+	var cave_config = CaveGeneratorConfig.new()
+	cave_config.bypass_chasm_voxelization = false
+	var gen = LayeredTerrainGenerator.new(1337, gen_config, cave_config)
+	gen.cave_carver.set_continent_mask(gen.continent_gen.mask, bounds)
+	var sampler = gen.cave_carver.chasm_sampler
 
+	var col = ChasmColumnResult.new()
 
+	# 1. Reused ChasmColumnResult must always reset is_basalt_column when transitioning out of arena ledge
+	col.is_basalt_column = true
+	sampler.sample_column(0.0, 0.0, col, 45.0)
+	if not col.is_arena_ledge:
+		assert_false(col.is_basalt_column, "Reused ChasmColumnResult must reset is_basalt_column on non-ledge columns")
 
+	# 2. Chunk (-125, -25) in the world-border ocean falloff must have zero open chasms and zero surface basalt overwrites
+	var shore_coord = ChunkCoord.new(-125, -25)
+	var s_data = gen.generate_surface(shore_coord, bounds)
+	var v_data = gen.generate_subterranean(s_data, shore_coord, bounds) as VoxelChunkData
+	assert_not_null(v_data, "Subterranean voxel data for coastal chunk (-125, -25) must exist")
+
+	for lz in range(bounds.chunk_size):
+		for lx in range(bounds.chunk_size):
+			var h = s_data.get_height(lx, lz)
+			var gx = shore_coord.x * bounds.chunk_size + lx
+			var gz = shore_coord.z * bounds.chunk_size + lz
+			var wx = (float(gx) + 0.5) * bounds.voxel_size
+			var wz = (float(gz) + 0.5) * bounds.voxel_size
+			sampler.sample_column(wx, wz, col, float(h))
+			assert_false(col.is_chasm, "Ocean falloff column at (%d, %d) h=%d must be encased (not open chasm)" % [gx, gz, h])
+			if h > 0:
+				assert_eq(v_data.get_voxel(lx, h, lz), 0, "Voxel above surface height h=%d must remain air (0), never overwritten by basalt wall" % h)
+				assert_ne(v_data.get_voxel(lx, h - 1, lz), MaterialDef.ID_CHASM_BASALT, "Surface top material at h-1 must not be overwritten by chasm basalt")

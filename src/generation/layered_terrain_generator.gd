@@ -414,17 +414,18 @@ func _carve_subterranean_caves(
 							if is_void:
 								v_data.set_voxel(lx, ly, lz, 0)
 								v_data.set_water(lx, ly, lz, is_water)
-							elif chasm_col.is_chasm:
-								if ly == chasm_col.floor_y:
-									var sub_mat = cave_carver.classify_subterranean_voxel(wx, wy, wz)
-									v_data.set_voxel(lx, ly, lz, sub_mat)
-								elif ly == chasm_col.ceil_y + 1 and ly < carve_ceiling:
-									var sub_mat = cave_carver.classify_subterranean_voxel(wx, wy, wz)
-									v_data.set_voxel(lx, ly, lz, sub_mat)
-							elif chasm_col.is_pillar or chasm_col.is_wall:
-								if ly >= chasm_col.floor_y and ly <= chasm_col.ceil_y + 1 and ly < carve_ceiling:
-									var sub_mat = cave_carver.classify_subterranean_voxel(wx, wy, wz)
-									v_data.set_voxel(lx, ly, lz, sub_mat)
+							elif ly < int(col_h) - 1 and v_data.get_voxel(lx, ly, lz) != 0:
+								if chasm_col.is_chasm:
+									if ly == chasm_col.floor_y:
+										var sub_mat = cave_carver.classify_subterranean_voxel(wx, wy, wz)
+										v_data.set_voxel(lx, ly, lz, sub_mat)
+									elif ly == chasm_col.ceil_y + 1 and ly < carve_ceiling:
+										var sub_mat = cave_carver.classify_subterranean_voxel(wx, wy, wz)
+										v_data.set_voxel(lx, ly, lz, sub_mat)
+								elif chasm_col.is_pillar or chasm_col.is_wall:
+									if ly >= chasm_col.floor_y and ly <= chasm_col.ceil_y + 1 and ly < carve_ceiling:
+										var sub_mat = cave_carver.classify_subterranean_voxel(wx, wy, wz)
+										v_data.set_voxel(lx, ly, lz, sub_mat)
 
 
 

@@ -447,6 +447,8 @@ func _update_layer_visibility(force: bool = false) -> void:
 		return
 
 	var focus_pos = _get_focus_position()
+	var cam_pos = _get_camera_position()
+	var in_chasm = is_in_underground_chasm(focus_pos) or is_in_underground_chasm(cam_pos)
 	var focus_chunk = bounds.world_to_chunk(focus_pos)
 	var surf_h = get_height_at(focus_pos.x, focus_pos.z)
 	var sea_level_h = float(world_config.sea_level) * world_config.voxel_size if world_config != null else 9.0
@@ -457,12 +459,11 @@ func _update_layer_visibility(force: bool = false) -> void:
 		_loaded_chunks,
 		_mouth_cache,
 		force,
-		sea_level_h
+		sea_level_h,
+		in_chasm
 	)
 
 	if water_plane != null:
-		var cam_pos = _get_camera_position()
-		var in_chasm = is_in_underground_chasm(focus_pos) or is_in_underground_chasm(cam_pos)
 		var is_subterranean = (current_state == LayerVisibilityCoordinator.PlayerLayerState.SUBTERRANEAN) or in_chasm
 		water_plane.set_ocean_visible(not is_subterranean)
 

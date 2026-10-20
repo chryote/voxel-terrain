@@ -77,6 +77,47 @@ func _init(seed_val: int = 1337, config: ContinentGeneratorConfig = null) -> voi
 		warp_detail.frequency = 0.0018
 		shape_noise.frequency = 0.00065
 
+func get_main_continent_raw(wx: float, wz: float, bounds: WorldBounds) -> float:
+	## Calculates raw continental factor for the continuous main landmass, excluding offshore islands.
+	var dist_left = wx - bounds.min_world_x
+	var dist_right = bounds.max_world_x - wx
+	var dist_bottom = wz - bounds.min_world_z
+	var dist_top = bounds.max_world_z - wz
+	var border_dist = minf(minf(dist_left, dist_right), minf(dist_bottom, dist_top))
+	if border_dist <= 0.0:
+		return -1.0
+
+	var center_x = (bounds.min_world_x + bounds.max_world_x) * 0.5
+	var center_z = (bounds.min_world_z + bounds.max_world_z) * 0.5
+	var half_w = (bounds.max_world_x - bounds.min_world_x) * 0.5
+	var half_h = (bounds.max_world_z - bounds.min_world_z) * 0.5
+	var max_radius = minf(half_w, half_h)
+
+	var macro_amp = max_radius * 0.28
+	var meso_amp = max_radius * 0.12
+	var detail_amp = max_radius * 0.04
+
+	var mw_x = warp_macro.get_noise_2d(wx, wz) * macro_amp
+	var mw_z = warp_macro.get_noise_2d(wx + 4321.0, wz + 4321.0) * macro_amp
+
+	var me_x = warp_meso.get_noise_2d(wx + 1111.0, wz + 2222.0) * meso_amp
+	var me_z = warp_meso.get_noise_2d(wx + 3333.0, wz + 4444.0) * meso_amp
+
+	var dw_x = warp_detail.get_noise_2d(wx, wz) * detail_amp
+	var dw_z = warp_detail.get_noise_2d(wx + 8765.0, wz + 8765.0) * detail_amp
+
+	var warped_x = wx + mw_x + me_x + dw_x
+	var warped_z = wz + mw_z + me_z + dw_z
+
+	var dx = warped_x - center_x
+	var dz = warped_z - center_z
+	var warped_dist = sqrt(dx * dx * 0.95 + dz * dz * 1.08)
+	var norm_dist = warped_dist / max_radius
+
+	var base_falloff = (continent_radius - norm_dist) / continent_radius
+	var shape_n = shape_noise.get_noise_2d(warped_x, warped_z)
+	return base_falloff + shape_n * 0.38
+
 func get_land_raw(wx: float, wz: float, bounds: WorldBounds) -> float:
 	var dist_left = wx - bounds.min_world_x
 	var dist_right = bounds.max_world_x - wx

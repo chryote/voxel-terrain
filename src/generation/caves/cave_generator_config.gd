@@ -22,6 +22,8 @@ extends Resource
 @export var max_chasm_mouths: int = 1 ## Maximum allowed cave mouths leading to underground chasms
 @export var max_tunnel_mouths: int = 10 ## Maximum allowed cave mouths leading to interconnected 3D tunnels
 @export var max_dead_end_mouths: int = 0 ## Maximum allowed shallow dead-end cave mouths
+@export_range(0.0, 0.8) var min_inland_threshold: float = 0.28 ## Minimum continental inland factor required for cave mouth placement (prevents mouths near coasts and on offshore islands)
+@export var prioritize_inland: bool = true ## When true, cave mouth selector prioritizes inland positioning over raw noise depth
 
 @export_group("3D Worm Tunnels & Navigation")
 @export_range(0.005, 0.05) var tunnel_frequency: float = 0.016 ## Spatial frequency of 3D worm tunnels

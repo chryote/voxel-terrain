@@ -20,6 +20,7 @@ var type: Type = Type.DEAD_END
 var depth: float = 0.0
 var radius: float = 0.0
 var surface_elevation: float = 0.0
+var inland_factor: float = 0.0
 
 func _init(
 	p_world_pos: Vector3 = Vector3.ZERO,
@@ -27,7 +28,8 @@ func _init(
 	p_type: Type = Type.DEAD_END,
 	p_depth: float = 0.0,
 	p_radius: float = 0.0,
-	p_surface_elevation: float = 0.0
+	p_surface_elevation: float = 0.0,
+	p_inland_factor: float = 0.0
 ) -> void:
 	world_pos = p_world_pos
 	map_pixel = p_map_pixel
@@ -35,6 +37,7 @@ func _init(
 	depth = p_depth
 	radius = p_radius
 	surface_elevation = p_surface_elevation
+	inland_factor = p_inland_factor
 
 static func get_type_name(t: Type) -> String:
 	match t:

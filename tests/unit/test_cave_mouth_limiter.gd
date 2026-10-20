@@ -19,12 +19,17 @@ func test_default_config_variables() -> void:
 	var config = CaveGeneratorConfigClass.new()
 	assert_true(config.limit_cave_mouths, "limit_cave_mouths should default to true")
 	assert_eq(config.max_chasm_mouths, 1, "Default maximum chasm cave mouths must be 1")
-	assert_eq(config.max_tunnel_mouths, 2, "Default maximum tunnel cave mouths must be 2")
-	assert_eq(config.max_dead_end_mouths, 3, "Default maximum dead end cave mouths must be 3")
+	assert_eq(config.max_tunnel_mouths, 10, "Default maximum tunnel cave mouths must be 10")
+	assert_eq(config.max_dead_end_mouths, 0, "Default maximum dead end cave mouths must be 0")
+	assert_almost_eq(config.min_inland_threshold, 0.28, 0.001, "Default min_inland_threshold must be 0.28")
+	assert_true(config.prioritize_inland, "Default prioritize_inland must be true")
 
 func test_filtering_excess_candidates() -> void:
 	var limiter = CaveMouthLimiterClass.new()
 	var config = CaveGeneratorConfigClass.new()
+	config.max_chasm_mouths = 1
+	config.max_tunnel_mouths = 2
+	config.max_dead_end_mouths = 3
 
 	# Create a mock set of candidates with excess mouths in every category
 	var candidates: Array = []
@@ -219,3 +224,19 @@ func test_detector_continent_scan_respects_limits() -> void:
 	assert_true(counts[CaveMouthDataClass.Type.TUNNEL] <= 2, "Tunnel mouths must not exceed 2 (got %d)" % counts[CaveMouthDataClass.Type.TUNNEL])
 	assert_true(counts[CaveMouthDataClass.Type.DEAD_END] <= 3, "Dead end mouths must not exceed 3 (got %d)" % counts[CaveMouthDataClass.Type.DEAD_END])
 	assert_true(mouths.size() <= 6, "Total cave mouths must not exceed 6 (got %d)" % mouths.size())
+
+func test_inland_prioritization_selection() -> void:
+	var limiter = CaveMouthLimiterClass.new()
+	var config = CaveGeneratorConfigClass.new()
+	config.max_tunnel_mouths = 1
+	config.prioritize_inland = true
+
+	# Mouth A: Coastal (low inland=0.30), but high noise depth (14.0)
+	var m_coastal = CaveMouthDataClass.new(Vector3(100.0, 35.0, 100.0), Vector2.ZERO, CaveMouthDataClass.Type.TUNNEL, 14.0, 7.0, 35.0, 0.30)
+	# Mouth B: Deep inland (high inland=0.75), moderate depth (8.0), higher elevation (70.0)
+	var m_inland = CaveMouthDataClass.new(Vector3(200.0, 70.0, 200.0), Vector2.ZERO, CaveMouthDataClass.Type.TUNNEL, 8.0, 7.0, 70.0, 0.75)
+
+	var res = limiter.limit_mouths([m_coastal, m_inland], config)
+	assert_eq(res.size(), 1, "Must select exactly 1 tunnel mouth")
+	assert_eq(res[0].world_pos, Vector3(200.0, 70.0, 200.0), "Limiter must prioritize deep inland mouth over coastal mouth")
+

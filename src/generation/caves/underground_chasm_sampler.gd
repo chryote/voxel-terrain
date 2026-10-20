@@ -20,11 +20,15 @@ func _init(seed_val: int = 1337, p_config: CaveGeneratorConfig = null) -> void:
 	_init_noises(seed_val)
 
 func _init_noises(seed_val: int) -> void:
-	# 1. 2D Rift Corridor Noise (Simplex Smooth)
+	# 1. 2D Rift Corridor Noise (Simplex Smooth, low-octave FBM to suppress high-frequency island chatter)
 	rift_noise = FastNoiseLite.new()
 	rift_noise.seed = seed_val + 1010
 	rift_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 	rift_noise.frequency = config.chasm_rift_frequency
+	rift_noise.fractal_type = FastNoiseLite.FRACTAL_FBM
+	rift_noise.fractal_octaves = 2
+	rift_noise.fractal_lacunarity = 2.0
+	rift_noise.fractal_gain = 0.20
 
 	# 2. 2D Wall Domain Warp Noise (2-octave Fractal FBM for organic fracture fault lines)
 	wall_warp_noise = FastNoiseLite.new()

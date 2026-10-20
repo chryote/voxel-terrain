@@ -306,14 +306,17 @@ func test_arena_boundary_seams() -> void:
 	var sub_data_b = null
 	var offset: Vector2i = Vector2i.ZERO
 
-	for off in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(2, 0), Vector2i(-2, 0), Vector2i(0, 2), Vector2i(0, -2)]:
-		var cand = ChunkCoord.new(arena_coord.x + off.x, arena_coord.z + off.y)
-		var s_data_cand = gen.generate_surface(cand, bounds)
-		var sub_cand = gen.generate_subterranean(s_data_cand, cand, bounds)
-		if sub_cand is VoxelChunkData:
-			neighbor_coord = cand
-			sub_data_b = sub_cand
-			offset = off
+	for dist in range(1, 4):
+		for off in [Vector2i(dist, 0), Vector2i(-dist, 0), Vector2i(0, dist), Vector2i(0, -dist)]:
+			var cand = ChunkCoord.new(arena_coord.x + off.x, arena_coord.z + off.y)
+			var s_data_cand = gen.generate_surface(cand, bounds)
+			var sub_cand = gen.generate_subterranean(s_data_cand, cand, bounds)
+			if sub_cand is VoxelChunkData:
+				neighbor_coord = cand
+				sub_data_b = sub_cand
+				offset = off
+				break
+		if neighbor_coord != null:
 			break
 
 	assert_not_null(neighbor_coord, "Must find adjacent or nearby 3D voxel chunk")

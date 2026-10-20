@@ -442,4 +442,46 @@ func test_continent_map_ui_right_click_context_menu_and_teleport() -> void:
 
 	ui.queue_free()
 
+func test_continent_map_underground_small_island_culling() -> void:
+	## Validates that Pass 1.5 in ContinentMapBaker culls isolated subterranean pockets
+	## smaller than min_island_pixels back to solid bedrock.
+	var bounds = WorldBounds.new(Vector2i(32, 32), 32, 1.0)
+	var config = ContinentGeneratorConfig.new()
+	var gen = ContinentGenerator.new(1337, config)
+	var palette = ContinentMapColorPaletteClass.new()
+	var baker = ContinentMapBakerClass.new()
+
+	var res = 128
+	# 1. Bake with culling disabled (min_island_pixels = 0)
+	var img_uncull = baker.bake_underground_map(gen, bounds, res, palette, 0)
+	assert_not_null(img_uncull, "Unculled image must be valid")
+
+	# 2. Bake with culling enabled (min_island_pixels = 25)
+	var img_culled = baker.bake_underground_map(gen, bounds, res, palette, 25)
+	assert_not_null(img_culled, "Culled image must be valid")
+
+	# Count bedrock pixels in both
+	var bedrock_uncull = 0
+	var bedrock_culled = 0
+	for y in range(res):
+		for x in range(res):
+			if img_uncull.get_pixel(x, y) == palette.color_underground_rock:
+				bedrock_uncull += 1
+			if img_culled.get_pixel(x, y) == palette.color_underground_rock:
+				bedrock_culled += 1
+
+	# Culled image must have more bedrock because small islands were converted to bedrock
+	assert_true(bedrock_culled >= bedrock_uncull, "Culled underground map must have equal or more bedrock (%d >= %d)" % [bedrock_culled, bedrock_uncull])
+
+	# Test direct helper method _cull_small_underground_islands
+	var dummy_flags = PackedByteArray([4, 0, 0, 0, 4, 0, 0, 0, 0]) # two disconnected 1-pixel islands at (0,0) and (1,1)
+	var dummy_heights = PackedInt32Array([10, 0, 0, 0, 10, 0, 0, 0, 0])
+	var culled_count = baker._cull_small_underground_islands(dummy_flags, dummy_heights, 3, 3)
+	assert_eq(culled_count, 2, "Must cull both 1-pixel islands since both components (< 3) are smaller than threshold")
+	assert_eq(dummy_flags[0], 0, "Culled pixel flag at (0,0) must be 0")
+	assert_eq(dummy_flags[4], 0, "Culled pixel flag at (1,1) must be 0")
+	assert_eq(dummy_heights[0], 0, "Culled pixel height must be 0")
+	assert_eq(dummy_heights[4], 0, "Culled pixel height must be 0")
+
+
 

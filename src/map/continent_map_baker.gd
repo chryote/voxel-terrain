@@ -10,6 +10,7 @@ const ContinentMapColorPaletteClass = preload("res://src/map/continent_map_color
 const CaveMouthDataClass = preload("res://src/map/cave_mouth_data.gd")
 const CaveMouthDetectorClass = preload("res://src/map/cave_mouth_detector.gd")
 const ChasmColumnResultClass = preload("res://src/generation/caves/chasm_column_result.gd")
+const MIN_UNDERGROUND_ISLAND_PIXELS: int = 25 ## Reference threshold at 512x512 resolution below which isolated subterranean cavern pockets are culled to solid bedrock
 
 enum MapLevel {
 	SURFACE = 0,
@@ -161,7 +162,8 @@ func bake_underground_map(
 	generator: TerrainGenerator,
 	bounds: WorldBounds,
 	resolution: int = 512,
-	palette: ContinentMapColorPaletteClass = null
+	palette: ContinentMapColorPaletteClass = null,
+	min_island_pixels: int = MIN_UNDERGROUND_ISLAND_PIXELS
 ) -> Image:
 	if bounds == null or generator == null or resolution <= 0:
 		return null
@@ -257,6 +259,13 @@ func bake_underground_map(
 				floor_heights[idx] = 0
 
 	# -------------------------------------------------------------------------
+	# Pass 1.5: Small-Island Pruning (Cull isolated subterranean pockets)
+	# -------------------------------------------------------------------------
+	if min_island_pixels > 0:
+		var effective_min = maxi(2, int(round(float(min_island_pixels) * (float(resolution * resolution) / (512.0 * 512.0)))))
+		_cull_small_underground_islands(flags, floor_heights, resolution, effective_min)
+
+	# -------------------------------------------------------------------------
 	# Pass 2: Relief Shading, Palette Mapping, and Pixel Painting
 	# -------------------------------------------------------------------------
 	for py in range(resolution):
@@ -305,3 +314,73 @@ func bake_underground_map(
 		last_baked_cave_mouths = detector.detect_cave_mouths(generator, bounds, resolution)
 
 	return img
+
+func _cull_small_underground_islands(
+	p_flags: PackedByteArray,
+	p_floor_heights: PackedInt32Array,
+	p_resolution: int,
+	p_min_island_pixels: int
+) -> int:
+	## High-performance BFS component culling: resets isolated subterranean pockets smaller
+	## than p_min_island_pixels back to solid bedrock (zero-allocation flat integer queue).
+	var total_pixels = p_resolution * p_resolution
+	var visited = PackedByteArray()
+	visited.resize(total_pixels)
+
+	var queue = PackedInt32Array()
+	queue.resize(total_pixels)
+
+	var culled_pixels = 0
+
+	for y in range(p_resolution):
+		var row_offset = y * p_resolution
+		for x in range(p_resolution):
+			var start_idx = row_offset + x
+			if p_flags[start_idx] != 0 and visited[start_idx] == 0:
+				var head = 0
+				var tail = 0
+				queue[tail] = start_idx
+				tail += 1
+				visited[start_idx] = 1
+
+				while head < tail:
+					var curr_idx = queue[head]
+					head += 1
+
+					var cx = curr_idx % p_resolution
+					var cy = curr_idx / p_resolution
+
+					# 4-directional flood fill
+					if cx > 0:
+						var n_idx = curr_idx - 1
+						if p_flags[n_idx] != 0 and visited[n_idx] == 0:
+							visited[n_idx] = 1
+							queue[tail] = n_idx
+							tail += 1
+					if cx < p_resolution - 1:
+						var n_idx = curr_idx + 1
+						if p_flags[n_idx] != 0 and visited[n_idx] == 0:
+							visited[n_idx] = 1
+							queue[tail] = n_idx
+							tail += 1
+					if cy > 0:
+						var n_idx = curr_idx - p_resolution
+						if p_flags[n_idx] != 0 and visited[n_idx] == 0:
+							visited[n_idx] = 1
+							queue[tail] = n_idx
+							tail += 1
+					if cy < p_resolution - 1:
+						var n_idx = curr_idx + p_resolution
+						if p_flags[n_idx] != 0 and visited[n_idx] == 0:
+							visited[n_idx] = 1
+							queue[tail] = n_idx
+							tail += 1
+
+				if tail < p_min_island_pixels:
+					for i in range(tail):
+						var c_idx = queue[i]
+						p_flags[c_idx] = 0
+						p_floor_heights[c_idx] = 0
+					culled_pixels += tail
+
+	return culled_pixels

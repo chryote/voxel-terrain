@@ -3,12 +3,12 @@ extends TerrainGenerator
 
 ## Procedural continent generator with realistic multi-noise topography:
 ## Coasts, Lowlands, Rolling Hills, Highlands, Mountains, Wide Rivers,
-## Small Winding Rivers, Lakes, and Climate Moisture Simulation.
+## Small Winding Rivers, Lakes, Ponds, and Climate Moisture Simulation.
 ##
 ## Built with decoupled components:
 ## - ContinentMask (boundary falloff)
 ## - MacroTopography (macro continentalness, erosion, relief, plateaus, mountains)
-## - FluvialCarver (wide rivers, small winding streams, lake basins)
+## - FluvialCarver (wide rivers, small winding streams, lake & pond basins)
 ## - ClimateModel (climatic moisture and humidity simulation)
 ## - TerrainMaterialClassifier (slope, altitude, water table, and moisture classification)
 
@@ -127,7 +127,7 @@ func generate(coord: ChunkCoord, bounds: WorldBounds) -> SurfaceChunkData:
 
 				var final_h = clampi(int(round(m_v2.x - f_v3.x)), config.seabed_level, 255)
 				data.set_height(lx, lz, final_h)
-				data.set_water_height(lx, lz, int(f_v3.y))
+				data.set_water_height(lx, lz, int(round(f_v3.y)))
 				fluvial_flags[col_idx] = int(f_v3.z)
 				moisture_samples[col_idx] = moist
 
@@ -192,8 +192,9 @@ func is_water_at(col: Vector2i, bounds: WorldBounds) -> bool:
 	var m_v2 = macro.sample_macro_interpolated(wx, wz, bounds)
 	var f_v3 = fluvial.sample_fluvial_v3(wx, wz, m_v2.x, m_v2.y)
 
-	var h = m_v2.x - f_v3.x
-	return h < f_v3.y
+	var h = clampi(int(round(m_v2.x - f_v3.x)), config.seabed_level, 255)
+	var wh = int(round(f_v3.y))
+	return h < wh
 
 func sample_world(wx: float, wz: float, bounds: WorldBounds) -> Dictionary:
 	var m_data = macro.sample_macro(wx, wz, bounds)
@@ -216,5 +217,6 @@ func sample_world(wx: float, wz: float, bounds: WorldBounds) -> Dictionary:
 		"is_wide_river": f_data.is_wide_river,
 		"is_small_river": f_data.is_small_river,
 		"is_lake": f_data.is_lake,
+		"is_pond": f_data.get("is_pond", false),
 		"is_water": f_data.is_water
 	}

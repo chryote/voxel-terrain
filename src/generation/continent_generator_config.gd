@@ -52,17 +52,26 @@ extends Resource
 @export var wide_river_warp_amplitude: float = 120.0
 @export var wide_river_width_threshold: float = 0.020 ## Controls river channel half-width (~20-30m)
 @export var wide_river_depth: float = 12.0
+@export var wide_river_water_recede: float = 3.0 ## Meters below uncarved bank top where wide river water surface sits (higher = water recedes deeper into carved channel)
 
 @export_group("Small Winding Rivers")
 @export var small_river_frequency: float = 0.0028
 @export var small_river_warp_amplitude: float = 40.0
-@export var small_river_width_threshold: float = 0.024 ## Controls stream channel half-width (~4-6m)
-@export var small_river_depth: float = 4.0
+@export var small_river_width_threshold: float = 0.022 ## Controls stream channel half-width (~4-7m)
+@export var small_river_depth: float = 5.5
+@export var small_river_water_recede: float = 2.0 ## Meters below uncarved bank top where stream water surface sits (higher = narrower wet stream recessed inside banks)
 
 @export_group("Lakes")
 @export var lake_frequency: float = 0.00075
-@export var lake_threshold: float = 0.68
-@export var lake_depth: float = 7.0
+@export var lake_threshold: float = 0.68 ## Higher values [0.65..0.78] make lakes rarer and more contained
+@export var lake_depth: float = 10.0
+@export var lake_water_recede: float = 2.5 ## Meters below outer basin rim where lake water surface sits
+
+@export_group("Ponds")
+@export var pond_frequency: float = 0.0024
+@export var pond_threshold: float = 0.72 ## Higher values [0.70..0.82] make ponds smaller and more isolated
+@export var pond_depth: float = 6.0
+@export var pond_water_recede: float = 2.0 ## Meters below surrounding bank where pond water surface sits
 
 @export_group("Levels & Materials")
 @export var sea_level: int = 24

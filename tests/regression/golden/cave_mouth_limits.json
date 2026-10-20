@@ -9,52 +9,52 @@
     "tunnel_count": 0.0
   },
   "seed_4242": {
-    "chasm_count": 1.0,
+    "chasm_count": 0.0,
     "dead_end_count": 0.0,
     "mouths": {
       "mouth_0": {
         "depth": 8.86,
         "radius": 4.43,
-        "type": 2.0,
-        "type_name": "Chasm Cave",
+        "type": 1.0,
+        "type_name": "Tunnel Cave",
         "world_x": -297.76,
-        "world_y": 38.0,
+        "world_y": 42.0,
         "world_z": -314.27
       }
     },
     "total_mouths": 1.0,
-    "tunnel_count": 0.0
+    "tunnel_count": 1.0
   },
   "seed_9999": {
-    "chasm_count": 1.0,
-    "dead_end_count": 0.0,
+    "chasm_count": 0.0,
+    "dead_end_count": 1.0,
     "mouths": {
       "mouth_0": {
-        "depth": 10.0,
-        "radius": 5.0,
-        "type": 1.0,
-        "type_name": "Tunnel Cave",
-        "world_x": 451.5,
-        "world_y": 59.0,
-        "world_z": 132.86
-      },
-      "mouth_1": {
         "depth": 14.0,
         "radius": 7.0,
-        "type": 2.0,
-        "type_name": "Chasm Cave",
-        "world_x": 460.16,
-        "world_y": 71.0,
-        "world_z": 209.87
-      },
-      "mouth_2": {
-        "depth": 13.93,
-        "radius": 6.97,
         "type": 1.0,
         "type_name": "Tunnel Cave",
-        "world_x": 594.68,
-        "world_y": 43.0,
-        "world_z": 225.52
+        "world_x": 380.48,
+        "world_y": 84.0,
+        "world_z": 30.57
+      },
+      "mouth_1": {
+        "depth": 3.92,
+        "radius": 1.96,
+        "type": 0.0,
+        "type_name": "Dead Cave",
+        "world_x": 385.84,
+        "world_y": 49.0,
+        "world_z": -51.73
+      },
+      "mouth_2": {
+        "depth": 14.0,
+        "radius": 7.0,
+        "type": 1.0,
+        "type_name": "Tunnel Cave",
+        "world_x": 460.16,
+        "world_y": 98.0,
+        "world_z": 209.87
       }
     },
     "total_mouths": 3.0,

@@ -2,7 +2,7 @@ class_name MacroTopography
 extends RefCounted
 
 ## Pure component responsible for synthesizing continental macro-elevation:
-## Coasts, Lowlands, Rolling Hills, Highlands, and Mountainous Regions.
+## Coasts, Lowlands, Rolling Hills, Highlands, Mountainous Regions, and Offshore Cliff Islands.
 
 var config: ContinentGeneratorConfig
 var mask: ContinentMask
@@ -68,8 +68,86 @@ func _init(seed_val: int, p_config: ContinentGeneratorConfig, p_mask: ContinentM
 	mountain_noise.fractal_gain = config.mountain_fractal_gain
 	mountain_noise.fractal_lacunarity = config.mountain_lacunarity
 
+## Evaluates strictly offshore cliff island elevation and material zone at exact 1x1 resolution.
+## Returns Vector3(elevation, island_zone_type, isl_norm):
+##   island_zone_type == 0.0 -> Not an offshore island
+##   island_zone_type == 1.0 -> Submerged island pedestal (ID_SEABED)
+##   island_zone_type == 2.0 -> Raised stone cliff wall, stone stair-terrace entry, or stone cliff rim (ID_STONE)
+##   island_zone_type == 3.0 -> Innermost flat plateau cap (ID_GRASS top, ID_STONE side)
+func sample_offshore_island(wx: float, wz: float, bounds: WorldBounds) -> Vector3:
+	if not mask.islands_enabled or not mask.has_method("sample_offshore_island"):
+		return Vector3.ZERO
+
+	var isl_info = mask.sample_offshore_island(wx, wz, bounds)
+	var isl_norm = isl_info.x
+	if isl_norm <= 0.001:
+		return Vector3.ZERO
+
+	var entry_blend = isl_info.y
+	var seabed = float(config.seabed_level)
+	var sea = float(config.sea_level)
+	var cliff_h = maxf(4.0, config.island_cliff_height)
+
+	# 1. Underwater island pedestal rising from seabed to sea_level - 1
+	var shore_threshold = 0.15
+	if isl_norm < shore_threshold:
+		var base_t = isl_norm / shore_threshold
+		var smooth_base = base_t * base_t * (3.0 - 2.0 * base_t)
+		var sub_h = lerpf(seabed, sea - 1.0, smooth_base)
+		return Vector3(sub_h, 1.0, isl_norm)
+
+	# 2. Above sea level: flat vertical cliff raise with regular stair-terrace entry sector
+	var u = clampf((isl_norm - shore_threshold) / (1.0 - shore_threshold), 0.0, 1.0)
+	var terrace_span = clampf(config.island_terrace_span, 0.15, 0.85)
+	var stair_span = lerpf(0.02, terrace_span, entry_blend)
+	var stair_progress = clampf(u / stair_span, 0.0, 1.0)
+
+	var step_h = maxf(1.0, float(config.island_terrace_step_height))
+	var num_steps = maxf(1.0, roundf(cliff_h / step_h))
+	var terrace_raise = (floorf(stair_progress * num_steps) / num_steps) * cliff_h if stair_progress < 1.0 else cliff_h
+
+	var final_h = sea + terrace_raise
+	var is_inner_plateau = (stair_progress >= 1.0) and (u >= (terrace_span + 0.10))
+	var zone_type = 3.0 if is_inner_plateau else 2.0
+	return Vector3(final_h, zone_type, isl_norm)
+
 func sample_macro(wx: float, wz: float, bounds: WorldBounds) -> Dictionary:
-	var land_factor = mask.get_factor_world(wx, wz, bounds)
+	var isl = sample_offshore_island(wx, wz, bounds)
+	if isl.y > 0.0:
+		return {
+			"elevation": isl.x,
+			"land_factor": clampf(isl.z, 0.0, 1.0),
+			"continentalness": 0.0,
+			"erosion": 1.0,
+			"is_highland": false,
+			"is_mountain": false,
+			"is_offshore_island": true,
+			"island_zone_type": int(isl.y)
+		}
+
+	var main_raw = mask.get_main_continent_raw(wx, wz, bounds) if mask.has_method("get_main_continent_raw") else mask.get_land_raw(wx, wz, bounds)
+	if main_raw <= 0.0:
+		return {
+			"elevation": float(config.seabed_level),
+			"land_factor": 0.0,
+			"continentalness": 0.0,
+			"erosion": 1.0,
+			"is_highland": false,
+			"is_mountain": false,
+			"is_offshore_island": false,
+			"island_zone_type": 0
+		}
+
+	var dist_left = wx - bounds.min_world_x
+	var dist_right = bounds.max_world_x - wx
+	var dist_bottom = wz - bounds.min_world_z
+	var dist_top = bounds.max_world_z - wz
+	var border_dist = minf(minf(dist_left, dist_right), minf(dist_bottom, dist_top))
+	var border_fade = clampf(border_dist / maxf(1.0, mask.coast_falloff_distance), 0.0, 1.0)
+	border_fade = border_fade * border_fade * (3.0 - 2.0 * border_fade)
+	var t_mask = clampf(main_raw / 0.16, 0.0, 1.0)
+	var land_factor = clampf(t_mask * t_mask * (3.0 - 2.0 * t_mask) * border_fade, 0.0, 1.0)
+
 	if land_factor <= 0.001:
 		return {
 			"elevation": float(config.seabed_level),
@@ -77,12 +155,13 @@ func sample_macro(wx: float, wz: float, bounds: WorldBounds) -> Dictionary:
 			"continentalness": 0.0,
 			"erosion": 1.0,
 			"is_highland": false,
-			"is_mountain": false
+			"is_mountain": false,
+			"is_offshore_island": false,
+			"island_zone_type": 0
 		}
 
 	# Continentalness [0.0..1.0] naturally increases towards continent interior
-	var land_raw = mask.get_land_raw(wx, wz, bounds) if mask.has_method("get_land_raw") else land_factor
-	var inland_gradient = clampf(land_raw, 0.0, 1.0)
+	var inland_gradient = clampf(main_raw, 0.0, 1.0)
 	var c_sample = (cont_noise.get_noise_2d(wx, wz) + 1.0) * 0.5
 	var continentalness = land_factor * (inland_gradient * 0.6 + c_sample * 0.4)
 
@@ -136,16 +215,32 @@ func sample_macro(wx: float, wz: float, bounds: WorldBounds) -> Dictionary:
 		"continentalness": continentalness,
 		"erosion": erosion,
 		"is_highland": is_highland,
-		"is_mountain": is_mountain
+		"is_mountain": is_mountain,
+		"is_offshore_island": false,
+		"island_zone_type": 0
 	}
 
 func sample_macro_v2(wx: float, wz: float, bounds: WorldBounds) -> Vector2:
-	var land_factor = mask.get_factor_world(wx, wz, bounds)
+	var main_raw = mask.get_main_continent_raw(wx, wz, bounds) if mask.has_method("get_main_continent_raw") else mask.get_land_raw(wx, wz, bounds)
+	if main_raw <= 0.0:
+		return Vector2(float(config.seabed_level), 0.0)
+
+	var dist_left = wx - bounds.min_world_x
+	var dist_right = bounds.max_world_x - wx
+	var dist_bottom = wz - bounds.min_world_z
+	var dist_top = bounds.max_world_z - wz
+	var border_dist = minf(minf(dist_left, dist_right), minf(dist_bottom, dist_top))
+	if border_dist <= 0.0:
+		return Vector2(float(config.seabed_level), 0.0)
+
+	var border_fade = clampf(border_dist / maxf(1.0, mask.coast_falloff_distance), 0.0, 1.0)
+	border_fade = border_fade * border_fade * (3.0 - 2.0 * border_fade)
+	var t_mask = clampf(main_raw / 0.16, 0.0, 1.0)
+	var land_factor = clampf(t_mask * t_mask * (3.0 - 2.0 * t_mask) * border_fade, 0.0, 1.0)
 	if land_factor <= 0.001:
 		return Vector2(float(config.seabed_level), 0.0)
 
-	var land_raw = mask.get_land_raw(wx, wz, bounds) if mask.has_method("get_land_raw") else land_factor
-	var inland_gradient = clampf(land_raw, 0.0, 1.0)
+	var inland_gradient = clampf(main_raw, 0.0, 1.0)
 	var c_sample = (cont_noise.get_noise_2d(wx, wz) + 1.0) * 0.5
 	var continentalness = land_factor * (inland_gradient * 0.6 + c_sample * 0.4)
 	var erosion = (erosion_noise.get_noise_2d(wx, wz) + 1.0) * 0.5

@@ -12,10 +12,13 @@ extends Resource
 @export var inland_elevation_bias: float = 8.0 ## Flat elevation lift added to continental landmass to prevent noise dips from dropping below sea level
 
 @export_group("Offshore Islands")
-@export var islands_enabled: bool = true ## Generates occasional natural small islands in coastal ocean waters
+@export var islands_enabled: bool = true ## Generates offshore cliff islands with stepped stone stair terraces in coastal ocean waters
 @export var island_frequency: float = 0.0012 ## Island noise frequency
-@export var island_threshold: float = 0.80 ## Higher values yield fewer, more isolated offshore islands
-@export var island_boost: float = 1 ## Elevation/land raw boost for islands
+@export var island_threshold: float = 0.68 ## Higher values yield fewer, more isolated offshore islands
+@export var island_boost: float = 0.25 ## Land raw boost for offshore islands
+@export var island_cliff_height: float = 16.0 ## Flat vertical elevation raise (in meters above sea level) for offshore cliff islands
+@export var island_terrace_step_height: int = 1 ## Vertical height (in blocks) of each regular stone stair terrace step on the ocean entry ramp
+@export var island_terrace_span: float = 0.55 ## Fraction of island radius spanned by the ocean entry stair-terrace ramp
 
 @export_group("Erosion & Lowlands")
 @export var erosion_frequency: float = 0.0012

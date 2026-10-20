@@ -85,6 +85,15 @@ func bake_map(
 
 			if is_cont_gen and cont_gen != null:
 				var m_v2 = cont_gen.macro.sample_macro_v2(wx, wz, bounds)
+				if m_v2.y <= 0.01:
+					var isl = cont_gen.macro.sample_offshore_island(wx, wz, bounds)
+					if isl.y > 0.0:
+						heights[idx] = clampi(int(round(isl.x)), seabed_level, 255)
+						water_heights[idx] = sea_level
+						var zone = int(isl.y)
+						fluvial_flags[idx] = 8 if zone == 2 else (16 if zone == 3 else 0)
+						continue
+
 				var f_v3 = cont_gen.fluvial.sample_fluvial_v3(wx, wz, m_v2.x, m_v2.y)
 				var h = clampi(int(round(m_v2.x - f_v3.x)), seabed_level, 255)
 				var wh = int(round(f_v3.y))
@@ -128,23 +137,29 @@ func bake_map(
 			if is_water:
 				pixel_color = palette.get_water_color(h, sea_level)
 			else:
-				var moist = 0.5
-				if is_cont_gen and cont_gen != null and cont_gen.climate != null:
-					var wx = min_x + (float(px) + 0.5) * step_x
-					var wz = min_z + (float(py) + 0.5) * step_z
-					moist = cont_gen.climate.sample_moisture(wx, wz)
+				var base_color: Color
+				if (flags & 8) != 0:
+					base_color = palette.color_mountain_stone
+				elif (flags & 16) != 0:
+					base_color = palette.color_mountain_stone if slope_grade >= 0.75 else palette.color_plains_grass
+				else:
+					var moist = 0.5
+					if is_cont_gen and cont_gen != null and cont_gen.climate != null:
+						var wx = min_x + (float(px) + 0.5) * step_x
+						var wz = min_z + (float(py) + 0.5) * step_z
+						moist = cont_gen.climate.sample_moisture(wx, wz)
 
-				var base_color = palette.get_land_color(
-					h,
-					slope_grade,
-					wh,
-					sea_level,
-					sand_offset,
-					snow_height,
-					stone_height,
-					is_river or is_lake,
-					moist
-				)
+					base_color = palette.get_land_color(
+						h,
+						slope_grade,
+						wh,
+						sea_level,
+						sand_offset,
+						snow_height,
+						stone_height,
+						is_river or is_lake,
+						moist
+					)
 				var shade = palette.compute_hillshade(dh_dx, dh_dz)
 				pixel_color = palette.apply_relief(base_color, shade, h, sea_level)
 

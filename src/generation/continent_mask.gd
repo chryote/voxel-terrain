@@ -8,9 +8,15 @@ var warp_macro: FastNoiseLite
 var warp_meso: FastNoiseLite
 var warp_detail: FastNoiseLite
 var shape_noise: FastNoiseLite
+var island_noise: FastNoiseLite
 
+var continent_radius: float = 0.77
 var coast_falloff_distance: float = 600.0
 var coast_warp_amplitude: float = 250.0
+
+var islands_enabled: bool = true
+var island_threshold: float = 0.70
+var island_boost: float = 0.22
 
 func _init(seed_val: int = 1337, config: ContinentGeneratorConfig = null) -> void:
 	# 1. Macro warp: broad continental asymmetry (period ~4000-5000m)
@@ -48,11 +54,25 @@ func _init(seed_val: int = 1337, config: ContinentGeneratorConfig = null) -> voi
 	shape_noise.fractal_lacunarity = 2.1
 	shape_noise.fractal_gain = 0.45
 
+	# 5. Island noise: occasional natural small islands in coastal ocean waters
+	island_noise = FastNoiseLite.new()
+	island_noise.seed = seed_val + 505
+	island_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	island_noise.frequency = 0.0012
+	island_noise.fractal_type = FastNoiseLite.FRACTAL_FBM
+	island_noise.fractal_octaves = 2
+	island_noise.fractal_gain = 0.45
+
 	if config != null:
+		continent_radius = config.continent_radius
 		coast_falloff_distance = config.coast_falloff_distance
 		coast_warp_amplitude = config.coast_warp_amplitude
 		warp_detail.frequency = config.coast_warp_frequency
 		shape_noise.frequency = config.continent_noise_frequency
+		islands_enabled = config.islands_enabled
+		island_noise.frequency = config.island_frequency
+		island_threshold = config.island_threshold
+		island_boost = config.island_boost
 	else:
 		warp_detail.frequency = 0.0018
 		shape_noise.frequency = 0.00065
@@ -94,12 +114,24 @@ func get_land_raw(wx: float, wz: float, bounds: WorldBounds) -> float:
 	var warped_dist = sqrt(dx * dx * 0.95 + dz * dz * 1.08)
 	var norm_dist = warped_dist / max_radius
 
-	# Target continent radius: ~65% of map extent
-	var continent_radius = 0.65
+	# Target continent radius: fraction of map extent (default ~77%)
 	var base_falloff = (continent_radius - norm_dist) / continent_radius
 
 	var shape_n = shape_noise.get_noise_2d(warped_x, warped_z)
 	var land_raw = base_falloff + shape_n * 0.38
+
+	# Occasional small islands in the offshore band
+	if islands_enabled and border_dist > 400.0 and norm_dist > 0.65:
+		# Use mild detail warp so islands form natural rounded/organic shapes rather than stretched wisps
+		var isl_x = wx + dw_x * 0.75
+		var isl_z = wz + dw_z * 0.75
+		var isl_sample = (island_noise.get_noise_2d(isl_x, isl_z) + 1.0) * 0.5
+		if isl_sample > island_threshold:
+			var isl_t = (isl_sample - island_threshold) / (1.0 - island_threshold)
+			var border_fade_isl = clampf((border_dist - 400.0) / 400.0, 0.0, 1.0)
+			var isl_strength = isl_t * isl_t * island_boost * border_fade_isl
+			land_raw = maxf(land_raw, isl_strength)
+
 	return land_raw
 
 func get_factor(gx: int, gz: int, bounds: WorldBounds) -> float:

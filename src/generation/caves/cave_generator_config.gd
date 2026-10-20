@@ -20,8 +20,8 @@ extends Resource
 @export_group("Cave Mouth Generation Limits")
 @export var limit_cave_mouths: bool = true ## Master switch to limit cave mouth generation across continent
 @export var max_chasm_mouths: int = 1 ## Maximum allowed cave mouths leading to underground chasms
-@export var max_tunnel_mouths: int = 2 ## Maximum allowed cave mouths leading to interconnected 3D tunnels
-@export var max_dead_end_mouths: int = 3 ## Maximum allowed shallow dead-end cave mouths
+@export var max_tunnel_mouths: int = 10 ## Maximum allowed cave mouths leading to interconnected 3D tunnels
+@export var max_dead_end_mouths: int = 0 ## Maximum allowed shallow dead-end cave mouths
 
 @export_group("3D Worm Tunnels & Navigation")
 @export_range(0.005, 0.05) var tunnel_frequency: float = 0.016 ## Spatial frequency of 3D worm tunnels

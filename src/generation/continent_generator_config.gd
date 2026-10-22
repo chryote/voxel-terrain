@@ -66,7 +66,7 @@ extends Resource
 
 @export_group("Lakes")
 @export var lake_frequency: float = 0.00075
-@export var lake_threshold: float = 0.68 ## Higher values [0.65..0.78] make lakes rarer and more contained
+@export var lake_threshold: float = 0.9 ## Higher values [0.65..0.78] make lakes rarer and more contained
 @export var lake_depth: float = 10.0
 @export var lake_water_recede: float = 2.5 ## Meters below outer basin rim where lake water surface sits
 

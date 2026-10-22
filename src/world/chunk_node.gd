@@ -21,10 +21,17 @@ var static_body: StaticBody3D
 var collision_shape: CollisionShape3D
 var cave_collision_shape: CollisionShape3D
 
+# Foliage batching
+var foliage_node: FoliageChunkNode
+
 static var _shared_material: StandardMaterial3D
 static var _shared_cave_material: StandardMaterial3D
 static var _shared_water_material: StandardMaterial3D
 static var _shared_subterranean_water_material: StandardMaterial3D
+
+static var custom_surface_material: Material = null
+static var custom_cave_material: Material = null
+static var custom_water_material: Material = null
 
 func _init() -> void:
 	if _shared_material == null:
@@ -62,14 +69,14 @@ func _ensure_nodes_exist() -> void:
 	if mesh_instance == null:
 		mesh_instance = MeshInstance3D.new()
 		mesh_instance.name = "SurfaceMeshInstance"
-		mesh_instance.material_override = _shared_material
+		mesh_instance.material_override = custom_surface_material if custom_surface_material != null else _shared_material
 		mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 		add_child(mesh_instance)
 
 	if cave_mesh_instance == null:
 		cave_mesh_instance = MeshInstance3D.new()
 		cave_mesh_instance.name = "CaveMeshInstance"
-		cave_mesh_instance.material_override = _shared_cave_material
+		cave_mesh_instance.material_override = custom_cave_material if custom_cave_material != null else _shared_cave_material
 		# Subterranean geometry is never reached by directional sunlight shadows
 		cave_mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		cave_mesh_instance.visible = false
@@ -132,7 +139,7 @@ func setup(
 		if water_instance == null:
 			water_instance = MeshInstance3D.new()
 			water_instance.name = "WaterInstance"
-			water_instance.material_override = _shared_water_material
+			water_instance.material_override = custom_water_material if custom_water_material != null else _shared_water_material
 			add_child(water_instance)
 		water_instance.mesh = mesh_data.water_mesh_data.create_array_mesh()
 		water_instance.visible = true
@@ -165,12 +172,52 @@ func setup(
 
 	set_collision_enabled(enable_collision)
 
+func set_surface_material(mat: Material) -> void:
+	_ensure_nodes_exist()
+	if mesh_instance != null:
+		mesh_instance.material_override = mat
+
+func set_cave_material(mat: Material) -> void:
+	_ensure_nodes_exist()
+	if cave_mesh_instance != null:
+		cave_mesh_instance.material_override = mat
+
+func set_water_material(mat: Material) -> void:
+	_ensure_nodes_exist()
+	if water_instance != null:
+		water_instance.material_override = mat
+
+func set_splat_texture(splat_texture: Texture2D) -> void:
+	_ensure_nodes_exist()
+	if mesh_instance != null and mesh_instance.material_override is ShaderMaterial:
+		var mat = mesh_instance.material_override as ShaderMaterial
+		if splat_texture != null:
+			mat.set_shader_parameter("use_splat_map", true)
+			mat.set_shader_parameter("splat_map", splat_texture)
+		else:
+			mat.set_shader_parameter("use_splat_map", false)
+
+func set_foliage_data(data: RefCounted, registry: Resource) -> void:
+	_ensure_nodes_exist()
+	if data == null:
+		if foliage_node != null:
+			foliage_node.clear()
+		return
+	if foliage_node == null:
+		foliage_node = FoliageChunkNode.new()
+		foliage_node.name = "FoliageNode"
+		add_child(foliage_node)
+	foliage_node.apply_foliage_data(data, registry)
+
 func prepare_for_pool() -> void:
 	coord = null
 	has_cave_mouth = false
 	_collision_distance_enabled = false
 	_cached_prebaked_surface_shape = null
 	_cached_prebaked_cave_shape = null
+
+	if foliage_node != null:
+		foliage_node.prepare_for_pool()
 
 	if mesh_instance != null:
 		mesh_instance.mesh = null

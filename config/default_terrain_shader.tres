@@ -1,0 +1,46 @@
+[gd_resource type="Resource" script_class="TerrainMaterialConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/graphics/terrain_material_config.gd" id="1_mat_cfg"]
+
+[resource]
+script = ExtResource("1_mat_cfg")
+triplanar_scale = 0.2
+triplanar_sharpness = 4.0
+slope_threshold = 0.7
+slope_blend_margin = 0.15
+beach_height = 25.0
+beach_blend_margin = 3.0
+snow_height = 140.0
+snow_blend_margin = 15.0
+macro_variation_strength = 0.12
+macro_variation_scale = 0.015
+biome_tint = Color(1, 1, 1, 1)
+grass_color = Color(0.337255, 0.490196, 0.27451, 1)
+dirt_color = Color(0.419608, 0.309804, 0.219608, 1)
+rock_color = Color(0.419608, 0.419608, 0.419608, 1)
+sand_color = Color(0.843137, 0.772549, 0.552941, 1)
+snow_color = Color(0.941176, 0.956863, 0.972549, 1)
+grass_roughness = 0.85
+dirt_roughness = 0.9
+rock_roughness = 0.75
+sand_roughness = 0.88
+snow_roughness = 0.65
+paint_layer_r_color = Color(0.419608, 0.309804, 0.219608, 1)
+paint_layer_r_roughness = 0.92
+paint_layer_g_color = Color(0.843137, 0.772549, 0.552941, 1)
+paint_layer_g_roughness = 0.85
+paint_layer_b_color = Color(0.313726, 0.305882, 0.298039, 1)
+paint_layer_b_roughness = 0.7
+paint_layer_a_color = Color(0.941176, 0.956863, 0.972549, 1)
+paint_layer_a_roughness = 0.6
+use_textures = false
+water_shallow_color = Color(0.18, 0.55, 0.72, 0.85)
+water_deep_color = Color(0.05, 0.22, 0.42, 0.95)
+water_foam_color = Color(0.9, 0.95, 1, 0.8)
+water_speed = 1.2
+water_amplitude = 0.15
+cave_rock_color = Color(0.18, 0.19, 0.2, 1)
+cave_basalt_color = Color(0.12, 0.13, 0.14, 1)
+cave_crystal_color = Color(0.26, 0.78, 0.82, 1)
+cave_crystal_energy = 1.8
+cave_wetness = 0.35

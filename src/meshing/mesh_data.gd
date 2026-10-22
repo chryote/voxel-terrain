@@ -7,6 +7,8 @@ extends RefCounted
 var vertices: PackedVector3Array
 var normals: PackedVector3Array
 var colors: PackedColorArray
+var uvs: PackedVector2Array
+var uv2s: PackedVector2Array
 var indices: PackedInt32Array
 var water_mesh_data: MeshData = null
 var has_cave_mouth: bool = false
@@ -18,6 +20,8 @@ func clear() -> void:
 	vertices.clear()
 	normals.clear()
 	colors.clear()
+	uvs.clear()
+	uv2s.clear()
 	indices.clear()
 	has_cave_mouth = false
 
@@ -32,6 +36,10 @@ func create_array_mesh() -> ArrayMesh:
 		arrays[Mesh.ARRAY_NORMAL] = normals
 	if colors.size() == vertices.size():
 		arrays[Mesh.ARRAY_COLOR] = colors
+	if uvs.size() == vertices.size():
+		arrays[Mesh.ARRAY_TEX_UV] = uvs
+	if uv2s.size() == vertices.size():
+		arrays[Mesh.ARRAY_TEX_UV2] = uv2s
 	arrays[Mesh.ARRAY_INDEX] = indices
 
 	var mesh = ArrayMesh.new()

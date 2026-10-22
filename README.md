@@ -25,17 +25,42 @@ Contains zero `Node` dependencies, runs completely thread-safe on `WorkerThreadP
   - `ContinentGeneratorConfig`: Procedural noise tuning parameters.
 - **`src/meshing/`**:
   - `Mesher`: Abstract meshing interface.
-  - `MeshData`: Pure vertex, normal, color, and index buffers generated safely on worker threads.
+  - `MeshData`: Pure vertex, normal, color, UV, UV2, and index buffers generated safely on worker threads.
   - `SurfaceShellMesher`: Surface-shell voxel mesher with **2D greedy top-face merging** (merging uniform flat areas down to 1 single quad) and outward-facing vertical step/cliff walls.
+- **`src/painting/`**:
+  - `TerrainPaintLayer`: Typed resource defining splat channels (R: Dirt Path, G: Sand, B: Cobblestone, A: Snow) with foliage suppression flags.
+  - `TerrainPaintData`: Per-chunk 4-channel (RGBA8) splatmap buffer with smooth Hermite brush falloff and direct Godot `Image` and `ImageTexture` generation.
+  - `ChunkPaintManager`: Multi-chunk brush coordination, boundary clipping, splatmap texture cache, and discrete voxel material painting directly into `SurfaceChunkData`.
+  - `TerrainPainter`: High-level painter with continuous stroke interpolation (no gaps during rapid mouse dragging) and a full undo/redo stack.
+  - `PaintStroke`: Serializable brush stroke records supporting `PAINT`, `ERASE`, `SMOOTH`, and `REPLACE` modes.
+- **`src/biomes/`**:
+  - `BiomeDef`: Biome configuration with temperature/humidity targets, elevation envelopes, surface materials, foliage density, and visual tints.
+  - `BiomeRegistry`: Catalog of biomes with 8 built-in presets (*Plains, Forest, Desert, Tundra, Mountain Peaks, Beach, Ocean, Swamp*).
+  - `BiomeSampler`: Procedural multi-octave simplex climate noise generator with climate-space nearest-neighbor classification and smooth multi-point blend weights.
+- **`src/foliage/`**:
+  - `FoliageDef` & `FoliageRegistry`: Typed resource catalog of instanced foliage types (grass tufts, wildflowers, ferns, shrubs, pine trees, pebbles) with slope, material, and elevation rules.
+  - `FoliageChunkData`: Pure data container holding instanced transforms and colors per chunk.
+  - `FoliageSpawner`: Thread-safe procedural generator with slope checking, surface material matching, biome density scaling, and **paint exclusions** (e.g. painted dirt paths suppress foliage).
 - **`src/streaming/`**:
   - `ChunkStreamer`: Pure set algebra determining `to_load` (sorted closest-first) and `to_unload` (with distance hysteresis).
   - `ChunkScheduler`: Background multi-threaded pipeline using Godot 4's `WorkerThreadPool`, thread-safe mutex synchronization, and task reclamation.
 
 ### 2. Scene Layer (`Node3D` / SceneTree)
+- **`src/graphics/`**:
+  - Shaders (`terrain.gdshader`, `terrain_water.gdshader`, `terrain_cave.gdshader`):
+    - **Triplanar Mapping**: Prevents texture stretching on vertical voxel cliffs and steps without requiring per-quad UV unwrapping.
+    - **Slope-Based Blending**: Automatically transitions steep angles (> 45°) to cliff rock, leaving horizontal planes with topsoil, grass, sand, or snow.
+    - **Elevation Blending**: Procedurally transitions low elevations to coastal beaches and high peaks to snowlines.
+    - **Terrain Splat Painting (RGBA)**: Multi-layer splatmap overlay blending up to 4 custom painted layers.
+    - **Macro-Variation Anti-Tiling**: Subtly modulates color and roughness over large world coordinates to prevent repetitive tiling artifacts.
+    - **PBR Lighting & Biome Tinting**: Full albedo, roughness, metallic, and specular response with vegetation biome tinting.
+  - `TerrainMaterialConfig`: Typed resource exposing triplanar scale/sharpness, slope thresholds, PBR layer colors/roughness, and optional textures.
+  - `TerrainMaterialManager`: Material factory managing uniform synchronization and chunk-specific material instances with world origin and splatmaps bound.
 - **`src/world/`**:
   - `TerrainQuery`: Decoupled query interface (`get_height_at`, `get_spawn_point`, `get_world_bounds`).
-  - `VoxelWorld`: Composition root managing streaming, collision generation budgets, water plane, and boundary barriers.
-  - `ChunkNode`: Scene instance with `MeshInstance3D` and optional `StaticBody3D` (`ConcavePolygonShape3D`).
+  - `VoxelWorld`: Composition root managing streaming, collision budgets, graphics overrides, runtime painting API (`paint_terrain`), biome/climate queries, water plane, and boundary barriers.
+  - `ChunkNode`: Scene instance with `MeshInstance3D`, dynamic material overrides, splatmap texture updates, foliage node pooling, and optional `StaticBody3D` (`ConcavePolygonShape3D`).
+  - `FoliageChunkNode`: Scene node batching instances per chunk via `MultiMeshInstance3D` with automatic procedural cross-mesh fallbacks.
   - `WorldBoundary`: 4 perimeter barrier walls stopping entities at map limits.
   - `WaterPlane`: Continent-wide ocean surface at configured sea level.
 - **`src/player/`**:
@@ -55,13 +80,18 @@ res://
 ├── config/
 │   ├── default_world.tres           # World configuration resource
 │   ├── default_generator.tres       # Continent noise & elevation parameters
+│   ├── default_terrain_shader.tres  # PBR terrain shader & palette parameters
 │   └── materials.tres               # Voxel palette (colors & properties)
 ├── src/
 │   ├── core/                        # Pure RefCounted data structures
 │   ├── generation/                  # Procedural continent noise & masking
 │   ├── meshing/                     # Greedy meshing & buffer generation
+│   ├── painting/                    # Terrain splatmap buffers, brush logic & undo/redo
+│   ├── biomes/                      # Biome definitions, registry & climate sampler
+│   ├── foliage/                     # Foliage definitions, chunk data & procedural spawner
+│   ├── graphics/                    # Triplanar PBR shaders & material manager
 │   ├── streaming/                   # Chunk streamer & WorkerThreadPool scheduler
-│   ├── world/                       # Composition root, chunk nodes, boundary, water
+│   ├── world/                       # Composition root, chunk nodes, foliage nodes, boundary, water
 │   └── player/                      # Motor, TPS camera, HUD, input & intent
 ├── scenes/
 │   ├── main.tscn                    # Main runnable scene
@@ -69,7 +99,7 @@ res://
 └── tests/
     ├── run_tests.gd                 # Headless test runner entry point
     ├── framework/                   # TestCase, BenchmarkCase, RegressionCase, TestRunner
-    ├── unit/                        # 28 Unit tests (including architecture linter)
+    ├── unit/                        # 32 Unit tests (including architecture, shader, painting, biome, foliage)
     ├── regression/                  # Golden snapshot regression tests
     └── benchmark/                   # Automated performance benchmarks
 ```

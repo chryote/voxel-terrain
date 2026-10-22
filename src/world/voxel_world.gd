@@ -40,7 +40,22 @@ signal spawn_mode_changed(is_underground: bool, spawn_position: Vector3)
 			if node is ChunkNode and node.cave_water_instance != null:
 				node.cave_water_instance.visible = val and node.is_subterranean_visible()
 
+@export_group("Graphics & Painting")
+@export var terrain_material_config: TerrainMaterialConfig
+@export var biome_registry: BiomeRegistry
+@export var foliage_registry: FoliageRegistry
+@export var enable_custom_shader: bool = true
+@export var enable_foliage: bool = false
+
 const SpawnFinder = preload("res://src/world/spawn_finder.gd")
+const TerrainMaterialConfigClass = preload("res://src/graphics/terrain_material_config.gd")
+const TerrainMaterialManagerClass = preload("res://src/graphics/terrain_material_manager.gd")
+const ChunkPaintManagerClass = preload("res://src/painting/chunk_paint_manager.gd")
+const TerrainPainterClass = preload("res://src/painting/terrain_painter.gd")
+const BiomeRegistryClass = preload("res://src/biomes/biome_registry.gd")
+const BiomeSamplerClass = preload("res://src/biomes/biome_sampler.gd")
+const FoliageRegistryClass = preload("res://src/foliage/foliage_registry.gd")
+const FoliageSpawnerClass = preload("res://src/foliage/foliage_spawner.gd")
 
 var bounds: WorldBounds
 var generator: TerrainGenerator
@@ -48,6 +63,12 @@ var mesher: Mesher
 var streamer: ChunkStreamer
 var scheduler: ChunkScheduler
 var _spawn_finder: SpawnFinder = SpawnFinder.new()
+
+var material_manager: TerrainMaterialManager
+var paint_manager: ChunkPaintManager
+var painter: TerrainPainter
+var biome_sampler: BiomeSampler
+var foliage_spawner: FoliageSpawner
 
 var water_plane: WaterPlane
 var world_boundary: WorldBoundary
@@ -112,6 +133,26 @@ func _ready() -> void:
 	cave_config.cave_water_enabled = cave_water_enabled
 
 	bounds = world_config.create_world_bounds()
+
+	if terrain_material_config == null:
+		terrain_material_config = TerrainMaterialConfigClass.new()
+	material_manager = TerrainMaterialManagerClass.new(terrain_material_config)
+
+	paint_manager = ChunkPaintManagerClass.new(
+		world_config.chunk_size,
+		world_config.voxel_size,
+		world_config.chunk_size
+	)
+	painter = TerrainPainterClass.new(paint_manager)
+
+	if biome_registry == null:
+		biome_registry = BiomeRegistryClass.create_default_registry()
+	biome_sampler = BiomeSamplerClass.new(biome_registry, world_config.world_seed, float(world_config.sea_level))
+
+	if foliage_registry == null:
+		foliage_registry = FoliageRegistryClass.create_default_registry()
+	foliage_spawner = FoliageSpawnerClass.new(foliage_registry)
+
 	if generator == null:
 		generator = VolumetricTerrainGenerator.new(world_config.world_seed, generator_config, cave_config)
 	if "cave_carver" in generator and generator.cave_carver != null:
@@ -250,6 +291,8 @@ func _load_chunk_sync(coord: ChunkCoord) -> void:
 	var shapes = baker.bake_shapes_for_bundle(mesh_data)
 	chunk_node.setup(coord, origin, mesh_data, true, shapes.surface_shape, shapes.cave_shape)
 	_mouth_cache[key] = chunk_node.has_cave_mouth
+	var s_sync_data = chunk_data as SurfaceChunkData if chunk_data is SurfaceChunkData else null
+	_apply_chunk_graphics_and_foliage(chunk_node, coord, origin, s_sync_data)
 	subterranean_coordinator.register_surface_chunk(coord, chunk_node.has_cave_mouth)
 	subterranean_coordinator.mark_subterranean_ready(coord)
 	chunk_loaded.emit(coord)
@@ -311,6 +354,7 @@ func _process_completed_chunks() -> void:
 		_mouth_cache[key] = chunk_node.has_cave_mouth
 
 		var s_data = item.get("data", null) as SurfaceChunkData
+		_apply_chunk_graphics_and_foliage(chunk_node, coord, origin, s_data)
 		subterranean_coordinator.register_surface_chunk(coord, chunk_node.has_cave_mouth, s_data)
 
 		if phase == ChunkScheduler.GenerationPhase.PHASE_FULL:
@@ -590,4 +634,57 @@ func clear_pending_chunks() -> void:
 
 func get_pooled_chunk_count() -> int:
 	return _chunk_node_pool.size()
+
+func _apply_chunk_graphics_and_foliage(
+	chunk_node: ChunkNode,
+	coord: ChunkCoord,
+	origin: Vector3,
+	s_data: SurfaceChunkData = null
+) -> void:
+	if chunk_node == null or coord == null:
+		return
+
+	if enable_custom_shader and material_manager != null and bounds != null:
+		var splat_tex = paint_manager.get_splat_texture(coord) if paint_manager != null else null
+		var chunk_world_size = float(bounds.chunk_size) * bounds.voxel_size
+		var chunk_mat = material_manager.create_chunk_surface_material(coord, chunk_world_size, splat_tex)
+		if chunk_mat != null:
+			chunk_node.set_surface_material(chunk_mat)
+
+	if enable_foliage and foliage_spawner != null and s_data != null and bounds != null:
+		var sea_level = float(world_config.sea_level) if world_config != null else 24.0
+		var biome = biome_sampler.get_biome_at(origin.x, origin.z, sea_level) if biome_sampler != null else null
+		var paint_data = paint_manager.get_paint_data(coord) if paint_manager != null else null
+		var f_data = foliage_spawner.generate_foliage_chunk(s_data, coord, biome, paint_data, bounds.voxel_size)
+		chunk_node.set_foliage_data(f_data, foliage_registry)
+
+func paint_terrain(
+	world_pos: Vector3,
+	radius: float,
+	strength: float = 0.5,
+	hardness: float = 0.5,
+	channel: int = 0,
+	mode: int = 0
+) -> Array[ChunkCoord]:
+	if paint_manager == null:
+		return []
+	var affected = paint_manager.paint_world(world_pos, radius, strength, hardness, channel, mode)
+	for coord in affected:
+		var key = coord.to_key()
+		if _loaded_chunks.has(key):
+			var node = _loaded_chunks[key] as ChunkNode
+			if node != null:
+				node.set_splat_texture(paint_manager.get_splat_texture(coord))
+	return affected
+
+func get_biome_at(world_pos: Vector3) -> BiomeDef:
+	if biome_sampler == null:
+		return null
+	return biome_sampler.get_biome_at(world_pos.x, world_pos.z, world_pos.y)
+
+func get_climate_at(world_pos: Vector3) -> Vector2:
+	if biome_sampler == null:
+		return Vector2.ZERO
+	return biome_sampler.sample_climate(world_pos.x, world_pos.z)
+
 

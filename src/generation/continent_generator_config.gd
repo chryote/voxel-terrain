@@ -4,11 +4,21 @@ extends Resource
 ## Configuration resource for procedural continent terrain generation with realistic topography.
 
 @export_group("Continent Shape & Mask")
+@export_range(0.5, 0.95) var continent_radius: float = 0.83 ## Target continent radius as fraction of map extent [0.5..0.95]
 @export var coast_falloff_distance: float = 600.0 ## Distance from map border where land fades to ocean
 @export var coast_warp_amplitude: float = 250.0  ## Noise displacement on continent coastline
 @export var coast_warp_frequency: float = 0.0018
 @export var continent_noise_frequency: float = 0.00065 ## Macro continentalness noise frequency
 @export var inland_elevation_bias: float = 8.0 ## Flat elevation lift added to continental landmass to prevent noise dips from dropping below sea level
+
+@export_group("Offshore Islands")
+@export var islands_enabled: bool = true ## Generates offshore cliff islands with stepped stone stair terraces in coastal ocean waters
+@export var island_frequency: float = 0.0012 ## Island noise frequency
+@export var island_threshold: float = 0.68 ## Higher values yield fewer, more isolated offshore islands
+@export var island_boost: float = 0.25 ## Land raw boost for offshore islands
+@export var island_cliff_height: float = 16.0 ## Flat vertical elevation raise (in meters above sea level) for offshore cliff islands
+@export var island_terrace_step_height: int = 1 ## Vertical height (in blocks) of each regular stone stair terrace step on the ocean entry ramp
+@export var island_terrace_span: float = 0.55 ## Fraction of island radius spanned by the ocean entry stair-terrace ramp
 
 @export_group("Erosion & Lowlands")
 @export var erosion_frequency: float = 0.0012
@@ -45,17 +55,26 @@ extends Resource
 @export var wide_river_warp_amplitude: float = 120.0
 @export var wide_river_width_threshold: float = 0.020 ## Controls river channel half-width (~20-30m)
 @export var wide_river_depth: float = 12.0
+@export var wide_river_water_recede: float = 3.0 ## Meters below uncarved bank top where wide river water surface sits (higher = water recedes deeper into carved channel)
 
 @export_group("Small Winding Rivers")
 @export var small_river_frequency: float = 0.0028
 @export var small_river_warp_amplitude: float = 40.0
-@export var small_river_width_threshold: float = 0.024 ## Controls stream channel half-width (~4-6m)
-@export var small_river_depth: float = 4.0
+@export var small_river_width_threshold: float = 0.022 ## Controls stream channel half-width (~4-7m)
+@export var small_river_depth: float = 5.5
+@export var small_river_water_recede: float = 2.0 ## Meters below uncarved bank top where stream water surface sits (higher = narrower wet stream recessed inside banks)
 
 @export_group("Lakes")
 @export var lake_frequency: float = 0.00075
-@export var lake_threshold: float = 0.68
-@export var lake_depth: float = 7.0
+@export var lake_threshold: float = 0.9 ## Higher values [0.65..0.78] make lakes rarer and more contained
+@export var lake_depth: float = 10.0
+@export var lake_water_recede: float = 2.5 ## Meters below outer basin rim where lake water surface sits
+
+@export_group("Ponds")
+@export var pond_frequency: float = 0.0024
+@export var pond_threshold: float = 0.72 ## Higher values [0.70..0.82] make ponds smaller and more isolated
+@export var pond_depth: float = 6.0
+@export var pond_water_recede: float = 2.0 ## Meters below surrounding bank where pond water surface sits
 
 @export_group("Levels & Materials")
 @export var sea_level: int = 24

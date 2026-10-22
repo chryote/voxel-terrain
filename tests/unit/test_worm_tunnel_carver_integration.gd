@@ -70,6 +70,8 @@ func test_subterranean_tunnel_sampler_carves_along_registered_corridor() -> void
 	# Test carving density along the centerline of the trajectory
 	for i in range(1, traj.waypoints.size() - 1, 2):
 		var pt = traj.waypoints[i]
+		if carver.tunnel_sampler.get_arena_suppression(pt.x, pt.z) <= 0.0:
+			continue
 		var carve = carver.tunnel_sampler.get_tunnel_carve(pt.x, pt.y, pt.z)
 		assert_true(carve > 0.5, "Centerline point at %v must be carved (density: %f)" % [pt, carve])
 

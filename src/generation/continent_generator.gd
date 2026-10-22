@@ -3,12 +3,12 @@ extends TerrainGenerator
 
 ## Procedural continent generator with realistic multi-noise topography:
 ## Coasts, Lowlands, Rolling Hills, Highlands, Mountains, Wide Rivers,
-## Small Winding Rivers, Lakes, and Climate Moisture Simulation.
+## Small Winding Rivers, Lakes, Ponds, Offshore Cliff Islands, and Climate Moisture Simulation.
 ##
 ## Built with decoupled components:
-## - ContinentMask (boundary falloff)
-## - MacroTopography (macro continentalness, erosion, relief, plateaus, mountains)
-## - FluvialCarver (wide rivers, small winding streams, lake basins)
+## - ContinentMask (boundary falloff & offshore island detection)
+## - MacroTopography (macro continentalness, erosion, relief, plateaus, mountains, offshore cliff islands)
+## - FluvialCarver (wide rivers, small winding streams, lake & pond basins)
 ## - ClimateModel (climatic moisture and humidity simulation)
 ## - TerrainMaterialClassifier (slope, altitude, water table, and moisture classification)
 
@@ -48,7 +48,11 @@ func generate(coord: ChunkCoord, bounds: WorldBounds) -> SurfaceChunkData:
 	var apron_w = c_size + 2
 	var total_columns = apron_w * apron_w
 
-	# Fluvial flags: bit 0 = is_river, bit 1 = is_lake
+	# Fluvial & island flags:
+	# bit 0 (1)  = is_river
+	# bit 1 (2)  = is_lake
+	# bit 3 (8)  = offshore island stone cliff / stair-terrace
+	# bit 4 (16) = offshore island inner plateau cap
 	var fluvial_flags = PackedByteArray()
 	fluvial_flags.resize(total_columns)
 	fluvial_flags.fill(0)
@@ -122,12 +126,28 @@ func generate(coord: ChunkCoord, bounds: WorldBounds) -> SurfaceChunkData:
 				var c1 = c01.lerp(c11, tx)
 				var m_v2 = c0.lerp(c1, tz)
 
+				# In offshore waters outside the main continent, evaluate cliff islands at exact 1x1 column resolution
+				if m_v2.y <= 0.01:
+					var isl = macro.sample_offshore_island(wx, wz, bounds)
+					if isl.y > 0.0:
+						var isl_h = clampi(int(round(isl.x)), config.seabed_level, 255)
+						data.set_height(lx, lz, isl_h)
+						data.set_water_height(lx, lz, config.sea_level)
+						var zone = int(isl.y)
+						if zone == 2:
+							fluvial_flags[col_idx] = 8
+						elif zone == 3:
+							fluvial_flags[col_idx] = 16
+						else:
+							fluvial_flags[col_idx] = 0
+						continue
+
 				var f_v3 = fluvial.sample_fluvial_v3(wx, wz, m_v2.x, m_v2.y)
 				var moist = climate.sample_moisture(wx, wz)
 
 				var final_h = clampi(int(round(m_v2.x - f_v3.x)), config.seabed_level, 255)
 				data.set_height(lx, lz, final_h)
-				data.set_water_height(lx, lz, int(f_v3.y))
+				data.set_water_height(lx, lz, int(round(f_v3.y)))
 				fluvial_flags[col_idx] = int(f_v3.z)
 				moisture_samples[col_idx] = moist
 
@@ -152,9 +172,18 @@ func generate(coord: ChunkCoord, bounds: WorldBounds) -> SurfaceChunkData:
 				var h_u = data.get_height(lx, lz + 1)
 				slope = maxi(maxi(absi(h - h_l), absi(h - h_r)), maxi(absi(h - h_d), absi(h - h_u)))
 
-			var mats_v2i = classifier.classify_v2i(h, slope, water_h, is_river, is_lake, moist)
-			data.set_top_material(lx, lz, mats_v2i.x)
-			data.set_side_material(lx, lz, mats_v2i.y)
+			if (flags & 8) != 0:
+				# Offshore island cliff wall, stair-terrace entry, and cliff rim: regular stone
+				data.set_top_material(lx, lz, MAT_STONE)
+				data.set_side_material(lx, lz, MAT_STONE)
+			elif (flags & 16) != 0:
+				# Offshore island innermost flat plateau: grass cap over regular stone
+				data.set_top_material(lx, lz, MAT_STONE if slope >= 2 else MAT_GRASS)
+				data.set_side_material(lx, lz, MAT_STONE)
+			else:
+				var mats_v2i = classifier.classify_v2i(h, slope, water_h, is_river, is_lake, moist)
+				data.set_top_material(lx, lz, mats_v2i.x)
+				data.set_side_material(lx, lz, mats_v2i.y)
 
 	return data
 
@@ -166,8 +195,12 @@ func height_at(col: Vector2i, bounds: WorldBounds) -> int:
 	var wz = (float(col.y) + 0.5) * bounds.voxel_size
 
 	var m_v2 = macro.sample_macro_interpolated(wx, wz, bounds)
-	var f_v3 = fluvial.sample_fluvial_v3(wx, wz, m_v2.x, m_v2.y)
+	if m_v2.y <= 0.01:
+		var isl = macro.sample_offshore_island(wx, wz, bounds)
+		if isl.y > 0.0:
+			return clampi(int(round(isl.x)), config.seabed_level, 255)
 
+	var f_v3 = fluvial.sample_fluvial_v3(wx, wz, m_v2.x, m_v2.y)
 	return clampi(int(round(m_v2.x - f_v3.x)), config.seabed_level, 255)
 
 func water_height_at(col: Vector2i, bounds: WorldBounds) -> int:
@@ -178,8 +211,12 @@ func water_height_at(col: Vector2i, bounds: WorldBounds) -> int:
 	var wz = (float(col.y) + 0.5) * bounds.voxel_size
 
 	var m_v2 = macro.sample_macro_interpolated(wx, wz, bounds)
-	var f_v3 = fluvial.sample_fluvial_v3(wx, wz, m_v2.x, m_v2.y)
+	if m_v2.y <= 0.01:
+		var isl = macro.sample_offshore_island(wx, wz, bounds)
+		if isl.y > 0.0:
+			return config.sea_level
 
+	var f_v3 = fluvial.sample_fluvial_v3(wx, wz, m_v2.x, m_v2.y)
 	return int(round(f_v3.y))
 
 func is_water_at(col: Vector2i, bounds: WorldBounds) -> bool:
@@ -190,15 +227,45 @@ func is_water_at(col: Vector2i, bounds: WorldBounds) -> bool:
 	var wz = (float(col.y) + 0.5) * bounds.voxel_size
 
 	var m_v2 = macro.sample_macro_interpolated(wx, wz, bounds)
-	var f_v3 = fluvial.sample_fluvial_v3(wx, wz, m_v2.x, m_v2.y)
+	if m_v2.y <= 0.01:
+		var isl = macro.sample_offshore_island(wx, wz, bounds)
+		if isl.y > 0.0:
+			var isl_h = clampi(int(round(isl.x)), config.seabed_level, 255)
+			return isl_h < config.sea_level
 
-	var h = m_v2.x - f_v3.x
-	return h < f_v3.y
+	var f_v3 = fluvial.sample_fluvial_v3(wx, wz, m_v2.x, m_v2.y)
+	var h = clampi(int(round(m_v2.x - f_v3.x)), config.seabed_level, 255)
+	var wh = int(round(f_v3.y))
+	return h < wh
 
 func sample_world(wx: float, wz: float, bounds: WorldBounds) -> Dictionary:
 	var m_data = macro.sample_macro(wx, wz, bounds)
-	var f_data = fluvial.sample_fluvial(wx, wz, m_data.elevation, m_data.continentalness)
 	var moist = climate.sample_moisture(wx, wz)
+
+	if m_data.get("is_offshore_island", false):
+		var isl_h = clampi(int(round(m_data.elevation)), config.seabed_level, 255)
+		return {
+			"height": isl_h,
+			"water_height": config.sea_level,
+			"carve_depth": 0.0,
+			"continentalness": 0.0,
+			"erosion": 1.0,
+			"moisture": moist,
+			"is_humid": climate.is_humid(moist),
+			"is_arid": climate.is_arid(moist),
+			"is_highland": false,
+			"is_mountain": false,
+			"is_river": false,
+			"is_wide_river": false,
+			"is_small_river": false,
+			"is_lake": false,
+			"is_pond": false,
+			"is_offshore_island": true,
+			"island_zone_type": m_data.get("island_zone_type", 0),
+			"is_water": isl_h < config.sea_level
+		}
+
+	var f_data = fluvial.sample_fluvial(wx, wz, m_data.elevation, m_data.continentalness)
 	var final_h = clampi(int(round(m_data.elevation - f_data.carve_depth)), config.seabed_level, 255)
 
 	return {
@@ -216,5 +283,8 @@ func sample_world(wx: float, wz: float, bounds: WorldBounds) -> Dictionary:
 		"is_wide_river": f_data.is_wide_river,
 		"is_small_river": f_data.is_small_river,
 		"is_lake": f_data.is_lake,
+		"is_pond": f_data.get("is_pond", false),
+		"is_offshore_island": false,
+		"island_zone_type": 0,
 		"is_water": f_data.is_water
 	}

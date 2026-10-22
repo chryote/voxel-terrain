@@ -10,6 +10,7 @@ extends "res://tests/framework/test_case.gd"
 ## 6. Small Winding River
 ## 7. Wide River
 ## 8. Lakes
+## 9. Ponds & Recessed Water Volume
 ## + Determinism and Height Bounds
 
 func test_feature_1_coastal_transition_and_beaches() -> void:
@@ -253,7 +254,7 @@ func test_feature_8_lakes() -> void:
 			var wx = float(gx) * 10.0
 			var wz = float(gz) * 10.0
 			var sample = gen.sample_world(wx, wz, bounds)
-			if sample.is_lake and sample.carve_depth >= 2.0:
+			if sample.is_lake and sample.carve_depth >= (config.lake_water_recede + 1.0):
 				found_lake = true
 				if sample.is_water:
 					found_water = true
@@ -266,6 +267,43 @@ func test_feature_8_lakes() -> void:
 	assert_true(found_lake, "Fluvial system must generate lake basin depressions")
 	assert_true(found_water, "Lake basins must calculate water level above carved terrain")
 	assert_true(lake_basin_depression, "Lake water elevation must strictly exceed carved basin ground")
+
+func test_feature_9_ponds_and_recessed_water_volume() -> void:
+	var bounds = WorldBounds.new(Vector2i(64, 64), 32, 1.0)
+	var config = ContinentGeneratorConfig.new()
+	var gen = ContinentGenerator.new(7777, config)
+
+	var found_pond = false
+	var pond_has_full_water = false
+
+	for gx in range(-100, 100, 2):
+		for gz in range(-100, 100, 2):
+			var wx = float(gx) * 6.0
+			var wz = float(gz) * 6.0
+			var sample = gen.sample_world(wx, wz, bounds)
+			if sample.get("is_pond", false) and sample.carve_depth >= (config.pond_water_recede + 1.0):
+				found_pond = true
+				if sample.is_water and (sample.water_height - sample.height) >= 1:
+					pond_has_full_water = true
+					break
+		if found_pond and pond_has_full_water:
+			break
+
+	assert_true(found_pond, "Fluvial system must generate localized inland pond basins")
+	assert_true(pond_has_full_water, "Pond basins must be filled with recessed surface water volume")
+
+	# Verify shallow outer carve fringes stay dry when carve_depth < water_recede
+	var base_elev = 40.0
+	var found_dry_bank_slope = false
+	for step in range(-120, 120, 1):
+		var wx = float(step) * 2.0
+		var wz = float(step) * 3.0
+		var f_res = gen.fluvial.sample_fluvial(wx, wz, base_elev, 0.5)
+		if f_res.carve_depth > 0.2 and f_res.carve_depth <= 1.2:
+			assert_false(f_res.is_water, "Shallow outer carved bank fringe must stay dry above recessed water level")
+			found_dry_bank_slope = true
+			break
+	assert_true(found_dry_bank_slope, "Must verify dry sloped bank fringe above recessed water table")
 
 func test_determinism_and_height_bounds() -> void:
 	var bounds = WorldBounds.new(Vector2i(32, 32), 32, 1.0)

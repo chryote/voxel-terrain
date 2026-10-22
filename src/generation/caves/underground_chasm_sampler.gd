@@ -20,11 +20,13 @@ func _init(seed_val: int = 1337, p_config: CaveGeneratorConfig = null) -> void:
 	_init_noises(seed_val)
 
 func _init_noises(seed_val: int) -> void:
-	# 1. 2D Rift Corridor Noise (Simplex Smooth)
+	# 1. 2D Rift Corridor Noise (Cellular Voronoi Edge Network for connected subterranean passages)
 	rift_noise = FastNoiseLite.new()
 	rift_noise.seed = seed_val + 1010
-	rift_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	rift_noise.noise_type = FastNoiseLite.TYPE_CELLULAR
 	rift_noise.frequency = config.chasm_rift_frequency
+	rift_noise.cellular_distance_function = FastNoiseLite.DISTANCE_EUCLIDEAN
+	rift_noise.cellular_return_type = FastNoiseLite.RETURN_DISTANCE2_SUB
 
 	# 2. 2D Wall Domain Warp Noise (2-octave Fractal FBM for organic fracture fault lines)
 	wall_warp_noise = FastNoiseLite.new()
@@ -56,7 +58,10 @@ func _init_noises(seed_val: int) -> void:
 
 func sample_unwarped_rift(wx: float, wz: float) -> float:
 	## Fast normalized [0.0, 1.0] 2D rift corridor density without domain warping or continental mask evaluation.
-	return (rift_noise.get_noise_2d(wx, wz) + 1.0) * 0.5
+	## In Cellular RETURN_DISTANCE2_SUB, -1.0 is the exact cell boundary (center line of corridor).
+	var raw = rift_noise.get_noise_2d(wx, wz)
+	var dist_val = raw + 1.0
+	return 1.0 - clampf(dist_val / 0.42, 0.0, 1.0)
 
 func get_wall_warp_margin() -> float:
 	## Conservative margin for unwarped rift early-exit.
@@ -94,41 +99,97 @@ const DEEP_INLAND_LAND_THRESHOLD: float = 0.20
 var continent_mask = null
 var world_bounds: WorldBounds = null
 var is_deep_inland: bool = false
+var _inland_min_x: float = 0.0
+var _inland_max_x: float = -1.0
+var _inland_min_z: float = 0.0
+var _inland_max_z: float = -1.0
 
 func set_continent_mask(p_mask, p_bounds: WorldBounds) -> void:
 	continent_mask = p_mask
 	world_bounds = p_bounds
-	is_deep_inland = false
+	reset_inland_cache()
 
 func reset_inland_cache() -> void:
 	is_deep_inland = false
+	_inland_min_x = 0.0
+	_inland_max_x = -1.0
+	_inland_min_z = 0.0
+	_inland_max_z = -1.0
+
+func _get_effective_inland_raw(wx: float, wz: float) -> float:
+	if continent_mask == null or world_bounds == null:
+		return 1.0
+	var dist_left = wx - world_bounds.min_world_x
+	var dist_right = world_bounds.max_world_x - wx
+	var dist_bottom = wz - world_bounds.min_world_z
+	var dist_top = world_bounds.max_world_z - wz
+	var border_dist = minf(minf(dist_left, dist_right), minf(dist_bottom, dist_top))
+	if border_dist <= 0.0:
+		return -1.0
+
+	var land_raw: float = 0.0
+	if continent_mask.has_method("get_main_continent_raw"):
+		land_raw = continent_mask.get_main_continent_raw(wx, wz, world_bounds)
+	else:
+		land_raw = continent_mask.get_land_raw(wx, wz, world_bounds)
+
+	if land_raw <= 0.0:
+		return land_raw
+
+	var half_w = (world_bounds.max_world_x - world_bounds.min_world_x) * 0.5
+	var half_h = (world_bounds.max_world_z - world_bounds.min_world_z) * 0.5
+	var max_radius = minf(half_w, half_h)
+	var border_margin = maxf(minf(float(continent_mask.coast_falloff_distance), max_radius * 0.25), 1.0)
+	if border_dist < border_margin:
+		var border_land_cap = 0.20 * clampf(border_dist / border_margin, 0.0, 1.0)
+		land_raw = minf(land_raw, border_land_cap)
+
+	return land_raw
 
 func update_deep_inland_status(min_x: float, min_z: float, max_x: float, max_z: float) -> bool:
 	## Samples continent land factor at the 4 cell/chunk corners.
 	## If all corners exceed DEEP_INLAND_LAND_THRESHOLD (0.20), the entire cell is deep inland,
 	## meaning ocean fade is guaranteed to be 1.0 and continent mask sampling can be bypassed.
 	if continent_mask == null or world_bounds == null:
-		is_deep_inland = false
+		reset_inland_cache()
 		return false
 
-	var c0 = continent_mask.get_land_raw(min_x, min_z, world_bounds)
-	var c1 = continent_mask.get_land_raw(max_x, min_z, world_bounds)
-	var c2 = continent_mask.get_land_raw(min_x, max_z, world_bounds)
-	var c3 = continent_mask.get_land_raw(max_x, max_z, world_bounds)
+	var c0 = _get_effective_inland_raw(min_x, min_z)
+	var c1 = _get_effective_inland_raw(max_x, min_z)
+	var c2 = _get_effective_inland_raw(min_x, max_z)
+	var c3 = _get_effective_inland_raw(max_x, max_z)
 
-	is_deep_inland = (
+	var inland = (
 		c0 > DEEP_INLAND_LAND_THRESHOLD and
 		c1 > DEEP_INLAND_LAND_THRESHOLD and
 		c2 > DEEP_INLAND_LAND_THRESHOLD and
 		c3 > DEEP_INLAND_LAND_THRESHOLD
 	)
+	if inland:
+		var warp_pad = config.chasm_wall_warp_amplitude + 4.0
+		_inland_min_x = min_x - warp_pad
+		_inland_max_x = max_x + warp_pad
+		_inland_min_z = min_z - warp_pad
+		_inland_max_z = max_z + warp_pad
+		is_deep_inland = true
+	else:
+		reset_inland_cache()
 	return is_deep_inland
 
 func sample_rift_mask(sample_x: float, sample_z: float) -> float:
 	## Normalized [0.0, 1.0] 2D rift corridor density.
-	var rift = (rift_noise.get_noise_2d(sample_x, sample_z) + 1.0) * 0.5
-	if not is_deep_inland and continent_mask != null and world_bounds != null:
-		var land_raw = continent_mask.get_land_raw(sample_x, sample_z, world_bounds)
+	var raw = rift_noise.get_noise_2d(sample_x, sample_z)
+	var dist_val = raw + 1.0
+	var rift = 1.0 - clampf(dist_val / 0.42, 0.0, 1.0)
+	if rift <= 0.0:
+		return 0.0
+	var in_cached_inland = (
+		is_deep_inland and
+		sample_x >= _inland_min_x and sample_x <= _inland_max_x and
+		sample_z >= _inland_min_z and sample_z <= _inland_max_z
+	)
+	if not in_cached_inland and continent_mask != null and world_bounds != null:
+		var land_raw = _get_effective_inland_raw(sample_x, sample_z)
 		# Encase subterranean chasms and arenas in solid land before ocean falloff:
 		# Ocean falloff slope starts at land_raw ~ 0.12 and reaches sea level at land_raw ~ 0.065.
 		# Fading between 0.08 and 0.12 guarantees rock walls encase the cave while surface elevation >= 35.
@@ -137,10 +198,26 @@ func sample_rift_mask(sample_x: float, sample_z: float) -> float:
 		rift *= ocean_fade
 	return rift
 
-func is_support_pillar(sample_x: float, sample_z: float) -> bool:
+func is_support_pillar(sample_x: float, sample_z: float, raw_rift: float = -1.0) -> bool:
 	## Returns true if the 2D column falls inside a solid vertical stone support pillar.
+	# 1. Battle Arena & Approach Corridor Protection:
+	# Within active battle arenas and their approach/connecting avenues, support pillars
+	# are strictly suppressed to guarantee open multi-directional traversal and prevent entombment.
+	if config.arena_enabled:
+		var rift = raw_rift if raw_rift >= 0.0 else sample_rift_mask(sample_x, sample_z)
+		if rift >= (config.arena_rift_threshold - 0.08):
+			return false
+
+	# 2. Primary 2D Column Noise Density Check
 	var pil_val = (pillar_noise.get_noise_2d(sample_x, sample_z) + 1.0) * 0.5
-	return pil_val > config.pillar_threshold
+	if pil_val <= config.pillar_threshold:
+		return false
+
+	# 3. Discrete Column Shaping (Cross-Noise Intersection):
+	# Intersecting decorrelated 2D noise restricts support pillars to localized circular/oval
+	# columns (3-6m radius) rather than continuous wall-like dams spanning across chunk boundaries.
+	var pil_val2 = (pillar_noise.get_noise_2d(sample_x * 1.8 + 61.7, sample_z * 1.8 + 43.1) + 1.0) * 0.5
+	return pil_val2 > (config.pillar_threshold * 0.92)
 
 func calculate_floor_and_ceiling(sample_x: float, sample_z: float, raw_rift: float = 0.0) -> Vector2i:
 	## Evaluates floor and ceiling elevations, strictly enforcing bedrock protection and clearance.
@@ -152,24 +229,33 @@ func calculate_floor_and_ceiling(sample_x: float, sample_z: float, raw_rift: flo
 	var cl_y = int(round(float(config.chasm_max_y) + ceil_offset))
 
 	# Arena POI feature: wide, flat battle amphitheater floor with perimeter stepped ledges
-	if config.arena_enabled and raw_rift >= config.arena_rift_threshold:
+	if config.arena_enabled:
 		var target_floor = float(config.arena_floor_y)
-		var blend = clampf((raw_rift - config.arena_rift_threshold) / 0.02, 0.0, 1.0)
-		if blend >= 1.0:
-			# Combat Pit / Arena Center: flat floor
-			fl_y = int(target_floor)
-			cl_y = maxi(cl_y, config.arena_ceiling_y)
-		else:
-			# Perimeter spectator ledges: stepped tiers overlooking the battle floor
-			var ledge_elev = float(config.arena_ledge_step_height) * sin(blend * PI)
-			fl_y = int(round(lerpf(raw_fl_y, target_floor, blend) + ledge_elev))
-			cl_y = maxi(cl_y, int(lerpf(float(cl_y), float(config.arena_ceiling_y), blend)))
+		if raw_rift >= config.arena_rift_threshold:
+			var blend = clampf((raw_rift - config.arena_rift_threshold) / 0.02, 0.0, 1.0)
+			if blend >= 1.0:
+				# Combat Pit / Arena Center: flat floor
+				fl_y = int(target_floor)
+				cl_y = maxi(cl_y, config.arena_ceiling_y)
+			else:
+				# Perimeter spectator ledges: stepped tiers overlooking the battle floor
+				var ledge_elev = float(config.arena_ledge_step_height) * sin(blend * PI)
+				fl_y = int(round(lerpf(raw_fl_y, target_floor, blend) + ledge_elev))
+				cl_y = maxi(cl_y, int(lerpf(float(cl_y), float(config.arena_ceiling_y), blend)))
+		elif raw_rift >= (config.arena_rift_threshold - 0.06):
+			# Approach / Connecting Avenue: smoothly transitions floor and vaults ceiling
+			# so adjacent arena chambers are guaranteed connected by open, walkable thoroughfares
+			var approach_blend = (raw_rift - (config.arena_rift_threshold - 0.06)) / 0.06
+			fl_y = int(round(lerpf(raw_fl_y, target_floor, approach_blend * 0.75)))
+			if config.cave_water_enabled:
+				fl_y = maxi(fl_y, config.chasm_water_level + 1)
+			cl_y = maxi(cl_y, int(lerpf(float(cl_y), float(config.arena_ceiling_y), approach_blend * 0.75)))
 
 	# Bedrock protection: bedrock is Y=0..2, so floor must never drop below Y=3
 	fl_y = maxi(fl_y, 3)
 
-	# Ceiling boundary: ensure ceiling never exceeds configured maximum elevation (unless arena dome)
-	if not (config.arena_enabled and raw_rift >= config.arena_rift_threshold):
+	# Ceiling boundary: ensure ceiling never exceeds configured maximum elevation (unless arena or approach dome)
+	if not (config.arena_enabled and raw_rift >= (config.arena_rift_threshold - 0.06)):
 		cl_y = mini(cl_y, config.chasm_max_y)
 
 	# Enforce minimum vertical clearance invariant (prevent player/camera trap crevices)
@@ -252,6 +338,13 @@ func sample_column(wx: float, wz: float, out: ChasmColumnResult = null, surface_
 
 	var warped_pos = get_warped_coordinates(wx, wz)
 	var raw_rift = sample_rift_mask(warped_pos.x, warped_pos.y)
+	if surface_h >= 0.0:
+		# Smoothly fade rift density as surface elevation slopes down toward coastal shores / water table
+		# so chasms, arenas, and basalt columns are cleanly encased by curtain walls before being cut by the crust.
+		var min_safe_surf = float(config.chasm_min_y) + config.chasm_floor_variation + config.min_chasm_height + config.crust_depth + 2.0
+		var surf_fade = clampf((surface_h - min_safe_surf) / 8.0, 0.0, 1.0)
+		surf_fade = surf_fade * surf_fade * (3.0 - 2.0 * surf_fade)
+		raw_rift *= surf_fade
 	out.raw_rift = raw_rift
 
 	if raw_rift < (config.chasm_rift_threshold - WALL_MARGIN):
@@ -262,6 +355,7 @@ func sample_column(wx: float, wz: float, out: ChasmColumnResult = null, surface_
 	var core_arena_threshold = config.arena_rift_threshold + 0.02
 	out.is_arena = is_arena_zone
 	out.is_arena_ledge = is_arena_zone and raw_rift < core_arena_threshold
+	out.is_basalt_column = false
 
 	var bounds = calculate_floor_and_ceiling(warped_pos.x, warped_pos.y, raw_rift)
 
@@ -277,7 +371,7 @@ func sample_column(wx: float, wz: float, out: ChasmColumnResult = null, surface_
 				out.is_arena_ledge = false
 				out.is_basalt_column = false
 				out.floor_y = bounds.x
-				out.ceil_y = bounds.y
+				out.ceil_y = maxi(bounds.x, max_allowed_ceil)
 				return out
 			else:
 				bounds.y = max_allowed_ceil
@@ -291,14 +385,15 @@ func sample_column(wx: float, wz: float, out: ChasmColumnResult = null, surface_
 		out.ceil_y = bounds.y
 		return out
 
-	var is_pillar_col = is_support_pillar(warped_pos.x, warped_pos.y)
+	var is_pillar_col = is_support_pillar(warped_pos.x, warped_pos.y, raw_rift)
 	if is_arena_zone:
-		if raw_rift >= core_arena_threshold:
-			# Pillars are strictly suppressed inside the combat arena
-			is_pillar_col = false
-		else:
-			# On perimeter ledges, pillars form basalt colonnade accents
-			if is_pillar_col:
+		# Pillars are strictly suppressed inside the combat arena and its perimeter rings
+		is_pillar_col = false
+		if raw_rift < core_arena_threshold:
+			# On perimeter ledges, basalt column styling can decorate the stepped ledge floor
+			# using the column noise pattern, while remaining 100% open traversable void!
+			var pil_val = (pillar_noise.get_noise_2d(warped_pos.x, warped_pos.y) + 1.0) * 0.5
+			if pil_val > config.pillar_threshold:
 				out.is_basalt_column = true
 
 	if is_pillar_col:
@@ -379,8 +474,8 @@ func get_chasm_carve(wx: float, wy: float, wz: float) -> float:
 	if raw_rift < config.chasm_rift_threshold:
 		return 0.0
 
-	var is_pillar_col = is_support_pillar(warped_pos.x, warped_pos.y)
-	if config.arena_enabled and raw_rift >= (config.arena_rift_threshold + 0.02):
+	var is_pillar_col = is_support_pillar(warped_pos.x, warped_pos.y, raw_rift)
+	if config.arena_enabled and raw_rift >= config.arena_rift_threshold:
 		is_pillar_col = false
 
 	if is_pillar_col:
@@ -424,8 +519,8 @@ func sample_chasm(wx: float, wy: float, wz: float) -> Dictionary:
 		}
 
 	var is_arena_col = config.arena_enabled and raw_rift >= config.arena_rift_threshold
-	var is_pillar_col = is_support_pillar(warped_pos.x, warped_pos.y)
-	if config.arena_enabled and raw_rift >= (config.arena_rift_threshold + 0.02):
+	var is_pillar_col = is_support_pillar(warped_pos.x, warped_pos.y, raw_rift)
+	if is_arena_col:
 		is_pillar_col = false
 
 	if is_pillar_col:

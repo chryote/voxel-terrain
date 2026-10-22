@@ -20,8 +20,10 @@ extends Resource
 @export_group("Cave Mouth Generation Limits")
 @export var limit_cave_mouths: bool = true ## Master switch to limit cave mouth generation across continent
 @export var max_chasm_mouths: int = 1 ## Maximum allowed cave mouths leading to underground chasms
-@export var max_tunnel_mouths: int = 2 ## Maximum allowed cave mouths leading to interconnected 3D tunnels
-@export var max_dead_end_mouths: int = 3 ## Maximum allowed shallow dead-end cave mouths
+@export var max_tunnel_mouths: int = 10 ## Maximum allowed cave mouths leading to interconnected 3D tunnels
+@export var max_dead_end_mouths: int = 0 ## Maximum allowed shallow dead-end cave mouths
+@export_range(0.0, 0.8) var min_inland_threshold: float = 0.28 ## Minimum continental inland factor required for cave mouth placement (prevents mouths near coasts and on offshore islands)
+@export var prioritize_inland: bool = true ## When true, cave mouth selector prioritizes inland positioning over raw noise depth
 
 @export_group("3D Worm Tunnels & Navigation")
 @export_range(0.005, 0.05) var tunnel_frequency: float = 0.016 ## Spatial frequency of 3D worm tunnels
@@ -54,7 +56,7 @@ extends Resource
 
 @export_group("Chasm Battle Arenas & POIs")
 @export var arena_enabled: bool = true ## Enable procedural subterranean battle arenas
-@export_range(0.70, 0.95) var arena_rift_threshold: float = 0.80 ## Rift corridor density threshold to anchor arenas
+@export_range(0.70, 0.95) var arena_rift_threshold: float = 0.74 ## Rift corridor density threshold to anchor arenas
 @export var arena_floor_y: int = 6 ## Flattened arena combat elevation (elevated above water level)
 @export var arena_ceiling_y: int = 28 ## Vaulted ceiling dome elevation in battle arenas
 @export var arena_ledge_step_height: int = 2 ## Height delta for stepped spectator ledges along perimeter

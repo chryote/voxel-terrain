@@ -49,6 +49,18 @@ func detect_cave_mouths(
 	var min_z = bounds.min_world_z
 	var max_z = bounds.max_world_z
 
+	var continent_mask: ContinentMask = null
+	if "continent_gen" in generator and generator.continent_gen != null and ("mask" in generator.continent_gen):
+		continent_mask = generator.continent_gen.mask
+	elif "mask" in generator and generator.mask is ContinentMask:
+		continent_mask = generator.mask
+	elif cave_carver != null and cave_carver.chasm_sampler != null and cave_carver.chasm_sampler.continent_mask != null:
+		continent_mask = cave_carver.chasm_sampler.continent_mask
+
+	var min_inland: float = 0.28
+	if cave_carver != null and cave_carver.config != null and ("min_inland_threshold" in cave_carver.config):
+		min_inland = cave_carver.config.min_inland_threshold
+
 	var mouth_sampler = cave_carver.mouth_sampler
 	var threshold = cave_carver.config.mouth_threshold
 
@@ -123,6 +135,16 @@ func detect_cave_mouths(
 		var col = bounds.world_to_column(Vector3(peak_wx, 0.0, peak_wz))
 		var surface_h = float(generator.height_at(col, bounds))
 
+		# Evaluate continental inland factor to filter out small islands and coastal margins
+		var inland_val: float = 0.5
+		if continent_mask != null:
+			if continent_mask.has_method("get_main_continent_raw"):
+				inland_val = continent_mask.get_main_continent_raw(peak_wx, peak_wz, bounds)
+			else:
+				inland_val = continent_mask.get_land_raw(peak_wx, peak_wz, bounds)
+			if inland_val < min_inland:
+				continue
+
 		var mouth_info = mouth_sampler.sample_raw_mouth(peak_wx, peak_wz, surface_h, sea_level)
 		var min_depth = 2.5 if (cave_carver != null and cave_carver.config.mouth_threshold >= 0.45) else 0.5
 		if not mouth_info.is_mouth or mouth_info.carve_depth < min_depth:
@@ -138,7 +160,8 @@ func detect_cave_mouths(
 			mouth_type,
 			mouth_info.carve_depth,
 			mouth_info.effective_radius,
-			surface_h
+			surface_h,
+			inland_val
 		)
 		result.append(data)
 
@@ -182,13 +205,15 @@ func classify_cave_mouth(
 	# -------------------------------------------------------------------------
 	# 1. Check for connection to Underground Chasm (Highest Priority: Green)
 	# -------------------------------------------------------------------------
+	var mouth_bottom_y = surface_h - mouth_info.carve_depth
 	for off in sample_offsets:
 		var sx = wx + off.x
 		var sz = wz + off.y
 		chasm_sampler.sample_column(sx, sz, chasm_col)
 
 		if chasm_col.is_chasm and not chasm_col.is_pillar:
-			return CaveMouthDataClass.Type.CHASM
+			if mouth_bottom_y <= float(chasm_col.ceil_y + 1):
+				return CaveMouthDataClass.Type.CHASM
 
 	# -------------------------------------------------------------------------
 	# 2. Check for connection to Interconnected 3D Worm Tunnels (Medium Priority: Yellow)

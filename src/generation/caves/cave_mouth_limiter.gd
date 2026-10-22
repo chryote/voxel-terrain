@@ -24,16 +24,18 @@ func limit_mouths(
 		return candidates.duplicate()
 
 	var max_chasm: int = config.max_chasm_mouths if "max_chasm_mouths" in config else 1
-	var max_tunnel: int = config.max_tunnel_mouths if "max_tunnel_mouths" in config else 2
-	var max_dead_end: int = config.max_dead_end_mouths if "max_dead_end_mouths" in config else 3
+	var max_tunnel: int = config.max_tunnel_mouths if "max_tunnel_mouths" in config else 10
+	var max_dead_end: int = config.max_dead_end_mouths if "max_dead_end_mouths" in config else 0
+	var prioritize_inland: bool = config.prioritize_inland if "prioritize_inland" in config else true
 
-	return limit_mouths_by_counts(candidates, max_chasm, max_tunnel, max_dead_end)
+	return limit_mouths_by_counts(candidates, max_chasm, max_tunnel, max_dead_end, prioritize_inland)
 
 func limit_mouths_by_counts(
 	candidates: Array,
 	max_chasm: int,
 	max_tunnel: int,
-	max_dead_end: int
+	max_dead_end: int,
+	prioritize_inland: bool = true
 ) -> Array:
 	## Enforces explicit per-type count limits on an array of CaveMouthData objects.
 	## If a limit is negative (< 0), that category is considered unlimited.
@@ -53,10 +55,10 @@ func limit_mouths_by_counts(
 			CaveMouthDataClass.Type.DEAD_END:
 				dead_ends.append(item)
 
-	# Sort each category by prominence (depth, radius, deterministic position)
-	_sort_by_prominence(chasms)
-	_sort_by_prominence(tunnels)
-	_sort_by_prominence(dead_ends)
+	# Sort each category by prominence (inland score, depth, radius, deterministic position)
+	_sort_by_prominence(chasms, prioritize_inland)
+	_sort_by_prominence(tunnels, prioritize_inland)
+	_sort_by_prominence(dead_ends, prioritize_inland)
 
 	var selected: Array = []
 
@@ -73,12 +75,16 @@ func limit_mouths_by_counts(
 
 	return selected
 
-func _sort_by_prominence(mouths: Array) -> void:
-	## Deterministically sorts cave mouths by prominence:
-	## 1. Deepest carve depth descending.
-	## 2. Largest effective radius descending.
+func _sort_by_prominence(mouths: Array, prioritize_inland: bool = true) -> void:
+	## Deterministically sorts cave mouths by prominence and inland placement:
+	## 1. Weighted score combining inland factor, carve depth, and surface elevation.
+	## 2. Carve depth descending as tie-breaker.
 	## 3. World position X ascending, then Z ascending as deterministic tie-breaker.
 	mouths.sort_custom(func(a, b):
+		var score_a = _calculate_mouth_score(a, prioritize_inland)
+		var score_b = _calculate_mouth_score(b, prioritize_inland)
+		if not is_equal_approx(score_a, score_b):
+			return score_a > score_b
 		if not is_equal_approx(a.depth, b.depth):
 			return a.depth > b.depth
 		if not is_equal_approx(a.radius, b.radius):
@@ -87,6 +93,15 @@ func _sort_by_prominence(mouths: Array) -> void:
 			return a.world_pos.x < b.world_pos.x
 		return a.world_pos.z < b.world_pos.z
 	)
+
+func _calculate_mouth_score(mouth: RefCounted, prioritize_inland: bool) -> float:
+	if not prioritize_inland:
+		return mouth.depth * 10.0 + mouth.radius
+	var inland = mouth.inland_factor if ("inland_factor" in mouth) else 0.0
+	var depth = mouth.depth if ("depth" in mouth) else 0.0
+	var elev = mouth.surface_elevation if ("surface_elevation" in mouth) else 0.0
+	var elev_bonus = clampf((elev - 30.0) / 40.0, 0.0, 1.0) * 10.0
+	return inland * 60.0 + depth * 2.5 + elev_bonus
 
 func _append_limited(target: Array, source: Array, max_count: int) -> void:
 	if max_count < 0:

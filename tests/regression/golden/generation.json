@@ -1,10 +1,10 @@
 {
   "chunk_0_0": {
-    "center_height": 74,
-    "corner_height": 91,
-    "heights_hash": "f6f96889923dc9289404d19e7aa83a2c",
-    "side_mat_hash": "e576af701f3c11af7a3d852196630c2e",
-    "top_mat_hash": "6dac61000eba5c9bb39908425bc0be68"
+    "center_height": 80,
+    "corner_height": 98,
+    "heights_hash": "b072151981a586a9b30c2c492c7917de",
+    "side_mat_hash": "7ef6df62a925e8fc79648010a54e928d",
+    "top_mat_hash": "cdb1be72b748a2c485289ad20774358a"
   },
   "chunk_15_15": {
     "center_height": 6,
@@ -14,10 +14,10 @@
     "top_mat_hash": "2ba9c4931b50067aa46e534d1cfa9b2c"
   },
   "chunk_8_8": {
-    "center_height": 6,
-    "corner_height": 6,
-    "heights_hash": "797ac9dde4b29668b799c4499319f178",
-    "side_mat_hash": "2ba9c4931b50067aa46e534d1cfa9b2c",
-    "top_mat_hash": "2ba9c4931b50067aa46e534d1cfa9b2c"
+    "center_height": 11,
+    "corner_height": 39,
+    "heights_hash": "1174347aaadc84a72284e5dc09b05b05",
+    "side_mat_hash": "b5c9c48b741d00b6dfc117991475b79b",
+    "top_mat_hash": "53824f94863daec853ed4029016fe2d8"
   }
 }

@@ -100,3 +100,89 @@ func test_chunk_node_material_setters() -> void:
 
 	node.prepare_for_pool()
 	node.queue_free()
+
+func test_ghibli_visual_profile_defaults() -> void:
+	var cfg = TerrainMaterialConfigClass.create_default_config()
+	assert_not_null(cfg, "Default config should instantiate")
+
+	# 1. Soft-Banded Cel Shading
+	assert_true(cfg.cel_enabled, "Cel shading should be enabled by default for Ghibli profile")
+	assert_true(cfg.cel_shadow_threshold > 0.1 and cfg.cel_shadow_threshold < 0.5,
+		"Shadow threshold should be in lower mid-range")
+	assert_true(cfg.cel_highlight_threshold > cfg.cel_shadow_threshold,
+		"Highlight threshold must be above shadow threshold")
+	assert_true(cfg.cel_softness > 0.01 and cfg.cel_softness < 0.2,
+		"Softness must provide watercolor blending edge")
+
+	# 2. Tinted Ambient Shadows
+	assert_true(cfg.shadow_tint.b > cfg.shadow_tint.r,
+		"Shadow tint should be cool-toned (lavender/sky blue/teal)")
+	assert_true(cfg.highlight_tint.r > 1.0,
+		"Highlight tint should be warm sunlit tone (> 1.0)")
+	assert_true(cfg.shadow_ambient_intensity > 0.0,
+		"Shadow ambient intensity should be positive")
+
+	# 3. Triplanar Macro-Noise Hue & Saturation
+	assert_true(cfg.macro_hue_shift > 0.0,
+		"Macro hue shift should be enabled to break repetition")
+	assert_true(cfg.macro_saturation_shift > 0.0,
+		"Macro saturation shift should be enabled")
+
+	# 4. Elevation-Based Color Gradients
+	assert_true(cfg.gradient_peak_y > cfg.gradient_valley_y,
+		"Gradient peak elevation must be higher than valley elevation")
+	assert_true(cfg.gradient_valley_tint.b >= cfg.gradient_valley_tint.r,
+		"Valley tint should be cooler")
+	assert_true(cfg.gradient_peak_tint.r >= cfg.gradient_peak_tint.b,
+		"Mountain peak tint should be warmer")
+	assert_true(cfg.gradient_strength > 0.0,
+		"Gradient strength must be active")
+
+	# 5. Directional Rim Lighting
+	assert_true(cfg.rim_enabled, "Rim lighting should be enabled")
+	assert_true(cfg.rim_color.r > 0.8 and cfg.rim_color.g > 0.8,
+		"Rim color should be a warm glowing outline")
+	assert_true(cfg.rim_power >= 1.0, "Rim power should produce focused edge halo")
+	assert_true(cfg.rim_strength > 0.0, "Rim strength should be positive")
+
+func test_ghibli_uniform_synchronization() -> void:
+	var cfg = TerrainMaterialConfigClass.new()
+	cfg.cel_shadow_threshold = 0.40
+	cfg.cel_highlight_threshold = 0.80
+	cfg.cel_softness = 0.12
+	cfg.shadow_tint = Color(0.35, 0.45, 0.75, 1.0)
+	cfg.macro_hue_shift = 0.08
+	cfg.macro_saturation_shift = 0.15
+	cfg.gradient_valley_y = 20.0
+	cfg.gradient_peak_y = 150.0
+	cfg.gradient_strength = 0.60
+	cfg.rim_power = 4.0
+	cfg.rim_strength = 0.55
+
+	var mgr = TerrainMaterialManagerClass.new(cfg)
+	var surf_mat = mgr.get_shared_surface_material()
+	assert_not_null(surf_mat, "Surface material must exist")
+
+	assert_almost_eq(surf_mat.get_shader_parameter("cel_shadow_threshold"), 0.40, 0.001,
+		"cel_shadow_threshold must sync")
+	assert_almost_eq(surf_mat.get_shader_parameter("cel_highlight_threshold"), 0.80, 0.001,
+		"cel_highlight_threshold must sync")
+	assert_almost_eq(surf_mat.get_shader_parameter("cel_softness"), 0.12, 0.001,
+		"cel_softness must sync")
+	assert_eq(surf_mat.get_shader_parameter("shadow_tint"), Color(0.35, 0.45, 0.75, 1.0),
+		"shadow_tint must sync")
+	assert_almost_eq(surf_mat.get_shader_parameter("macro_hue_shift"), 0.08, 0.001,
+		"macro_hue_shift must sync")
+	assert_almost_eq(surf_mat.get_shader_parameter("macro_saturation_shift"), 0.15, 0.001,
+		"macro_saturation_shift must sync")
+	assert_almost_eq(surf_mat.get_shader_parameter("gradient_valley_y"), 20.0, 0.001,
+		"gradient_valley_y must sync")
+	assert_almost_eq(surf_mat.get_shader_parameter("gradient_peak_y"), 150.0, 0.001,
+		"gradient_peak_y must sync")
+	assert_almost_eq(surf_mat.get_shader_parameter("gradient_strength"), 0.60, 0.001,
+		"gradient_strength must sync")
+	assert_almost_eq(surf_mat.get_shader_parameter("rim_power"), 4.0, 0.001,
+		"rim_power must sync")
+	assert_almost_eq(surf_mat.get_shader_parameter("rim_strength"), 0.55, 0.001,
+		"rim_strength must sync")
+

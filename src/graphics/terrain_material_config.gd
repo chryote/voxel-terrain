@@ -2,7 +2,8 @@ class_name TerrainMaterialConfig
 extends Resource
 
 ## Configuration resource managing all parameters for terrain shaders,
-## multi-layer material palettes, triplanar blending, and painting channels.
+## multi-layer material palettes, triplanar blending, painting channels,
+## and the Studio Ghibli stylized lighting profile.
 
 @export_group("Triplanar Projection")
 @export_range(0.01, 2.0, 0.01) var triplanar_scale: float = 0.2
@@ -16,9 +17,36 @@ extends Resource
 @export var snow_height: float = 140.0
 @export var snow_blend_margin: float = 15.0
 
-@export_group("Anti-Tiling & Macro Variation")
-@export_range(0.0, 0.5, 0.01) var macro_variation_strength: float = 0.12
-@export_range(0.001, 0.1, 0.001) var macro_variation_scale: float = 0.015
+@export_group("Anti-Tiling & Macro Brush Variation")
+@export_range(0.0, 0.5, 0.01) var macro_variation_strength: float = 0.10
+@export_range(0.001, 0.1, 0.001) var macro_variation_scale: float = 0.012
+@export_range(0.0, 0.2, 0.005) var macro_hue_shift: float = 0.05
+@export_range(0.0, 0.3, 0.01) var macro_saturation_shift: float = 0.10
+
+@export_group("Elevation Color Gradients (Depth & Scale)")
+@export var gradient_valley_y: float = 25.0
+@export var gradient_peak_y: float = 135.0
+@export var gradient_valley_tint: Color = Color(0.85, 0.88, 0.98, 1.0) # Cooler, slightly darker
+@export var gradient_peak_tint: Color = Color(1.08, 1.04, 0.95, 1.0)   # Warmer, brighter
+@export_range(0.0, 1.0, 0.01) var gradient_strength: float = 0.45
+
+@export_group("Soft-Banded Cel Shading (Lighting Model)")
+@export var cel_enabled: bool = true
+@export_range(0.05, 0.70, 0.01) var cel_shadow_threshold: float = 0.35
+@export_range(0.40, 0.95, 0.01) var cel_highlight_threshold: float = 0.72
+@export_range(0.01, 0.30, 0.01) var cel_softness: float = 0.08
+
+@export_group("Tinted Ambient Shadows & Light Tints")
+@export var shadow_tint: Color = Color(0.42, 0.46, 0.65, 1.0)          # Vibrant cool lavender / sky blue
+@export var midtone_tint: Color = Color(1.0, 0.98, 0.95, 1.0)         # Neutral-warm light
+@export var highlight_tint: Color = Color(1.15, 1.10, 0.95, 1.0)      # Warm golden sun
+@export_range(0.0, 1.0, 0.01) var shadow_ambient_intensity: float = 0.45
+
+@export_group("Directional Rim Lighting (Fresnel)")
+@export var rim_enabled: bool = true
+@export var rim_color: Color = Color(1.0, 0.95, 0.80, 1.0)            # Warm golden glowing outline
+@export_range(1.0, 8.0, 0.1) var rim_power: float = 3.0
+@export_range(0.0, 2.0, 0.05) var rim_strength: float = 0.45
 
 @export_group("Biome Tint")
 @export var biome_tint: Color = Color.WHITE

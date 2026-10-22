@@ -60,6 +60,30 @@ func _sync_surface_uniforms(mat: ShaderMaterial) -> void:
 	mat.set_shader_parameter("snow_blend_margin", config.snow_blend_margin)
 	mat.set_shader_parameter("macro_variation_strength", config.macro_variation_strength)
 	mat.set_shader_parameter("macro_variation_scale", config.macro_variation_scale)
+	mat.set_shader_parameter("macro_hue_shift", config.macro_hue_shift)
+	mat.set_shader_parameter("macro_saturation_shift", config.macro_saturation_shift)
+
+	mat.set_shader_parameter("gradient_valley_y", config.gradient_valley_y)
+	mat.set_shader_parameter("gradient_peak_y", config.gradient_peak_y)
+	mat.set_shader_parameter("gradient_valley_tint", config.gradient_valley_tint)
+	mat.set_shader_parameter("gradient_peak_tint", config.gradient_peak_tint)
+	mat.set_shader_parameter("gradient_strength", config.gradient_strength)
+
+	mat.set_shader_parameter("cel_enabled", config.cel_enabled)
+	mat.set_shader_parameter("cel_shadow_threshold", config.cel_shadow_threshold)
+	mat.set_shader_parameter("cel_highlight_threshold", config.cel_highlight_threshold)
+	mat.set_shader_parameter("cel_softness", config.cel_softness)
+
+	mat.set_shader_parameter("shadow_tint", config.shadow_tint)
+	mat.set_shader_parameter("midtone_tint", config.midtone_tint)
+	mat.set_shader_parameter("highlight_tint", config.highlight_tint)
+	mat.set_shader_parameter("shadow_ambient_intensity", config.shadow_ambient_intensity)
+
+	mat.set_shader_parameter("rim_enabled", config.rim_enabled)
+	mat.set_shader_parameter("rim_color", config.rim_color)
+	mat.set_shader_parameter("rim_power", config.rim_power)
+	mat.set_shader_parameter("rim_strength", config.rim_strength)
+
 	mat.set_shader_parameter("biome_tint", Vector3(config.biome_tint.r, config.biome_tint.g, config.biome_tint.b))
 
 	mat.set_shader_parameter("grass_color", config.grass_color)

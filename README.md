@@ -48,13 +48,16 @@ Contains zero `Node` dependencies, runs completely thread-safe on `WorkerThreadP
 ### 2. Scene Layer (`Node3D` / SceneTree)
 - **`src/graphics/`**:
   - Shaders (`terrain.gdshader`, `terrain_water.gdshader`, `terrain_cave.gdshader`):
-    - **Triplanar Mapping**: Prevents texture stretching on vertical voxel cliffs and steps without requiring per-quad UV unwrapping.
+    - **Soft-Banded Cel Shader**: Custom lighting model using Half-Lambert wrapping and smoothstep transitions to create distinct Highlight, Midtone, and Shadow bands with soft watercolor terminator lines.
+    - **Tinted Ambient Shadows**: Unlit surfaces receive a vibrant cool tone (lavender / deep sky blue / cool teal) instead of harsh engine gray/black, evoking hand-painted anime canvases.
+    - **Triplanar 3D Macro-Noise Hue & Saturation**: Global projection across X, Y, Z with procedural 3D noise modulating hue and saturation across large distances to emulate varied watercolor washes and eliminate repeating patterns.
+    - **Elevation-Based Color Gradients**: Vertical atmospheric gradient tinting valleys slightly cooler/darker and mountain peaks warmer/brighter, simulating traditional background painting depth.
+    - **Directional Rim Lighting (Fresnel Halo)**: View-dependent Fresnel modulated by sun alignment, wrapping a warm golden outline around sunlit voxel ridges to soften sharp stepped voxel block geometry.
     - **Slope-Based Blending**: Automatically transitions steep angles (> 45°) to cliff rock, leaving horizontal planes with topsoil, grass, sand, or snow.
     - **Elevation Blending**: Procedurally transitions low elevations to coastal beaches and high peaks to snowlines.
     - **Terrain Splat Painting (RGBA)**: Multi-layer splatmap overlay blending up to 4 custom painted layers.
-    - **Macro-Variation Anti-Tiling**: Subtly modulates color and roughness over large world coordinates to prevent repetitive tiling artifacts.
     - **PBR Lighting & Biome Tinting**: Full albedo, roughness, metallic, and specular response with vegetation biome tinting.
-  - `TerrainMaterialConfig`: Typed resource exposing triplanar scale/sharpness, slope thresholds, PBR layer colors/roughness, and optional textures.
+  - `TerrainMaterialConfig`: Typed resource exposing Ghibli cel bands, shadow/highlight tints, rim lighting, elevation gradients, macro brush shifts, slope thresholds, and PBR palettes.
   - `TerrainMaterialManager`: Material factory managing uniform synchronization and chunk-specific material instances with world origin and splatmaps bound.
 - **`src/world/`**:
   - `TerrainQuery`: Decoupled query interface (`get_height_at`, `get_spawn_point`, `get_world_bounds`).

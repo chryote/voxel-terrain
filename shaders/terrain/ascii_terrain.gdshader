@@ -61,26 +61,25 @@ int decode_material_id(vec4 col) {
 	return (col.r > col.b) ? 2 : 8; // Dirt / Cave Wall
 }
 
-vec4 sample_glyph_cell_uv(vec2 cell_uv, int glyph_idx) {
-	return texture(ascii_atlas, get_atlas_tile_uv(cell_uv, glyph_idx, atlas_grid));
-}
-
 vec4 sample_glyph_data(vec2 face_uv, int glyph_idx) {
-	return sample_glyph_cell_uv(fract(face_uv), glyph_idx);
+	vec2 dx = dFdx(face_uv) / vec2(atlas_grid), dy = dFdy(face_uv) / vec2(atlas_grid);
+	return textureGrad(ascii_atlas, get_atlas_tile_uv(fract(face_uv), glyph_idx, atlas_grid), dx, dy);
 }
 
-vec3 perturb_normal_micro_relief(vec3 norm, vec2 face_uv, int glyph_idx, float strength) {
-	vec2 uv_c = fract(face_uv);
+vec3 perturb_normal_micro_relief(vec3 norm, vec2 face_uv, int glyph_idx, float strength, mat3 view_mat) {
+	vec2 uv_c = fract(face_uv), dx = dFdx(face_uv) / vec2(atlas_grid), dy = dFdy(face_uv) / vec2(atlas_grid);
 	float eps = 0.035;
-	float h_c  = sample_glyph_cell_uv(uv_c, glyph_idx).g;
-	float h_dx = sample_glyph_cell_uv(clamp(uv_c + vec2(eps, 0.0), vec2(0.005), vec2(0.995)), glyph_idx).g;
-	float h_dy = sample_glyph_cell_uv(clamp(uv_c + vec2(0.0, eps), vec2(0.005), vec2(0.995)), glyph_idx).g;
-	float du = (h_dx - h_c) * strength * 2.0;
-	float dv = (h_dy - h_c) * strength * 2.0;
-	vec3 an = abs(norm);
-	vec3 pert = (an.y >= an.x && an.y >= an.z) ? vec3(-du, 0.0, -dv) * sign(norm.y) :
-		((an.x >= an.z) ? vec3(0.0, -dv, -du) * sign(norm.x) : vec3(-du, -dv, 0.0) * sign(norm.z));
-	return normalize(norm + pert);
+	vec2 uv_dx = clamp(uv_c + vec2(eps, 0.0), vec2(0.005), vec2(0.995));
+	vec2 uv_dy = clamp(uv_c + vec2(0.0, eps), vec2(0.005), vec2(0.995));
+	float h_c  = textureGrad(ascii_atlas, get_atlas_tile_uv(uv_c, glyph_idx, atlas_grid), dx, dy).g;
+	float h_dx = textureGrad(ascii_atlas, get_atlas_tile_uv(uv_dx, glyph_idx, atlas_grid), dx, dy).g;
+	float h_dy = textureGrad(ascii_atlas, get_atlas_tile_uv(uv_dy, glyph_idx, atlas_grid), dx, dy).g;
+	float du = clamp((h_dx - h_c) * strength * 2.0, -0.08, 0.08);
+	float dv = clamp((h_dy - h_c) * strength * 2.0, -0.08, 0.08);
+	vec3 an = abs(v_world_normal);
+	vec3 pert_w = (an.y >= an.x && an.y >= an.z) ? vec3(-du, 0.0, -dv) * sign(v_world_normal.y) :
+		((an.x >= an.z) ? vec3(0.0, -dv, -du) * sign(v_world_normal.x) : vec3(-du, -dv, 0.0) * sign(v_world_normal.z));
+	return normalize(norm + view_mat * pert_w);
 }
 
 float hash_cell(vec2 p) {
@@ -131,18 +130,18 @@ void fragment() {
 	vec2 face_uv = calculate_voxel_face_uv(v_world_pos, v_world_normal, glyphs_per_voxel);
 	int band;
 	int glyph_idx = select_procedural_glyph(decode_material_id(COLOR), floor(face_uv), v_world_pos, 1.0 - abs(v_world_normal.y), band);
-	vec2 uv_c = fract(face_uv);
+	vec2 uv_c = fract(face_uv), dx = dFdx(face_uv) / vec2(atlas_grid), dy = dFdy(face_uv) / vec2(atlas_grid);
 	float eps = 0.035;
-	vec4 glyph_data = sample_glyph_cell_uv(uv_c, glyph_idx);
+	vec4 glyph_data = textureGrad(ascii_atlas, get_atlas_tile_uv(uv_c, glyph_idx, atlas_grid), dx, dy);
 	float stroke_mask = smoothstep(0.35, 0.55, glyph_data.g);
 	float h_c  = glyph_data.g;
-	float h_dx = sample_glyph_cell_uv(clamp(uv_c + vec2(eps, 0.0), vec2(0.005), vec2(0.995)), glyph_idx).g;
-	float h_dy = sample_glyph_cell_uv(clamp(uv_c + vec2(0.0, eps), vec2(0.005), vec2(0.995)), glyph_idx).g;
+	float h_dx = textureGrad(ascii_atlas, get_atlas_tile_uv(clamp(uv_c + vec2(eps, 0.0), vec2(0.005), vec2(0.995)), glyph_idx, atlas_grid), dx, dy).g;
+	float h_dy = textureGrad(ascii_atlas, get_atlas_tile_uv(clamp(uv_c + vec2(0.0, eps), vec2(0.005), vec2(0.995)), glyph_idx, atlas_grid), dx, dy).g;
 	float emboss = clamp(dot(vec2(h_dx - h_c, h_dy - h_c), vec2(0.707, 0.707)) * 4.0 * depth_relief_strength, -0.4, 0.4);
 	float detail_fade = clamp(1.0 - (length(VERTEX) - 14.0) / 30.0, 0.0, 1.0);
 
 	ALBEDO = evaluate_subtle_color(COLOR.rgb, decode_material_id(COLOR), band, stroke_mask, glyph_data.b, emboss, detail_fade);
-	NORMAL = perturb_normal_micro_relief(NORMAL, face_uv, glyph_idx, depth_relief_strength * 0.20 * detail_fade);
+	NORMAL = perturb_normal_micro_relief(NORMAL, face_uv, glyph_idx, depth_relief_strength * 0.20 * detail_fade, mat3(VIEW_MATRIX));
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 }

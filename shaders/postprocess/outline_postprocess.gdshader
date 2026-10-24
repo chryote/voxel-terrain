@@ -15,7 +15,7 @@ uniform bool outlines_enabled = true;
 uniform vec4 outline_color : source_color = vec4(0.04, 0.04, 0.06, 1.0);
 uniform float outline_thickness : hint_range(0.5, 4.0) = 1.2;
 uniform float depth_threshold : hint_range(0.001, 0.5) = 0.05;
-uniform float normal_threshold : hint_range(0.05, 1.5) = 0.40;
+uniform float normal_threshold : hint_range(0.05, 1.5) = 0.55;
 
 group_uniforms Distance_Fade;
 uniform float outline_fade_start : hint_range(10.0, 200.0) = 45.0;
@@ -64,16 +64,26 @@ void fragment() {
 	ivec2 p_right = clamp(p + ivec2(r, 0), ivec2(0), vp_size - ivec2(1));
 	ivec2 p_left  = clamp(p - ivec2(r, 0), ivec2(0), vp_size - ivec2(1));
 
+	ivec2 p_up2    = clamp(p + ivec2(0, 2 * r), ivec2(0), vp_size - ivec2(1));
+	ivec2 p_down2  = clamp(p - ivec2(0, 2 * r), ivec2(0), vp_size - ivec2(1));
+	ivec2 p_right2 = clamp(p + ivec2(2 * r, 0), ivec2(0), vp_size - ivec2(1));
+	ivec2 p_left2  = clamp(p - ivec2(2 * r, 0), ivec2(0), vp_size - ivec2(1));
+
 	float raw_up    = texelFetch(depth_texture, p_up, 0).r;
 	float raw_down  = texelFetch(depth_texture, p_down, 0).r;
 	float raw_right = texelFetch(depth_texture, p_right, 0).r;
 	float raw_left  = texelFetch(depth_texture, p_left, 0).r;
 
+	float raw_up2    = texelFetch(depth_texture, p_up2, 0).r;
+	float raw_down2  = texelFetch(depth_texture, p_down2, 0).r;
+	float raw_right2 = texelFetch(depth_texture, p_right2, 0).r;
+	float raw_left2  = texelFetch(depth_texture, p_left2, 0).r;
+
 	// Check if neighboring taps are sky, requiring 2-pixel depth to reject single-pixel rasterization gaps
-	bool sky_up    = (raw_up >= 0.99999)    && (texelFetch(depth_texture, clamp(p + ivec2(0, 2 * r), ivec2(0), vp_size - ivec2(1)), 0).r >= 0.99999);
-	bool sky_down  = (raw_down >= 0.99999)  && (texelFetch(depth_texture, clamp(p - ivec2(0, 2 * r), ivec2(0), vp_size - ivec2(1)), 0).r >= 0.99999);
-	bool sky_right = (raw_right >= 0.99999) && (texelFetch(depth_texture, clamp(p + ivec2(2 * r, 0), ivec2(0), vp_size - ivec2(1)), 0).r >= 0.99999);
-	bool sky_left  = (raw_left >= 0.99999)  && (texelFetch(depth_texture, clamp(p - ivec2(2 * r, 0), ivec2(0), vp_size - ivec2(1)), 0).r >= 0.99999);
+	bool sky_up    = (raw_up >= 0.99999)    && (raw_up2 >= 0.99999);
+	bool sky_down  = (raw_down >= 0.99999)  && (raw_down2 >= 0.99999);
+	bool sky_right = (raw_right >= 0.99999) && (raw_right2 >= 0.99999);
+	bool sky_left  = (raw_left >= 0.99999)  && (raw_left2 >= 0.99999);
 
 	bool is_sky_silhouette = (sky_up || sky_down || sky_right || sky_left);
 
@@ -82,21 +92,52 @@ void fragment() {
 		ALPHA = outline_color.a;
 	} else {
 		float center_depth = get_linear_depth(p, INV_PROJECTION_MATRIX);
-		float d_up    = get_linear_depth(p_up, INV_PROJECTION_MATRIX);
-		float d_down  = get_linear_depth(p_down, INV_PROJECTION_MATRIX);
-		float d_right = get_linear_depth(p_right, INV_PROJECTION_MATRIX);
-		float d_left  = get_linear_depth(p_left, INV_PROJECTION_MATRIX);
+		vec3 n_c = texelFetch(normal_roughness_texture, p, 0).rgb * 2.0 - 1.0;
+
+		// Sanitize sub-pixel rasterization gaps: if a tap hit an isolated gap (raw depth >= 0.99999),
+		// clamp it to center depth and normal so it cannot blow up depth/normal divergence on surrounding pixels.
+		float d_up    = (raw_up >= 0.99999)    ? center_depth : get_linear_depth(p_up, INV_PROJECTION_MATRIX);
+		float d_down  = (raw_down >= 0.99999)  ? center_depth : get_linear_depth(p_down, INV_PROJECTION_MATRIX);
+		float d_right = (raw_right >= 0.99999) ? center_depth : get_linear_depth(p_right, INV_PROJECTION_MATRIX);
+		float d_left  = (raw_left >= 0.99999)  ? center_depth : get_linear_depth(p_left, INV_PROJECTION_MATRIX);
+
+		// Suppress isolated pinholes at center: if center depth is strictly deeper than all 4 neighbors by >0.5m
+		if ((center_depth > max(d_up, d_down) + 0.5) && (center_depth > max(d_right, d_left) + 0.5)) {
+			discard;
+		}
+
+		float d_up2    = (raw_up2 >= 0.99999)    ? d_up : get_linear_depth(p_up2, INV_PROJECTION_MATRIX);
+		float d_down2  = (raw_down2 >= 0.99999)  ? d_down : get_linear_depth(p_down2, INV_PROJECTION_MATRIX);
+		float d_right2 = (raw_right2 >= 0.99999) ? d_right : get_linear_depth(p_right2, INV_PROJECTION_MATRIX);
+		float d_left2  = (raw_left2 >= 0.99999)  ? d_left : get_linear_depth(p_left2, INV_PROJECTION_MATRIX);
+
+		// Suppress 1-pixel depth pinhole spikes on taps that immediately revert at 2r
+		if (abs(d_up - center_depth) > 0.6 && abs(d_up2 - center_depth) < 0.3) d_up = center_depth;
+		if (abs(d_down - center_depth) > 0.6 && abs(d_down2 - center_depth) < 0.3) d_down = center_depth;
+		if (abs(d_right - center_depth) > 0.6 && abs(d_right2 - center_depth) < 0.3) d_right = center_depth;
+		if (abs(d_left - center_depth) > 0.6 && abs(d_left2 - center_depth) < 0.3) d_left = center_depth;
 
 		// 2nd-order Laplacian evaluates curvature/step across perfectly symmetric integer taps
 		float lap_v = evaluate_depth_edge(center_depth, d_up, d_down);
 		float lap_h = evaluate_depth_edge(center_depth, d_right, d_left);
 		float depth_edge = max(lap_v, lap_h);
 
-		// Opposing normal divergence
-		vec3 n_up    = texelFetch(normal_roughness_texture, p_up, 0).rgb * 2.0 - 1.0;
-		vec3 n_down  = texelFetch(normal_roughness_texture, p_down, 0).rgb * 2.0 - 1.0;
-		vec3 n_right = texelFetch(normal_roughness_texture, p_right, 0).rgb * 2.0 - 1.0;
-		vec3 n_left  = texelFetch(normal_roughness_texture, p_left, 0).rgb * 2.0 - 1.0;
+		// Opposing normal divergence, sanitizing sub-pixel gaps with center normal
+		vec3 n_up    = (raw_up >= 0.99999)    ? n_c : (texelFetch(normal_roughness_texture, p_up, 0).rgb * 2.0 - 1.0);
+		vec3 n_down  = (raw_down >= 0.99999)  ? n_c : (texelFetch(normal_roughness_texture, p_down, 0).rgb * 2.0 - 1.0);
+		vec3 n_right = (raw_right >= 0.99999) ? n_c : (texelFetch(normal_roughness_texture, p_right, 0).rgb * 2.0 - 1.0);
+		vec3 n_left  = (raw_left >= 0.99999)  ? n_c : (texelFetch(normal_roughness_texture, p_left, 0).rgb * 2.0 - 1.0);
+
+		// Suppress 1-pixel normal spikes on taps that immediately revert at 2r
+		vec3 n_up2    = (raw_up2 >= 0.99999)    ? n_up : (texelFetch(normal_roughness_texture, p_up2, 0).rgb * 2.0 - 1.0);
+		vec3 n_down2  = (raw_down2 >= 0.99999)  ? n_down : (texelFetch(normal_roughness_texture, p_down2, 0).rgb * 2.0 - 1.0);
+		vec3 n_right2 = (raw_right2 >= 0.99999) ? n_right : (texelFetch(normal_roughness_texture, p_right2, 0).rgb * 2.0 - 1.0);
+		vec3 n_left2  = (raw_left2 >= 0.99999)  ? n_left : (texelFetch(normal_roughness_texture, p_left2, 0).rgb * 2.0 - 1.0);
+
+		if (length(n_up - n_c) > 0.4 && length(n_up2 - n_c) < 0.2) n_up = n_c;
+		if (length(n_down - n_c) > 0.4 && length(n_down2 - n_c) < 0.2) n_down = n_c;
+		if (length(n_right - n_c) > 0.4 && length(n_right2 - n_c) < 0.2) n_right = n_c;
+		if (length(n_left - n_c) > 0.4 && length(n_left2 - n_c) < 0.2) n_left = n_c;
 
 		float norm_v = evaluate_normal_edge(n_up, n_down);
 		float norm_h = evaluate_normal_edge(n_right, n_left);
@@ -110,7 +151,7 @@ void fragment() {
 		// unless there is a true major occlusion drop-off step (> depth_threshold * 2.5),
 		// completely eliminating 1-pixel fireflies/specks caused by sub-pixel rasterization.
 		bool is_normal_edge = (normal_edge > normal_threshold) && (dist_fade > 0.0);
-		bool is_depth_edge = (depth_edge > depth_threshold) && (dist_fade > 0.0) && (normal_edge > 0.12 || depth_edge > (depth_threshold * 2.5));
+		bool is_depth_edge = (depth_edge > depth_threshold) && (dist_fade > 0.0) && (normal_edge > 0.35 || depth_edge > (depth_threshold * 2.5));
 
 		if (is_normal_edge || is_depth_edge) {
 			float alpha_weight = (is_depth_edge) ? 1.0 : dist_fade;

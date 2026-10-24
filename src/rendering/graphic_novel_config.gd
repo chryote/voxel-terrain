@@ -26,7 +26,7 @@ extends Resource
 @export var outline_color: Color = Color(0.04, 0.04, 0.06, 1.0)
 @export_range(0.5, 4.0) var outline_thickness: float = 1.2
 @export_range(0.001, 0.5) var depth_threshold: float = 0.05
-@export_range(0.05, 1.5) var normal_threshold: float = 0.40
+@export_range(0.05, 1.5) var normal_threshold: float = 0.55
 @export_range(10.0, 200.0) var outline_fade_start: float = 45.0
 @export_range(20.0, 500.0) var max_outline_distance: float = 150.0
 

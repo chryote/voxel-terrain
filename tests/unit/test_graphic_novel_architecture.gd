@@ -48,6 +48,9 @@ func test_outline_postprocess_shader_compilation_and_code() -> void:
 	assert_true(code.contains("get_linear_depth"), "Should contain get_linear_depth helper")
 	assert_true(code.contains("evaluate_depth_edge"), "Should contain evaluate_depth_edge helper")
 	assert_true(code.contains("evaluate_normal_edge"), "Should contain evaluate_normal_edge helper")
+	assert_true(code.contains("raw_up >= 0.99999"), "Should guard against raw depth far-plane sky gaps in edge evaluation")
+	assert_true(code.contains("raw_up2"), "Should sample 2r taps for sub-pixel pinhole suppression")
+	assert_true(code.contains("center_depth > max(d_up, d_down)"), "Should reject isolated pinholes at center")
 
 func test_halftone_terrain_shader_compilation_and_code() -> void:
 	var shader = load("res://shaders/terrain/halftone_terrain.gdshader") as Shader

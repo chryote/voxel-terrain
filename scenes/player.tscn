@@ -37,6 +37,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 0)
 script = ExtResource("3_camera")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
+layer = 10
 
 [node name="PlayerHUD" type="Control" parent="CanvasLayer" node_paths=PackedStringArray("player_motor")]
 layout_mode = 3

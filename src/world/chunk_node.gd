@@ -21,23 +21,29 @@ var static_body: StaticBody3D
 var collision_shape: CollisionShape3D
 var cave_collision_shape: CollisionShape3D
 
-static var _shared_material: StandardMaterial3D
-static var _shared_cave_material: StandardMaterial3D
+const MaterialProviderClass = preload("res://src/rendering/terrain_material_provider.gd")
+
+static var _shared_material: Material
+static var _shared_cave_material: Material
 static var _shared_water_material: StandardMaterial3D
 static var _shared_subterranean_water_material: StandardMaterial3D
 
+static func configure_shared_materials(surface_mat: Material, cave_mat: Material) -> void:
+	_shared_material = surface_mat
+	_shared_cave_material = cave_mat
+
+static func get_shared_surface_material() -> Material:
+	return _shared_material
+
+static func get_shared_cave_material() -> Material:
+	return _shared_cave_material
+
 func _init() -> void:
 	if _shared_material == null:
-		_shared_material = StandardMaterial3D.new()
-		_shared_material.vertex_color_use_as_albedo = true
-		_shared_material.roughness = 0.85
-		_shared_material.metallic_specular = 0.15
+		_shared_material = MaterialProviderClass.get_surface_material()
 
 	if _shared_cave_material == null:
-		_shared_cave_material = StandardMaterial3D.new()
-		_shared_cave_material.vertex_color_use_as_albedo = true
-		_shared_cave_material.roughness = 0.90
-		_shared_cave_material.metallic_specular = 0.10
+		_shared_cave_material = MaterialProviderClass.get_cave_material()
 
 	if _shared_water_material == null:
 		_shared_water_material = StandardMaterial3D.new()

@@ -1,17 +1,27 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://src/world/main_scene.gd" id="1_main"]
 [ext_resource type="Script" path="res://src/world/voxel_world.gd" id="2_world"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="3_player"]
+[ext_resource type="Shader" path="res://shaders/sky/banded_sky.gdshader" id="4_sky_shader"]
+[ext_resource type="Script" path="res://src/rendering/graphic_novel_post_process.gd" id="5_postprocess"]
+[ext_resource type="Resource" path="res://config/graphic_novel_theme.tres" id="6_theme"]
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
-sky_top_color = Color(0.384, 0.549, 0.776, 1.0)
-sky_horizon_color = Color(0.686, 0.776, 0.863, 1.0)
-ground_bottom_color = Color(0.180, 0.239, 0.204, 1.0)
-ground_horizon_color = Color(0.686, 0.776, 0.863, 1.0)
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
+shader = ExtResource("4_sky_shader")
+shader_parameter/sky_top_color = Color(0.24, 0.44, 0.72, 1)
+shader_parameter/sky_mid_color = Color(0.48, 0.72, 0.88, 1)
+shader_parameter/sky_horizon_color = Color(0.96, 0.86, 0.7, 1)
+shader_parameter/ground_horizon_color = Color(0.68, 0.6, 0.52, 1)
+shader_parameter/ground_bottom_color = Color(0.2, 0.18, 0.16, 1)
+shader_parameter/mid_band_threshold = 0.25
+shader_parameter/horizon_band_threshold = 0.02
+shader_parameter/sun_enabled = true
+shader_parameter/sun_color = Color(1, 0.98, 0.88, 1)
+shader_parameter/sun_disk_size = 0.025
 
 [sub_resource type="Sky" id="Sky_env"]
-sky_material = SubResource("ProceduralSkyMaterial_sky")
+sky_material = SubResource("ShaderMaterial_sky")
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 2
@@ -30,6 +40,10 @@ environment = SubResource("Environment_main")
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.819152, -0.40558, 0.40558, 0, 0.707107, 0.707107, -0.573576, -0.579228, 0.579228, 0, 100, 0)
 shadow_enabled = true
+
+[node name="GraphicNovelPostProcess" type="Node3D" parent="."]
+script = ExtResource("5_postprocess")
+config = ExtResource("6_theme")
 
 [node name="VoxelWorld" type="Node3D" parent="." node_paths=PackedStringArray("focus_target")]
 script = ExtResource("2_world")

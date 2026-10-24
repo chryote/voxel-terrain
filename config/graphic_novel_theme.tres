@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="GraphicNovelConfig" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/rendering/graphic_novel_config.gd" id="1_config"]
+[ext_resource type="Texture2D" path="res://assets/textures/halftone_pattern.png" id="2_halftone"]
+
+[resource]
+script = ExtResource("1_config")
+sky_top_color = Color(0.24, 0.44, 0.72, 1.0)
+sky_mid_color = Color(0.48, 0.72, 0.88, 1.0)
+sky_horizon_color = Color(0.96, 0.86, 0.70, 1.0)
+ground_horizon_color = Color(0.68, 0.60, 0.52, 1.0)
+ground_bottom_color = Color(0.20, 0.18, 0.16, 1.0)
+mid_band_threshold = 0.25
+horizon_band_threshold = 0.02
+sun_enabled = true
+sun_color = Color(1.0, 0.98, 0.88, 1.0)
+sun_disk_size = 0.025
+outlines_enabled = true
+outline_color = Color(0.05, 0.05, 0.07, 1.0)
+outline_thickness = 1.2
+depth_threshold = 0.02
+normal_threshold = 0.35
+halftone_texture = ExtResource("2_halftone")
+halftone_scale = 0.15
+lit_threshold = 0.30
+shadow_tint = Color(0.22, 0.24, 0.32, 1.0)
+halftone_intensity = 0.75
+use_procedural_pattern = false

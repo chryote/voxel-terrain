@@ -19,7 +19,6 @@ extends Resource
 @export_range(0.0, 1.0, 0.05) var depth_relief_strength: float = 0.15
 @export_range(0.0, 1.0, 0.05) var cavity_shadow_intensity: float = 0.25
 @export_range(0.02, 0.5, 0.01) var macro_variation_scale: float = 0.08
-@export var flower_specks_enabled: bool = true
 @export_range(0.0, 0.05, 0.005) var parallax_strength: float = 0.015
 
 @export_group("Cel-Lighting Integration")

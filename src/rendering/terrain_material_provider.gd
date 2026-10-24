@@ -136,7 +136,6 @@ static func _apply_ascii_uniforms(mat: ShaderMaterial, config: Resource, is_cave
 	mat.set_shader_parameter("depth_relief_strength", float(config.get("depth_relief_strength")))
 	mat.set_shader_parameter("cavity_shadow_intensity", float(config.get("cavity_shadow_intensity")))
 	mat.set_shader_parameter("macro_variation_scale", float(config.get("macro_variation_scale")))
-	mat.set_shader_parameter("flower_specks_enabled", bool(config.get("flower_specks_enabled")))
 	mat.set_shader_parameter("parallax_strength", float(config.get("parallax_strength")))
 	mat.set_shader_parameter("lit_threshold", float(config.get("lit_threshold")))
 	_apply_shadow_tint(mat, config.get("shadow_tint") as Color, is_cave)

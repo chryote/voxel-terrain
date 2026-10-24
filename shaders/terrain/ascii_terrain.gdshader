@@ -17,7 +17,6 @@ uniform float glyph_contrast : hint_range(0.05, 1.0) = 0.30;
 uniform float depth_relief_strength : hint_range(0.0, 1.0) = 0.15;
 uniform float cavity_shadow_intensity : hint_range(0.0, 1.0) = 0.25;
 uniform float macro_variation_scale : hint_range(0.02, 0.5) = 0.08;
-uniform bool flower_specks_enabled = true;
 uniform float parallax_strength : hint_range(0.0, 0.05) = 0.015;
 
 group_uniforms Cel_Lighting;
@@ -35,13 +34,9 @@ void vertex() {
 // Computes world-space local face UV using dominant normal axis
 vec2 calculate_voxel_face_uv(vec3 pos, vec3 norm, float frequency) {
 	vec3 an = abs(norm);
-	if (an.y >= an.x && an.y >= an.z) {
-		return pos.xz * frequency;
-	} else if (an.x >= an.z) {
-		return vec2(pos.z, pos.y) * frequency;
-	} else {
-		return vec2(pos.x, pos.y) * frequency;
-	}
+	if (an.y >= an.x && an.y >= an.z) return pos.xz * frequency;
+	if (an.x >= an.z) return vec2(pos.z, pos.y) * frequency;
+	return vec2(pos.x, pos.y) * frequency;
 }
 
 vec2 get_atlas_tile_uv(vec2 cell_uv, int glyph_idx, ivec2 grid) {
@@ -66,20 +61,24 @@ int decode_material_id(vec4 col) {
 	return (col.r > col.b) ? 2 : 8; // Dirt / Cave Wall
 }
 
+vec4 sample_glyph_cell_uv(vec2 cell_uv, int glyph_idx) {
+	return texture(ascii_atlas, get_atlas_tile_uv(cell_uv, glyph_idx, atlas_grid));
+}
+
 vec4 sample_glyph_data(vec2 face_uv, int glyph_idx) {
-	vec2 cell_uv = fract(face_uv);
-	vec2 atlas_uv = get_atlas_tile_uv(cell_uv, glyph_idx, atlas_grid);
-	return texture(ascii_atlas, atlas_uv);
+	return sample_glyph_cell_uv(fract(face_uv), glyph_idx);
 }
 
 vec3 perturb_normal_micro_relief(vec3 norm, vec2 face_uv, int glyph_idx, float strength) {
+	vec2 uv_c = fract(face_uv);
 	float eps = 0.035;
-	float h_c  = sample_glyph_data(face_uv, glyph_idx).g;
-	float h_dx = sample_glyph_data(face_uv + vec2(eps, 0.0), glyph_idx).g;
-	float h_dy = sample_glyph_data(face_uv + vec2(0.0, eps), glyph_idx).g;
+	vec2 uv_dx = clamp(uv_c + vec2(eps, 0.0), vec2(0.005), vec2(0.995));
+	vec2 uv_dy = clamp(uv_c + vec2(0.0, eps), vec2(0.005), vec2(0.995));
+	float h_c  = sample_glyph_cell_uv(uv_c, glyph_idx).g;
+	float h_dx = sample_glyph_cell_uv(uv_dx, glyph_idx).g;
+	float h_dy = sample_glyph_cell_uv(uv_dy, glyph_idx).g;
 	float du = (h_dx - h_c) * strength * 2.0;
 	float dv = (h_dy - h_c) * strength * 2.0;
-
 	vec3 an = abs(norm);
 	vec3 pert = (an.y >= an.x && an.y >= an.z) ? vec3(-du, 0.0, -dv) * sign(norm.y) :
 		((an.x >= an.z) ? vec3(0.0, -dv, -du) * sign(norm.x) : vec3(-du, -dv, 0.0) * sign(norm.z));
@@ -91,58 +90,61 @@ float hash_cell(vec2 p) {
 }
 
 int select_procedural_glyph(int mat_id, vec2 cell_id, vec3 pos, float slope, out int out_band) {
-	float flower_field = sin(pos.x * 0.04) * cos(pos.z * 0.045) + sin(pos.x * 0.11 + pos.z * 0.09) * 0.3;
 	float jitter = hash_cell(cell_id);
-	int band = 1; // Default: base turf dot (·)
-	if (slope > 0.40) {
-		band = 0; // Contour ledge drop-off (!!)
-	} else if (flower_specks_enabled && mat_id == 1 && flower_field > 0.50 && jitter > 0.20) {
-		band = 3; // Flower specks (+)
+	vec2 m_coord = (abs(v_world_normal.y) < 0.5) ? vec2((abs(v_world_normal.x) > 0.5) ? pos.z : pos.x, pos.y) : pos.xz;
+	float macro = sin(m_coord.x * macro_variation_scale) * cos(m_coord.y * macro_variation_scale) * 0.5 + 0.5;
+	float pattern = macro * 0.6 + jitter * 0.4;
+	int band = 1;
+	if (mat_id == 1) {
+		if (slope > 0.40) {
+			band = (jitter > 0.75) ? 0 : 1;
+		} else if (pattern < 0.22 && jitter > 0.70) {
+			band = 0; // Sparse, delicate thatch soil ticks
+		} else if (pattern > 0.58) {
+			band = 2; // Blade ticks (")
+		}
 	} else {
-		float macro = sin(pos.x * macro_variation_scale) * cos(pos.z * macro_variation_scale) * 0.5 + 0.5;
-		band = (macro * 0.6 + jitter * 0.4 > 0.58) ? 2 : ((macro * 0.6 + jitter * 0.4 < 0.18) ? 0 : 1);
+		band = (pattern > 0.60) ? 2 : ((pattern < 0.20) ? 0 : 1);
 	}
 	out_band = band;
-	return int(round(texelFetch(material_lut, ivec2(mat_id, band), 0).r * 255.0));
+	return int(round(texelFetch(material_lut, ivec2(mat_id, out_band), 0).r * 255.0));
 }
 
-vec3 evaluate_subtle_color(vec3 base_col, int mat_id, int band, float stroke_mask, float cavity_ao, float emboss, float jitter) {
-	float ground_tone = sin(floor(v_world_pos.y) * 0.3) * 0.04 + sin(v_world_pos.x * 0.06 + v_world_pos.z * 0.04) * 0.03;
+vec3 evaluate_subtle_color(vec3 base_col, int mat_id, int band, float stroke_mask, float cavity_ao, float emboss, float fade) {
+	float ground_tone = (sin(floor(v_world_pos.y) * 0.3) * 0.04 + sin(v_world_pos.x * 0.06 + v_world_pos.z * 0.04) * 0.03) * fade;
 	vec3 ground_col = clamp(base_col * (1.0 + ground_tone), vec3(0.0), vec3(1.0));
-	vec3 cavity_col = ground_col * (1.0 - cavity_shadow_intensity * 0.35 * (1.0 - cavity_ao));
-	if (mat_id == 1 && band == 3) {
-		vec3 petal_col = (jitter > 0.60) ? vec3(0.86, 0.75, 0.93) : ((jitter > 0.30) ? vec3(0.93, 0.80, 0.87) : vec3(0.96, 0.95, 0.90));
-		return mix(mix(ground_col, vec3(0.18, 0.22, 0.15), 0.35) * cavity_ao, petal_col, stroke_mask);
+	vec3 cavity_col = ground_col * (1.0 - cavity_shadow_intensity * 0.35 * (1.0 - cavity_ao) * fade);
+	float eff_contrast = glyph_contrast * fade;
+	if (mat_id == 1 && band == 0) {
+		vec3 dirt_top = vec3(0.42, 0.31, 0.22); // Dirt voxel top face (#6b4f38)
+		vec3 soil_bg = mix(ground_col, dirt_top, 0.16 * fade) * mix(1.0, cavity_ao, 0.12 * fade);
+		vec3 soil_stroke = mix(ground_col, dirt_top * 1.20, 0.42 * fade) + emboss * 0.06;
+		return mix(soil_bg, soil_stroke, stroke_mask);
 	}
-	if (band == 0) {
-		return mix(ground_col * 0.75 * cavity_ao, ground_col * (1.0 - glyph_contrast * 1.55), stroke_mask);
-	}
-	vec3 stroke_col = (band == 2) ? (ground_col * (1.0 + glyph_contrast * 0.55) + vec3(0.03, 0.07, 0.01) + emboss * 0.12) :
-		(ground_col * (1.0 - glyph_contrast * 0.40) + emboss * 0.08);
+	if (band == 0) return mix(ground_col * (1.0 - 0.20 * fade) * cavity_ao, ground_col * (1.0 - eff_contrast * 0.90), stroke_mask);
+	vec3 stroke_col = (band == 2) ? (ground_col * (1.0 + eff_contrast * 0.55) + vec3(0.03, 0.07, 0.01) * fade + emboss * 0.12) :
+		(ground_col * (1.0 - eff_contrast * 0.40) + emboss * 0.08);
 	return mix(cavity_col, stroke_col, stroke_mask);
 }
 
 void fragment() {
 	vec2 face_uv = calculate_voxel_face_uv(v_world_pos, v_world_normal, glyphs_per_voxel);
-	vec2 cell_id = floor(face_uv);
-	int mat_id = decode_material_id(COLOR);
-	float slope = 1.0 - abs(v_world_normal.y);
-
 	int band;
-	int glyph_idx = select_procedural_glyph(mat_id, cell_id, v_world_pos, slope, band);
-
-	vec4 glyph_data = sample_glyph_data(face_uv, glyph_idx);
-	float stroke_mask = smoothstep(0.35, 0.55, glyph_data.g);
-
+	int glyph_idx = select_procedural_glyph(decode_material_id(COLOR), floor(face_uv), v_world_pos, 1.0 - abs(v_world_normal.y), band);
+	vec2 uv_c = fract(face_uv);
 	float eps = 0.035;
+	vec2 uv_dx = clamp(uv_c + vec2(eps, 0.0), vec2(0.005), vec2(0.995));
+	vec2 uv_dy = clamp(uv_c + vec2(0.0, eps), vec2(0.005), vec2(0.995));
+	vec4 glyph_data = sample_glyph_cell_uv(uv_c, glyph_idx);
+	float stroke_mask = smoothstep(0.35, 0.55, glyph_data.g);
 	float h_c  = glyph_data.g;
-	float h_dx = sample_glyph_data(face_uv + vec2(eps, 0.0), glyph_idx).g;
-	float h_dy = sample_glyph_data(face_uv + vec2(0.0, eps), glyph_idx).g;
+	float h_dx = sample_glyph_cell_uv(uv_dx, glyph_idx).g;
+	float h_dy = sample_glyph_cell_uv(uv_dy, glyph_idx).g;
 	float emboss = clamp(dot(vec2(h_dx - h_c, h_dy - h_c), vec2(0.707, 0.707)) * 4.0 * depth_relief_strength, -0.4, 0.4);
+	float detail_fade = clamp(1.0 - (length(VERTEX) - 14.0) / 30.0, 0.0, 1.0);
 
-	float jitter = hash_cell(cell_id);
-	ALBEDO = evaluate_subtle_color(COLOR.rgb, mat_id, band, stroke_mask, glyph_data.b, emboss, jitter);
-	NORMAL = perturb_normal_micro_relief(NORMAL, face_uv, glyph_idx, depth_relief_strength * 0.5);
+	ALBEDO = evaluate_subtle_color(COLOR.rgb, decode_material_id(COLOR), band, stroke_mask, glyph_data.b, emboss, detail_fade);
+	NORMAL = perturb_normal_micro_relief(NORMAL, face_uv, glyph_idx, depth_relief_strength * 0.20 * detail_fade);
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 }
@@ -150,7 +152,5 @@ void fragment() {
 void light() {
 	float n_dot_l = max(dot(NORMAL, LIGHT), 0.0) * ATTENUATION;
 	float is_lit = step(lit_threshold, n_dot_l);
-	vec3 lit_color = ALBEDO * LIGHT_COLOR;
-	vec3 shadow_color = ALBEDO * shadow_tint.rgb;
-	DIFFUSE_LIGHT += mix(shadow_color, lit_color, is_lit);
+	DIFFUSE_LIGHT += mix(ALBEDO * shadow_tint.rgb, ALBEDO * LIGHT_COLOR, is_lit);
 }

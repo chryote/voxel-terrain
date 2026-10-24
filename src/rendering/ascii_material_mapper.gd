@@ -55,8 +55,8 @@ static func save_lut_to_file(path: String = "res://assets/textures/ascii_materia
 static func _init_ramp_table() -> void:
 	# ID_AIR (0): Space
 	_RAMP_TABLE[MaterialDefClass.ID_AIR] = PackedInt32Array([32, 32, 32, 32])
-	# ID_GRASS (1): Ledge drop-off, centered turf dot, blade ticks, flower pluses (!!, ·, ", +)
-	_RAMP_TABLE[MaterialDefClass.ID_GRASS] = PackedInt32Array([19, 249, 34, 43])
+	# ID_GRASS (1): Ledge drop-off, centered turf dot, blade ticks, fine thatch (!!, ·, ", ')
+	_RAMP_TABLE[MaterialDefClass.ID_GRASS] = PackedInt32Array([19, 249, 34, 39])
 	# ID_DIRT (2): Crumbly granular loam aggregate (8, *, ., :)
 	_RAMP_TABLE[MaterialDefClass.ID_DIRT] = PackedInt32Array([56, 42, 46, 58])
 	# ID_STONE (3): Rigid crystalline fracture cleavage planes (#, X, [, =)

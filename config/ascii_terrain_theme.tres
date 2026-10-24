@@ -16,7 +16,6 @@ glyph_contrast = 0.30
 depth_relief_strength = 0.15
 cavity_shadow_intensity = 0.25
 macro_variation_scale = 0.08
-flower_specks_enabled = true
 parallax_strength = 0.015
 lit_threshold = 0.3
 shadow_tint = Color(0.22, 0.24, 0.32, 1)

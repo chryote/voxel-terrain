@@ -67,6 +67,8 @@ func apply_config() -> void:
 	post_material.set_shader_parameter("outline_thickness", float(config.get("outline_thickness")))
 	post_material.set_shader_parameter("depth_threshold", float(config.get("depth_threshold")))
 	post_material.set_shader_parameter("normal_threshold", float(config.get("normal_threshold")))
+	post_material.set_shader_parameter("outline_fade_start", float(config.get("outline_fade_start")))
+	post_material.set_shader_parameter("max_outline_distance", float(config.get("max_outline_distance")))
 
 func set_outlines_enabled(p_enabled: bool) -> void:
 	if config != null:

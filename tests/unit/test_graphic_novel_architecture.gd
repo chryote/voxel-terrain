@@ -16,8 +16,10 @@ func test_graphic_novel_config_defaults() -> void:
 	var cfg = ConfigClass.create_default_config()
 	assert_not_null(cfg, "Config instance should not be null")
 	assert_true(cfg.outlines_enabled, "Outlines should be enabled by default")
-	assert_almost_eq(cfg.outline_thickness, 1.0, 0.01, "Outline thickness should be 1.0")
+	assert_almost_eq(cfg.outline_thickness, 1.2, 0.01, "Outline thickness should be 1.2")
 	assert_almost_eq(cfg.lit_threshold, 0.30, 0.01, "Lit threshold should be 0.30")
+	assert_almost_eq(cfg.outline_fade_start, 45.0, 0.01, "Outline fade start should be 45.0")
+	assert_almost_eq(cfg.max_outline_distance, 150.0, 0.01, "Max outline distance should be 150.0")
 	assert_true(cfg.sky_top_color.a > 0.9, "Sky top color should be opaque")
 	assert_true(cfg.outline_color.a > 0.9, "Outline color should be opaque")
 

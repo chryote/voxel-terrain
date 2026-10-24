@@ -12,6 +12,7 @@ const FILES_TO_AUDIT = [
 	"res://src/rendering/ascii_atlas_generator.gd",
 	"res://src/rendering/ascii_glyph_rasterizer.gd",
 	"res://src/rendering/ascii_material_mapper.gd",
+	"res://src/rendering/strata_palette_registry.gd",
 	"res://src/rendering/terrain_material_provider.gd"
 ]
 

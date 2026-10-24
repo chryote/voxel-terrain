@@ -11,6 +11,7 @@ const GraphicNovelConfigClass = preload("res://src/rendering/graphic_novel_confi
 const AsciiAtlasConfigClass = preload("res://src/rendering/ascii_atlas_config.gd")
 const AsciiAtlasGeneratorClass = preload("res://src/rendering/ascii_atlas_generator.gd")
 const AsciiMaterialMapperClass = preload("res://src/rendering/ascii_material_mapper.gd")
+const StrataPaletteRegistryClass = preload("res://src/rendering/strata_palette_registry.gd")
 
 static var _cached_surface_material: ShaderMaterial = null
 static var _cached_cave_material: ShaderMaterial = null
@@ -139,6 +140,7 @@ static func _apply_ascii_uniforms(mat: ShaderMaterial, config: Resource, is_cave
 	mat.set_shader_parameter("parallax_strength", float(config.get("parallax_strength")))
 	mat.set_shader_parameter("lit_threshold", float(config.get("lit_threshold")))
 	_apply_shadow_tint(mat, config.get("shadow_tint") as Color, is_cave)
+	StrataPaletteRegistryClass.apply_to_material(mat, config)
 
 static func _resolve_texture(tex: Texture2D, path: String, fallback: Callable) -> Texture2D:
 	if tex != null:

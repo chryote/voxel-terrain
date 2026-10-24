@@ -25,6 +25,13 @@ extends Resource
 @export_range(0.0, 1.0, 0.05) var lit_threshold: float = 0.30
 @export var shadow_tint: Color = Color(0.22, 0.24, 0.32, 1.0)
 
+@export_group("Sedimentary Strata")
+@export var strata_enabled: bool = true
+@export var strata_group: String = "soil"
+@export var strata_preset: String = "loam_temperate"
+@export_range(0.05, 1.0, 0.05) var strata_frequency: float = 0.35
+@export_range(0.0, 1.0, 0.05) var strata_warp_strength: float = 0.50
+
 static func create_default_config() -> Resource:
 	var cfg = new()
 	return cfg

@@ -36,6 +36,8 @@ func test_shader_uniforms_declared() -> void:
 	assert_true(code.contains("parallax_strength"), "Must declare parallax_strength uniform")
 	assert_true(code.contains("lit_threshold"), "Must declare lit_threshold uniform")
 	assert_true(code.contains("shadow_tint"), "Must declare shadow_tint uniform")
+	assert_true(code.contains("strata_enabled"), "Must declare strata_enabled uniform")
+	assert_true(code.contains("strata_color_0"), "Must declare strata_color_0 uniform")
 
 func test_shader_material_parameter_assignment() -> void:
 	var shader = load(SHADER_PATH) as Shader
@@ -46,7 +48,10 @@ func test_shader_material_parameter_assignment() -> void:
 	mat.set_shader_parameter("glyphs_per_voxel", 3.5)
 	mat.set_shader_parameter("depth_relief_strength", 0.72)
 	mat.set_shader_parameter("cavity_shadow_intensity", 0.81)
+	mat.set_shader_parameter("strata_frequency", 0.45)
+	mat.set_shader_parameter("strata_color_0", Color(0.2, 0.3, 0.4, 1.0))
 
 	assert_almost_eq(float(mat.get_shader_parameter("glyphs_per_voxel")), 3.5, 0.01, "glyphs_per_voxel should match")
 	assert_almost_eq(float(mat.get_shader_parameter("depth_relief_strength")), 0.72, 0.01, "depth_relief_strength should match")
 	assert_almost_eq(float(mat.get_shader_parameter("cavity_shadow_intensity")), 0.81, 0.01, "cavity_shadow_intensity should match")
+	assert_almost_eq(float(mat.get_shader_parameter("strata_frequency")), 0.45, 0.01, "strata_frequency should match")

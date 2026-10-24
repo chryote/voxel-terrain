@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://src/world/main_scene.gd" id="1_main"]
 [ext_resource type="Script" path="res://src/world/voxel_world.gd" id="2_world"]
@@ -6,6 +6,7 @@
 [ext_resource type="Shader" path="res://shaders/sky/banded_sky.gdshader" id="4_sky_shader"]
 [ext_resource type="Script" path="res://src/rendering/graphic_novel_post_process.gd" id="5_postprocess"]
 [ext_resource type="Resource" path="res://config/graphic_novel_theme.tres" id="6_theme"]
+[ext_resource type="Resource" path="res://config/ascii_terrain_theme.tres" id="7_ascii_theme"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
 shader = ExtResource("4_sky_shader")
@@ -47,6 +48,7 @@ config = ExtResource("6_theme")
 
 [node name="VoxelWorld" type="Node3D" parent="." node_paths=PackedStringArray("focus_target")]
 script = ExtResource("2_world")
+terrain_theme = ExtResource("7_ascii_theme")
 focus_target = NodePath("../Player")
 
 [node name="Player" parent="." instance=ExtResource("3_player")]

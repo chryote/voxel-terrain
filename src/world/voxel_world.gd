@@ -12,6 +12,7 @@ signal spawn_mode_changed(is_underground: bool, spawn_position: Vector3)
 @export var generator_config: ContinentGeneratorConfig
 @export var cave_config: CaveGeneratorConfig
 @export var material_registry: MaterialRegistry
+@export var terrain_theme: Resource = null
 @export var focus_target: Node3D
 @export var spawn_on_underground_arena: bool = true
 @export var caves_enabled: bool = true:
@@ -91,7 +92,18 @@ func _cleanup_chunk_pool() -> void:
 	_chunk_node_pool.clear()
 
 
+func _apply_terrain_theme() -> void:
+	var theme_to_use = terrain_theme
+	if theme_to_use == null and ResourceLoader.exists("res://config/ascii_terrain_theme.tres"):
+		theme_to_use = load("res://config/ascii_terrain_theme.tres")
+	if theme_to_use != null:
+		var ProviderClass = preload("res://src/rendering/terrain_material_provider.gd")
+		var surf_mat = ProviderClass.get_surface_material(theme_to_use)
+		var cave_mat = ProviderClass.get_cave_material(theme_to_use)
+		ChunkNode.configure_shared_materials(surf_mat, cave_mat)
+
 func _ready() -> void:
+	_apply_terrain_theme()
 	if world_config == null:
 		world_config = WorldConfig.new()
 	if generator_config == null:

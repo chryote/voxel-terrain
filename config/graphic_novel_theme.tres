@@ -5,13 +5,18 @@
 
 [resource]
 script = ExtResource("1_config")
-sky_top_color = Color(0.24, 0.44, 0.72, 1.0)
-sky_mid_color = Color(0.48, 0.72, 0.88, 1.0)
-sky_horizon_color = Color(0.96, 0.86, 0.70, 1.0)
-ground_horizon_color = Color(0.68, 0.60, 0.52, 1.0)
-ground_bottom_color = Color(0.20, 0.18, 0.16, 1.0)
-mid_band_threshold = 0.25
+sky_top_color = Color(0.14, 0.22, 0.44, 1.0)
+sky_high_color = Color(0.24, 0.48, 0.76, 1.0)
+sky_mid_color = Color(0.32, 0.68, 0.78, 1.0)
+sky_low_color = Color(0.95, 0.68, 0.35, 1.0)
+sky_horizon_color = Color(0.96, 0.48, 0.42, 1.0)
+ground_horizon_color = Color(0.62, 0.46, 0.48, 1.0)
+ground_bottom_color = Color(0.18, 0.15, 0.18, 1.0)
+high_band_threshold = 0.38
+mid_band_threshold = 0.20
+low_band_threshold = 0.08
 horizon_band_threshold = 0.02
+band_smoothness = 0.0
 sun_enabled = true
 sun_color = Color(1.0, 0.98, 0.88, 1.0)
 sun_disk_size = 0.025

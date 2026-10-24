@@ -7,15 +7,20 @@ shader_type sky;
  */
 
 group_uniforms Sky_Palette;
-uniform vec4 sky_top_color : source_color = vec4(0.24, 0.44, 0.72, 1.0);
-uniform vec4 sky_mid_color : source_color = vec4(0.48, 0.72, 0.88, 1.0);
-uniform vec4 sky_horizon_color : source_color = vec4(0.96, 0.86, 0.70, 1.0);
-uniform vec4 ground_horizon_color : source_color = vec4(0.68, 0.60, 0.52, 1.0);
-uniform vec4 ground_bottom_color : source_color = vec4(0.20, 0.18, 0.16, 1.0);
+uniform vec4 sky_top_color : source_color = vec4(0.14, 0.22, 0.44, 1.0);
+uniform vec4 sky_high_color : source_color = vec4(0.24, 0.48, 0.76, 1.0);
+uniform vec4 sky_mid_color : source_color = vec4(0.32, 0.68, 0.78, 1.0);
+uniform vec4 sky_low_color : source_color = vec4(0.95, 0.68, 0.35, 1.0);
+uniform vec4 sky_horizon_color : source_color = vec4(0.96, 0.48, 0.42, 1.0);
+uniform vec4 ground_horizon_color : source_color = vec4(0.62, 0.46, 0.48, 1.0);
+uniform vec4 ground_bottom_color : source_color = vec4(0.18, 0.15, 0.18, 1.0);
 
 group_uniforms Band_Thresholds;
-uniform float mid_band_threshold : hint_range(0.0, 1.0) = 0.25;
+uniform float high_band_threshold : hint_range(0.0, 1.0) = 0.38;
+uniform float mid_band_threshold : hint_range(0.0, 1.0) = 0.20;
+uniform float low_band_threshold : hint_range(0.0, 1.0) = 0.08;
 uniform float horizon_band_threshold : hint_range(-0.2, 0.2) = 0.02;
+uniform float band_smoothness : hint_range(0.0, 0.1) = 0.0;
 
 group_uniforms Sun_Disk;
 uniform bool sun_enabled = true;
@@ -24,19 +29,34 @@ uniform float sun_disk_size : hint_range(0.001, 0.1) = 0.025;
 
 // Pure single-responsibility helper: calculates stepped background color by vertical angle
 vec3 calculate_sky_band(float eye_y) {
-	if (eye_y >= horizon_band_threshold) {
-		// Upper hemisphere (Sky)
-		float is_top = step(mid_band_threshold, eye_y);
-		return mix(sky_mid_color.rgb, sky_top_color.rgb, is_top);
-	} else if (eye_y >= 0.0) {
-		// Horizon transition band
-		return sky_horizon_color.rgb;
-	} else if (eye_y >= -horizon_band_threshold) {
-		// Ground horizon band
-		return ground_horizon_color.rgb;
+	if (band_smoothness <= 0.0001) {
+		// Strictly crisp cel bands (pure posterized graphic novel stripes)
+		if (eye_y >= high_band_threshold) {
+			return sky_top_color.rgb;
+		} else if (eye_y >= mid_band_threshold) {
+			return sky_high_color.rgb;
+		} else if (eye_y >= low_band_threshold) {
+			return sky_mid_color.rgb;
+		} else if (eye_y >= horizon_band_threshold) {
+			return sky_low_color.rgb;
+		} else if (eye_y >= 0.0) {
+			return sky_horizon_color.rgb;
+		} else if (eye_y >= -horizon_band_threshold) {
+			return ground_horizon_color.rgb;
+		} else {
+			return ground_bottom_color.rgb;
+		}
 	} else {
-		// Lower hemisphere (Ground)
-		return ground_bottom_color.rgb;
+		// Configurable smoothed bands
+		float half_s = band_smoothness * 0.5;
+		vec3 col = ground_bottom_color.rgb;
+		col = mix(col, ground_horizon_color.rgb, smoothstep(-horizon_band_threshold - half_s, -horizon_band_threshold + half_s, eye_y));
+		col = mix(col, sky_horizon_color.rgb, smoothstep(-half_s, half_s, eye_y));
+		col = mix(col, sky_low_color.rgb, smoothstep(horizon_band_threshold - half_s, horizon_band_threshold + half_s, eye_y));
+		col = mix(col, sky_mid_color.rgb, smoothstep(low_band_threshold - half_s, low_band_threshold + half_s, eye_y));
+		col = mix(col, sky_high_color.rgb, smoothstep(mid_band_threshold - half_s, mid_band_threshold + half_s, eye_y));
+		col = mix(col, sky_top_color.rgb, smoothstep(high_band_threshold - half_s, high_band_threshold + half_s, eye_y));
+		return col;
 	}
 }
 

@@ -31,6 +31,12 @@ func test_sky_shader_compilation_and_code() -> void:
 	assert_true(code.contains("calculate_sky_band"), "Should contain modular calculate_sky_band function")
 	assert_true(code.contains("calculate_sun_disk"), "Should contain modular calculate_sun_disk function")
 	assert_true(code.contains("sky_top_color"), "Should expose sky_top_color uniform")
+	assert_true(code.contains("sky_high_color"), "Should expose sky_high_color uniform")
+	assert_true(code.contains("sky_mid_color"), "Should expose sky_mid_color uniform")
+	assert_true(code.contains("sky_low_color"), "Should expose sky_low_color uniform")
+	assert_true(code.contains("sky_horizon_color"), "Should expose sky_horizon_color uniform")
+	assert_true(code.contains("high_band_threshold"), "Should expose high_band_threshold uniform")
+	assert_true(code.contains("band_smoothness"), "Should expose band_smoothness uniform")
 
 func test_outline_postprocess_shader_compilation_and_code() -> void:
 	var shader = load("res://shaders/postprocess/outline_postprocess.gdshader") as Shader

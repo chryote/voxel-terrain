@@ -10,13 +10,18 @@
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
 shader = ExtResource("4_sky_shader")
-shader_parameter/sky_top_color = Color(0.24, 0.44, 0.72, 1)
-shader_parameter/sky_mid_color = Color(0.48, 0.72, 0.88, 1)
-shader_parameter/sky_horizon_color = Color(0.96, 0.86, 0.7, 1)
-shader_parameter/ground_horizon_color = Color(0.68, 0.6, 0.52, 1)
-shader_parameter/ground_bottom_color = Color(0.2, 0.18, 0.16, 1)
-shader_parameter/mid_band_threshold = 0.25
+shader_parameter/sky_top_color = Color(0.14, 0.22, 0.44, 1)
+shader_parameter/sky_high_color = Color(0.24, 0.48, 0.76, 1)
+shader_parameter/sky_mid_color = Color(0.32, 0.68, 0.78, 1)
+shader_parameter/sky_low_color = Color(0.95, 0.68, 0.35, 1)
+shader_parameter/sky_horizon_color = Color(0.96, 0.48, 0.42, 1)
+shader_parameter/ground_horizon_color = Color(0.62, 0.46, 0.48, 1)
+shader_parameter/ground_bottom_color = Color(0.18, 0.15, 0.18, 1)
+shader_parameter/high_band_threshold = 0.38
+shader_parameter/mid_band_threshold = 0.2
+shader_parameter/low_band_threshold = 0.08
 shader_parameter/horizon_band_threshold = 0.02
+shader_parameter/band_smoothness = 0.0
 shader_parameter/sun_enabled = true
 shader_parameter/sun_color = Color(1, 0.98, 0.88, 1)
 shader_parameter/sun_disk_size = 0.025

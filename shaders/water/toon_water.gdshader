@@ -27,10 +27,11 @@ uniform float deep_threshold : hint_range(1.0, 20.0) = 5.0;
 group_uniforms Graphic_Ripples;
 uniform bool ripples_enabled = true;
 uniform float pixel_density : hint_range(1.0, 32.0) = 8.0;
-uniform float ripple_scale : hint_range(0.05, 1.0) = 0.25;
+uniform float ripple_scale : hint_range(0.01, 1.0) = 0.08;
+uniform float ripple_radius : hint_range(0.2, 1.2) = 0.65;
 uniform float ripple_speed : hint_range(0.01, 1.0) = 0.08;
-uniform float ripple_threshold : hint_range(0.01, 0.25) = 0.06;
-uniform vec4 ripple_color : source_color = vec4(1.0, 1.0, 1.0, 0.90);
+uniform float ripple_threshold : hint_range(0.01, 0.25) = 0.05;
+uniform vec4 ripple_color : source_color = vec4(0.68, 0.88, 0.98, 0.55);
 
 group_uniforms Side_Face_Fluid;
 uniform float side_fluid_speed : hint_range(0.5, 5.0) = 2.2;
@@ -86,11 +87,11 @@ vec4 evaluate_stepped_depth(float depth_diff) {
 float evaluate_graphic_ripples(vec2 world_xz, float time, float view_depth) {
 	vec2 pix_xz = floor(world_xz * pixel_density) / pixel_density;
 	vec2 uv1 = pix_xz * ripple_scale + vec2(time * ripple_speed, time * ripple_speed * 0.7);
-	vec2 uv2 = pix_xz * (ripple_scale * 1.35) - vec2(time * ripple_speed * 0.85, -time * ripple_speed * 0.6);
+	vec2 uv2 = pix_xz * (ripple_scale * 0.7) - vec2(time * ripple_speed * 0.85, -time * ripple_speed * 0.6);
 	float d1 = cellular_distance(uv1);
 	float d2 = cellular_distance(uv2);
-	float ring1 = step(abs(d1 - 0.45), ripple_threshold);
-	float ring2 = step(abs(d2 - 0.45), ripple_threshold);
+	float ring1 = step(abs(d1 - ripple_radius), ripple_threshold);
+	float ring2 = step(abs(d2 - (ripple_radius * 0.75)), ripple_threshold);
 	float dist_fade = clamp(1.0 - (view_depth - 15.0) / 35.0, 0.0, 1.0);
 	return max(ring1, ring2) * dist_fade;
 }
@@ -98,7 +99,7 @@ float evaluate_graphic_ripples(vec2 world_xz, float time, float view_depth) {
 // Animated downward fluid streams for vertical side faces
 float evaluate_side_fluid_flow(vec3 pos, vec3 norm, float time) {
 	float horiz = (abs(norm.x) > abs(norm.z)) ? pos.z : pos.x;
-	vec2 flow_coord = vec2(horiz * ripple_scale * 1.5, (pos.y - time * side_fluid_speed) * ripple_scale * 2.0);
+	vec2 flow_coord = vec2(horiz * ripple_scale * 1.5, (pos.y + time * side_fluid_speed) * ripple_scale * 2.0);
 	vec2 pix_flow = floor(flow_coord * pixel_density) / pixel_density;
 	float stream = sin(pix_flow.x * 6.28 + sin(pix_flow.y * 3.14)) + cos(pix_flow.x * 3.14 - pix_flow.y * 5.0);
 	return step(0.35, stream * 0.5);
@@ -118,15 +119,16 @@ void fragment() {
 		if (is_side) {
 			col = mix(col, shallow_color, 0.4);
 			float fluid = evaluate_side_fluid_flow(v_world_pos, v_world_normal, TIME);
-			if (fluid > 0.5) col = mix(col, ripple_color, ripple_color.a * 0.85);
+			vec4 stream_col = mix(shallow_color, ripple_color, 0.35);
+			if (fluid > 0.5) col = mix(col, stream_col, 0.35);
 		} else {
 			float rip = evaluate_graphic_ripples(v_world_pos.xz, TIME, water_depth);
 			if (rip > 0.5) col = mix(col, ripple_color, ripple_color.a);
 		}
 	}
 
-	// 3. Hard-edge intersection foam line (if enabled)
-	if (foam_enabled && depth_diff < foam_thickness) {
+	// 3. Hard-edge intersection foam line (if enabled, top face only)
+	if (foam_enabled && !is_side && depth_diff < foam_thickness) {
 		col = foam_color;
 	}
 

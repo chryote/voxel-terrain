@@ -13,7 +13,8 @@ func test_default_config_properties() -> void:
 	assert_almost_eq(cfg.shallow_threshold, 1.5, 0.001, "Default shallow threshold should be 1.5")
 	assert_almost_eq(cfg.deep_threshold, 5.0, 0.001, "Default deep threshold should be 5.0")
 	assert_true(cfg.ripples_enabled, "Ripples should be enabled by default")
-	assert_almost_eq(cfg.ripple_scale, 0.25, 0.001, "Default ripple scale should be 0.25")
+	assert_almost_eq(cfg.ripple_scale, 0.08, 0.001, "Default ripple scale should be 0.08")
+	assert_almost_eq(cfg.ripple_radius, 0.65, 0.001, "Default ripple radius should be 0.65")
 	assert_almost_eq(cfg.ripple_speed, 0.08, 0.001, "Default ripple speed should be 0.08")
 	assert_true(cfg.foam_color.a > 0.99, "Foam color should be fully opaque white")
 

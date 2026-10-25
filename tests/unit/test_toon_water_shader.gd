@@ -79,6 +79,7 @@ func test_shader_pillar_graphic_ripples_and_cellular_math() -> void:
 	assert_true(code.contains("evaluate_graphic_ripples"), "Must contain dual-scrolling ripple evaluator")
 	assert_true(code.contains("step("), "Must use step() for hard comic contour lines")
 	assert_true(code.contains("ripple_threshold"), "Must expose ripple line threshold")
+	assert_true(code.contains("ripple_radius"), "Must expose ripple radius uniform")
 
 func test_shader_pixelized_foam_and_side_fluid_flow() -> void:
 	var file = FileAccess.open(SHADER_PATH, FileAccess.READ)

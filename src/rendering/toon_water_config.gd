@@ -19,10 +19,11 @@ extends Resource
 @export_group("Stylized Ripples")
 @export var ripples_enabled: bool = true
 @export_range(1.0, 32.0, 1.0) var pixel_density: float = 8.0
-@export_range(0.05, 1.0, 0.01) var ripple_scale: float = 0.25
+@export_range(0.01, 1.0, 0.01) var ripple_scale: float = 0.08
+@export_range(0.1, 1.2, 0.01) var ripple_radius: float = 0.65
 @export_range(0.01, 1.0, 0.01) var ripple_speed: float = 0.08
-@export_range(0.01, 0.25, 0.005) var ripple_threshold: float = 0.06
-@export var ripple_color: Color = Color(1.0, 1.0, 1.0, 0.90)
+@export_range(0.01, 0.25, 0.005) var ripple_threshold: float = 0.05
+@export var ripple_color: Color = Color(0.68, 0.88, 0.98, 0.55)
 
 @export_group("Side Face Fluid")
 @export_range(0.5, 5.0, 0.1) var side_fluid_speed: float = 2.2

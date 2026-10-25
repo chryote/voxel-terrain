@@ -165,12 +165,13 @@ func _build_side_quads_west(
 					break
 				run_z += 1
 
+			var px = flx - 0.01
 			_append_quad(
 				verts, norms, cols, inds,
-				Vector3(flx, float(n_surface), float(lz)),
-				Vector3(flx, float(n_surface), float(lz + run_z)),
-				Vector3(flx, float(wh), float(lz + run_z)),
-				Vector3(flx, float(wh), float(lz)),
+				Vector3(px, float(n_surface), float(lz)),
+				Vector3(px, float(n_surface), float(lz + run_z)),
+				Vector3(px, float(wh), float(lz + run_z)),
+				Vector3(px, float(wh), float(lz)),
 				norm_west
 			)
 			lz += run_z
@@ -207,12 +208,13 @@ func _build_side_quads_east(
 					break
 				run_z += 1
 
+			var px = flx + 1.01
 			_append_quad(
 				verts, norms, cols, inds,
-				Vector3(flx + 1.0, float(n_surface), float(lz + run_z)),
-				Vector3(flx + 1.0, float(n_surface), float(lz)),
-				Vector3(flx + 1.0, float(wh), float(lz)),
-				Vector3(flx + 1.0, float(wh), float(lz + run_z)),
+				Vector3(px, float(n_surface), float(lz + run_z)),
+				Vector3(px, float(n_surface), float(lz)),
+				Vector3(px, float(wh), float(lz)),
+				Vector3(px, float(wh), float(lz + run_z)),
 				norm_east
 			)
 			lz += run_z
@@ -249,12 +251,13 @@ func _build_side_quads_south(
 					break
 				run_x += 1
 
+			var pz = flz - 0.01
 			_append_quad(
 				verts, norms, cols, inds,
-				Vector3(float(lx + run_x), float(n_surface), flz),
-				Vector3(float(lx), float(n_surface), flz),
-				Vector3(float(lx), float(wh), flz),
-				Vector3(float(lx + run_x), float(wh), flz),
+				Vector3(float(lx + run_x), float(n_surface), pz),
+				Vector3(float(lx), float(n_surface), pz),
+				Vector3(float(lx), float(wh), pz),
+				Vector3(float(lx + run_x), float(wh), pz),
 				norm_south
 			)
 			lx += run_x
@@ -291,12 +294,13 @@ func _build_side_quads_north(
 					break
 				run_x += 1
 
+			var pz = flz + 1.01
 			_append_quad(
 				verts, norms, cols, inds,
-				Vector3(float(lx), float(n_surface), flz + 1.0),
-				Vector3(float(lx + run_x), float(n_surface), flz + 1.0),
-				Vector3(float(lx + run_x), float(wh), flz + 1.0),
-				Vector3(float(lx), float(wh), flz + 1.0),
+				Vector3(float(lx), float(n_surface), pz),
+				Vector3(float(lx + run_x), float(n_surface), pz),
+				Vector3(float(lx + run_x), float(wh), pz),
+				Vector3(float(lx), float(wh), pz),
 				norm_north
 			)
 			lx += run_x

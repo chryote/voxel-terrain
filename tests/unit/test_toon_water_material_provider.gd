@@ -31,6 +31,15 @@ func test_provider_creates_distinct_subterranean_material() -> void:
 	assert_almost_eq(float(cave_mat.get_shader_parameter("foam_thickness")), 0.25, 0.001, "Subterranean foam applied")
 	assert_almost_eq(float(cave_mat.get_shader_parameter("shallow_threshold")), 1.0, 0.001, "Subterranean shallow threshold applied")
 
+func test_provider_creates_distinct_ocean_material() -> void:
+	var surf_mat = ProviderClass.get_water_material()
+	var ocean_mat = ProviderClass.get_ocean_material()
+
+	assert_not_null(ocean_mat, "Ocean water material must not be null")
+	assert_ne(surf_mat, ocean_mat, "Surface mainland and ocean water materials must be separate instances")
+	assert_false(bool(ocean_mat.get_shader_parameter("foam_enabled")), "Ocean material must disable foam")
+	assert_false(bool(ocean_mat.get_shader_parameter("ripples_enabled")), "Ocean material must disable ripples to prevent noise")
+
 func test_provider_updates_uniforms_with_config() -> void:
 	var cfg = ConfigClass.create_default_config()
 	cfg.foam_thickness = 0.55

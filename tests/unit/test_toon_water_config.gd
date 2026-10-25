@@ -17,6 +17,17 @@ func test_default_config_properties() -> void:
 	assert_almost_eq(cfg.ripple_speed, 0.08, 0.001, "Default ripple speed should be 0.08")
 	assert_true(cfg.foam_color.a > 0.99, "Foam color should be fully opaque white")
 
+func test_ocean_preset() -> void:
+	var ocean_cfg = ConfigClass.create_ocean_config()
+	assert_not_null(ocean_cfg, "Ocean config should be created")
+	assert_false(ocean_cfg.foam_enabled, "Ocean config must disable foam to eliminate noise")
+	assert_false(ocean_cfg.ripples_enabled, "Ocean config must disable surface ripples")
+	assert_almost_eq(ocean_cfg.foam_thickness, 0.0, 0.001, "Ocean foam thickness should be zero")
+
+	var ocean_preset = ConfigClass.create_preset("ocean")
+	assert_not_null(ocean_preset, "Named preset 'ocean' must load")
+	assert_false(ocean_preset.foam_enabled, "Named ocean preset must have foam disabled")
+
 func test_subterranean_preset() -> void:
 	var cave_cfg = ConfigClass.create_subterranean_config()
 	assert_not_null(cave_cfg, "Subterranean config should be created")

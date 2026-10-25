@@ -5,6 +5,7 @@ extends Resource
 ## Controls hard-edge depth foam, stepped color horizons, and cellular graphic ripples.
 
 @export_group("Foam Line")
+@export var foam_enabled: bool = true
 @export var foam_color: Color = Color(1.0, 1.0, 1.0, 1.0)
 @export_range(0.02, 2.0, 0.01) var foam_thickness: float = 0.35
 
@@ -17,13 +18,27 @@ extends Resource
 
 @export_group("Stylized Ripples")
 @export var ripples_enabled: bool = true
+@export_range(1.0, 32.0, 1.0) var pixel_density: float = 8.0
 @export_range(0.05, 1.0, 0.01) var ripple_scale: float = 0.25
 @export_range(0.01, 1.0, 0.01) var ripple_speed: float = 0.08
-@export_range(0.01, 0.2, 0.005) var ripple_threshold: float = 0.04
+@export_range(0.01, 0.25, 0.005) var ripple_threshold: float = 0.06
 @export var ripple_color: Color = Color(1.0, 1.0, 1.0, 0.90)
+
+@export_group("Side Face Fluid")
+@export_range(0.5, 5.0, 0.1) var side_fluid_speed: float = 2.2
 
 static func create_default_config() -> Resource:
 	return new()
+
+static func create_ocean_config() -> Resource:
+	var cfg = new()
+	cfg.foam_enabled = false
+	cfg.ripples_enabled = false
+	cfg.foam_thickness = 0.0
+	cfg.shallow_color = Color(0.18, 0.55, 0.78, 0.85)
+	cfg.mid_color = Color(0.10, 0.34, 0.55, 0.92)
+	cfg.deep_color = Color(0.05, 0.14, 0.24, 0.98)
+	return cfg
 
 static func create_subterranean_config() -> Resource:
 	var cfg = new()
@@ -40,6 +55,8 @@ static func create_subterranean_config() -> Resource:
 
 static func create_preset(name: String) -> Resource:
 	match name:
+		"ocean", "sea":
+			return create_ocean_config()
 		"subterranean", "cave":
 			return create_subterranean_config()
 		"alpine_lake":

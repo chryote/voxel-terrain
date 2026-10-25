@@ -80,6 +80,18 @@ func test_shader_pillar_graphic_ripples_and_cellular_math() -> void:
 	assert_true(code.contains("step("), "Must use step() for hard comic contour lines")
 	assert_true(code.contains("ripple_threshold"), "Must expose ripple line threshold")
 
+func test_shader_pixelized_foam_and_side_fluid_flow() -> void:
+	var file = FileAccess.open(SHADER_PATH, FileAccess.READ)
+	assert_not_null(file, "Shader file must be readable")
+	var code = file.get_as_text()
+	file.close()
+
+	assert_true(code.contains("pixel_density"), "Shader must expose pixel_density uniform for pixelized foam")
+	assert_true(code.contains("foam_enabled"), "Shader must expose foam_enabled toggle to silence ocean noise")
+	assert_true(code.contains("side_fluid_speed"), "Shader must expose side_fluid_speed uniform")
+	assert_true(code.contains("evaluate_side_fluid_flow"), "Shader must contain evaluate_side_fluid_flow helper")
+	assert_true(code.contains("v_world_normal"), "Shader must calculate and utilize world normal for face orientation")
+
 func test_shader_architectural_limits_and_no_god_functions() -> void:
 	var file = FileAccess.open(SHADER_PATH, FileAccess.READ)
 	assert_not_null(file, "Shader file must be readable")

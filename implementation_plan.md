@@ -239,7 +239,15 @@ To match the existing graphic novel color schemes:
 - [x] **Step 1**: Create `res://shaders/water/toon_water.gdshader` implementing the 4 NPR pillars.
 - [x] **Step 2**: Create `res://src/rendering/toon_water_config.gd` with clean parameters and presets.
 - [x] **Step 3**: Create `res://src/rendering/toon_water_material_provider.gd` with caching and uniform binding.
-- [ ] **Step 4**: Wire provider into `TerrainMaterialProvider.gd` without exceeding line length limits.
-- [ ] **Step 5**: Update `WaterPlane.gd` and `ChunkNode.gd` to bind the new toon water materials.
-- [ ] **Step 6**: Add unit tests in `tests/unit/test_toon_water_shader.gd` and architectural checks.
-- [ ] **Step 7**: Execute test suite via headless Godot CLI and verify visual results in-engine.
+- [x] **Step 4**: Wire provider into `TerrainMaterialProvider.gd` without exceeding line length limits.
+- [x] **Step 5**: Update `WaterPlane.gd` and `ChunkNode.gd` to bind the new toon water materials.
+- [x] **Step 6**: Add unit tests in `tests/unit/test_toon_water_shader.gd` and architectural checks.
+- [x] **Step 7**: Execute full regression and benchmark test suite via headless Godot CLI.
+
+---
+
+## 7. Visual Refinements & NPR Polish
+
+- [x] **Ocean Foam Suppression**: Added `foam_enabled` toggle and dedicated `get_ocean_material()` preset (`foam_enabled = false`, `ripples_enabled = false`) for `WaterPlane`, eliminating distant white noise on the horizon.
+- [x] **Pixelized Mainland Foam**: Upgraded cellular distance function in `toon_water.gdshader` to Chebyshev-Manhattan blocky metric with world-space `pixel_density` grid quantization, replacing smooth Euclidean circles with crisp retro pixel-art contours.
+- [x] **Fluid Side Faces**: Implemented vertical normal detection (`abs(v_world_normal.y) < 0.5`) in `toon_water.gdshader` with animated downward-streaming fluid cascading (`side_fluid_speed`) along vertical face drop-offs.

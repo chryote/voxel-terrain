@@ -25,18 +25,28 @@ const MaterialProviderClass = preload("res://src/rendering/terrain_material_prov
 
 static var _shared_material: Material
 static var _shared_cave_material: Material
-static var _shared_water_material: StandardMaterial3D
-static var _shared_subterranean_water_material: StandardMaterial3D
+static var _shared_water_material: Material
+static var _shared_subterranean_water_material: Material
 
-static func configure_shared_materials(surface_mat: Material, cave_mat: Material) -> void:
+static func configure_shared_materials(surface_mat: Material, cave_mat: Material, water_mat: Material = null, cave_water_mat: Material = null) -> void:
 	_shared_material = surface_mat
 	_shared_cave_material = cave_mat
+	if water_mat != null:
+		_shared_water_material = water_mat
+	if cave_water_mat != null:
+		_shared_subterranean_water_material = cave_water_mat
 
 static func get_shared_surface_material() -> Material:
 	return _shared_material
 
 static func get_shared_cave_material() -> Material:
 	return _shared_cave_material
+
+static func get_shared_water_material() -> Material:
+	return _shared_water_material
+
+static func get_shared_subterranean_water_material() -> Material:
+	return _shared_subterranean_water_material
 
 func _init() -> void:
 	if _shared_material == null:
@@ -46,20 +56,10 @@ func _init() -> void:
 		_shared_cave_material = MaterialProviderClass.get_cave_material()
 
 	if _shared_water_material == null:
-		_shared_water_material = StandardMaterial3D.new()
-		_shared_water_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		_shared_water_material.albedo_color = Color(0.12, 0.38, 0.65, 0.75)
-		_shared_water_material.roughness = 0.1
-		_shared_water_material.metallic = 0.15
+		_shared_water_material = MaterialProviderClass.get_water_material()
 
 	if _shared_subterranean_water_material == null:
-		_shared_subterranean_water_material = StandardMaterial3D.new()
-		_shared_subterranean_water_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
-		_shared_subterranean_water_material.alpha_scissor_threshold = 0.5
-		_shared_subterranean_water_material.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_ALWAYS
-		_shared_subterranean_water_material.albedo_color = Color(0.12, 0.38, 0.65, 0.85)
-		_shared_subterranean_water_material.roughness = 0.1
-		_shared_subterranean_water_material.metallic = 0.15
+		_shared_subterranean_water_material = MaterialProviderClass.get_subterranean_water_material()
 
 func _ready() -> void:
 	_ensure_nodes_exist()
@@ -139,6 +139,7 @@ func setup(
 			water_instance = MeshInstance3D.new()
 			water_instance.name = "WaterInstance"
 			water_instance.material_override = _shared_water_material
+			water_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			add_child(water_instance)
 		water_instance.mesh = mesh_data.water_mesh_data.create_array_mesh()
 		water_instance.visible = true

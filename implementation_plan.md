@@ -237,7 +237,7 @@ To match the existing graphic novel color schemes:
 ## 6. Implementation Rollout Plan
 
 - [x] **Step 1**: Create `res://shaders/water/toon_water.gdshader` implementing the 4 NPR pillars.
-- [ ] **Step 2**: Create `res://src/rendering/toon_water_config.gd` with clean parameters and presets.
+- [x] **Step 2**: Create `res://src/rendering/toon_water_config.gd` with clean parameters and presets.
 - [ ] **Step 3**: Create `res://src/rendering/toon_water_material_provider.gd` with caching and uniform binding.
 - [ ] **Step 4**: Wire provider into `TerrainMaterialProvider.gd` without exceeding line length limits.
 - [ ] **Step 5**: Update `WaterPlane.gd` and `ChunkNode.gd` to bind the new toon water materials.

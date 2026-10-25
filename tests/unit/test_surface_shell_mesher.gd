@@ -134,3 +134,44 @@ func test_elevated_water_greedy_meshing() -> void:
 	var water_array_mesh = mesh_data.water_mesh_data.create_array_mesh()
 	assert_not_null(water_array_mesh, "Water ArrayMesh creation must succeed")
 	assert_eq(water_array_mesh.get_surface_count(), 1, "Water ArrayMesh should have 1 surface")
+
+func test_elevated_water_vertical_side_faces_and_waterfalls() -> void:
+	var c_size = 8
+	var data = SurfaceChunkData.new(c_size)
+	# Base terrain at height 20 across chunk
+	data.fill(20, 1, 2, 20)
+
+	# Create a 4-wide river step at lz = 2..3, lx = 2..5 with elevated water at height 35
+	# and downstream pool at lz = 4..5, lx = 2..5 with lower water at height 30
+	for lz in range(2, 4):
+		for lx in range(2, 6):
+			data.set_water_height(lx, lz, 35)
+
+	for lz in range(4, 6):
+		for lx in range(2, 6):
+			data.set_water_height(lx, lz, 30)
+
+	var mesher = SurfaceShellMesher.new()
+	mesher.sea_level = 24
+
+	var mesh_data = mesher.build_mesh(data, MaterialRegistry.create_default_registry())
+	assert_not_null(mesh_data.water_mesh_data, "Water mesh must exist")
+
+	var water_mesh = mesh_data.water_mesh_data
+	var north_fall_found = false
+
+	for i in range(0, water_mesh.vertices.size(), 4):
+		var norm = water_mesh.normals[i]
+		# Check for vertical side normal (abs(norm.y) < 0.5)
+		if absf(norm.y) < 0.5:
+			# Waterfall cascading North (+Z) from Y=30 to Y=35 across width 4 (lx=2 to lx=6) at lz=4 (flz=3 + 1)
+			if norm.is_equal_approx(Vector3(0.0, 0.0, 1.0)):
+				var v0 = water_mesh.vertices[i]
+				var v1 = water_mesh.vertices[i + 1]
+				var v2 = water_mesh.vertices[i + 2]
+				var width = absf(v1.x - v0.x)
+				if absf(width - 4.0) < 0.001 and absf(v0.y - 30.0) < 0.001 and absf(v2.y - 35.0) < 0.001:
+					north_fall_found = true
+
+	assert_true(north_fall_found, "4-wide river step must emit greedily-merged North waterfall quad spanning Y=30 to Y=35")
+

@@ -92,18 +92,21 @@ vec2 evaluate_graphic_ripples(vec2 world_xz, float time, float view_depth) {
 	return vec2(hi, sh);
 }
 
-// Animated downward fluid streams with tight bottom-edge splash foam
+// Animated downward fluid streams with 35% bottom splash foam
 float evaluate_side_fluid_flow(vec3 pos, vec3 norm, float time, float v_t, float v_h) {
 	float horiz = (abs(norm.x) > abs(norm.z)) ? pos.z : pos.x;
 	vec2 pix = floor(vec2(horiz, pos.y) * pixel_density) / pixel_density;
-	float wave = sin(pix.x * 3.5) * 0.35 + sin(pix.x * 7.0 + 1.2) * 0.12;
-	float phase = fract((pix.y + time * side_fluid_speed) * 0.85 + wave);
+	float col_id = floor(pix.x * 0.75);
+	float col_rnd = sin(col_id * 12.345 + 1.5) * 0.28;
+	float wave = sin(pix.x * 3.2 + sin(pix.x * 1.6 + pix.y * 0.4) * 1.1 + col_rnd) * 0.34
+	           + sin(pix.x * 6.8 + pix.y * 0.6 + col_id * 0.5) * 0.12;
+	float phase = fract((pix.y + time * side_fluid_speed) * 0.85 + wave + col_rnd * 0.3);
 	float stream = step(phase, 0.32);
 	float frame = floor(time * 10.0);
 	float p_rnd = fract(sin(dot(pix * 3.0 + frame * 0.15, vec2(12.9898, 78.233))) * 43758.5453);
-	float dist_bot = clamp(v_t, 0.0, 1.0) * max(v_h, 1.0);
-	float splash = step(dist_bot, 0.16) * step(p_rnd, clamp(1.0 - dist_bot * 4.0, 0.25, 1.0));
-	return max(stream, splash);
+	float norm_h = clamp(v_t, 0.0, 1.0);
+	float splash = step(norm_h, 0.35) * (step(norm_h, 0.08) + step(p_rnd, (1.0 - norm_h / 0.35) * 0.85));
+	return max(stream, min(splash, 1.0));
 }
 
 void fragment() {

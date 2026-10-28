@@ -28,10 +28,12 @@ uniform vec4 ripple_color : source_color = vec4(0.42, 0.68, 0.85, 0.55);
 group_uniforms Side_Face_Fluid;
 uniform float side_fluid_speed : hint_range(0.5, 5.0) = 2.2;
 
+varying vec4 v_vertex_color;
 varying vec3 v_world_pos;
 varying vec3 v_world_normal;
 
 void vertex() {
+	v_vertex_color = COLOR;
 	v_world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	v_world_normal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
 }
@@ -90,13 +92,18 @@ vec2 evaluate_graphic_ripples(vec2 world_xz, float time, float view_depth) {
 	return vec2(hi, sh);
 }
 
-// Animated downward fluid streams for vertical side faces (jagged thick sine bands)
-float evaluate_side_fluid_flow(vec3 pos, vec3 norm, float time) {
+// Animated downward fluid streams with tight bottom-edge splash foam
+float evaluate_side_fluid_flow(vec3 pos, vec3 norm, float time, float v_t, float v_h) {
 	float horiz = (abs(norm.x) > abs(norm.z)) ? pos.z : pos.x;
 	vec2 pix = floor(vec2(horiz, pos.y) * pixel_density) / pixel_density;
 	float wave = sin(pix.x * 3.5) * 0.35 + sin(pix.x * 7.0 + 1.2) * 0.12;
 	float phase = fract((pix.y + time * side_fluid_speed) * 0.85 + wave);
-	return step(phase, 0.32);
+	float stream = step(phase, 0.32);
+	float frame = floor(time * 10.0);
+	float p_rnd = fract(sin(dot(pix * 3.0 + frame * 0.15, vec2(12.9898, 78.233))) * 43758.5453);
+	float dist_bot = clamp(v_t, 0.0, 1.0) * max(v_h, 1.0);
+	float splash = step(dist_bot, 0.16) * step(p_rnd, clamp(1.0 - dist_bot * 4.0, 0.25, 1.0));
+	return max(stream, splash);
 }
 
 void fragment() {
@@ -110,8 +117,8 @@ void fragment() {
 	if (ripples_enabled) {
 		if (is_side) {
 			col = mix(col, shallow_color, 0.35);
-			float fluid = evaluate_side_fluid_flow(v_world_pos, v_world_normal, TIME);
-			if (fluid > 0.5) col = mix(col, vec4(1.0, 1.0, 1.0, 1.0), 0.90);
+			float fluid = evaluate_side_fluid_flow(v_world_pos, v_world_normal, TIME, v_vertex_color.r, v_vertex_color.g);
+			if (fluid > 0.5) col = mix(col, vec4(1.0, 1.0, 1.0, 1.0), 0.92);
 		} else {
 			vec2 rip = evaluate_graphic_ripples(v_world_pos.xz, TIME, water_depth);
 			if (rip.y > 0.5) col.rgb = mix(col.rgb, deep_color.rgb * 0.75, 0.35);

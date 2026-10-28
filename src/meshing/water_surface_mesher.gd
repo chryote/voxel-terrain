@@ -54,7 +54,8 @@ func _get_neighbor_surface_level(data: SurfaceChunkData, nx: int, nz: int, sea_l
 
 func _append_quad(
 	verts: PackedVector3Array, norms: PackedVector3Array, cols: PackedColorArray, inds: PackedInt32Array,
-	p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, normal: Vector3
+	p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, normal: Vector3,
+	c0: Color = water_color, c1: Color = water_color, c2: Color = water_color, c3: Color = water_color
 ) -> void:
 	var base_idx = verts.size()
 	verts.append(p0)
@@ -63,7 +64,10 @@ func _append_quad(
 	verts.append(p3)
 	for _k in range(4):
 		norms.append(normal)
-		cols.append(water_color)
+	cols.append(c0)
+	cols.append(c1)
+	cols.append(c2)
+	cols.append(c3)
 	inds.append(base_idx)
 	inds.append(base_idx + 2)
 	inds.append(base_idx + 1)
@@ -166,13 +170,17 @@ func _build_side_quads_west(
 				run_z += 1
 
 			var px = flx - 0.01
+			var fall_h = float(wh - n_surface)
+			var c_bot = Color(0.0, fall_h, 0.0, 1.0)
+			var c_top = Color(1.0, fall_h, 0.0, 1.0)
 			_append_quad(
 				verts, norms, cols, inds,
 				Vector3(px, float(n_surface), float(lz)),
 				Vector3(px, float(n_surface), float(lz + run_z)),
 				Vector3(px, float(wh), float(lz + run_z)),
 				Vector3(px, float(wh), float(lz)),
-				norm_west
+				norm_west,
+				c_bot, c_bot, c_top, c_top
 			)
 			lz += run_z
 
@@ -209,13 +217,17 @@ func _build_side_quads_east(
 				run_z += 1
 
 			var px = flx + 1.01
+			var fall_h = float(wh - n_surface)
+			var c_bot = Color(0.0, fall_h, 0.0, 1.0)
+			var c_top = Color(1.0, fall_h, 0.0, 1.0)
 			_append_quad(
 				verts, norms, cols, inds,
 				Vector3(px, float(n_surface), float(lz + run_z)),
 				Vector3(px, float(n_surface), float(lz)),
 				Vector3(px, float(wh), float(lz)),
 				Vector3(px, float(wh), float(lz + run_z)),
-				norm_east
+				norm_east,
+				c_bot, c_bot, c_top, c_top
 			)
 			lz += run_z
 
@@ -252,13 +264,17 @@ func _build_side_quads_south(
 				run_x += 1
 
 			var pz = flz - 0.01
+			var fall_h = float(wh - n_surface)
+			var c_bot = Color(0.0, fall_h, 0.0, 1.0)
+			var c_top = Color(1.0, fall_h, 0.0, 1.0)
 			_append_quad(
 				verts, norms, cols, inds,
 				Vector3(float(lx + run_x), float(n_surface), pz),
 				Vector3(float(lx), float(n_surface), pz),
 				Vector3(float(lx), float(wh), pz),
 				Vector3(float(lx + run_x), float(wh), pz),
-				norm_south
+				norm_south,
+				c_bot, c_bot, c_top, c_top
 			)
 			lx += run_x
 
@@ -295,12 +311,16 @@ func _build_side_quads_north(
 				run_x += 1
 
 			var pz = flz + 1.01
+			var fall_h = float(wh - n_surface)
+			var c_bot = Color(0.0, fall_h, 0.0, 1.0)
+			var c_top = Color(1.0, fall_h, 0.0, 1.0)
 			_append_quad(
 				verts, norms, cols, inds,
 				Vector3(float(lx), float(n_surface), pz),
 				Vector3(float(lx + run_x), float(n_surface), pz),
 				Vector3(float(lx + run_x), float(wh), pz),
 				Vector3(float(lx), float(wh), pz),
-				norm_north
+				norm_north,
+				c_bot, c_bot, c_top, c_top
 			)
 			lx += run_x

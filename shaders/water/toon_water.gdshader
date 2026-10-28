@@ -90,13 +90,13 @@ vec2 evaluate_graphic_ripples(vec2 world_xz, float time, float view_depth) {
 	return vec2(hi, sh);
 }
 
-// Animated downward fluid streams for vertical side faces
+// Animated downward fluid streams for vertical side faces (jagged thick sine bands)
 float evaluate_side_fluid_flow(vec3 pos, vec3 norm, float time) {
 	float horiz = (abs(norm.x) > abs(norm.z)) ? pos.z : pos.x;
-	vec2 flow_coord = vec2(horiz * ripple_scale * 1.5, (pos.y + time * side_fluid_speed) * ripple_scale * 2.0);
-	vec2 pix_flow = floor(flow_coord * pixel_density) / pixel_density;
-	float stream = sin(pix_flow.x * 6.28 + sin(pix_flow.y * 3.14)) + cos(pix_flow.x * 3.14 - pix_flow.y * 5.0);
-	return step(0.35, stream * 0.5);
+	vec2 pix = floor(vec2(horiz, pos.y) * pixel_density) / pixel_density;
+	float wave = sin(pix.x * 3.5) * 0.35 + sin(pix.x * 7.0 + 1.2) * 0.12;
+	float phase = fract((pix.y + time * side_fluid_speed) * 0.85 + wave);
+	return step(phase, 0.32);
 }
 
 void fragment() {
@@ -109,10 +109,9 @@ void fragment() {
 
 	if (ripples_enabled) {
 		if (is_side) {
-			col = mix(col, shallow_color, 0.4);
+			col = mix(col, shallow_color, 0.35);
 			float fluid = evaluate_side_fluid_flow(v_world_pos, v_world_normal, TIME);
-			vec4 stream_col = mix(shallow_color, ripple_color, 0.35);
-			if (fluid > 0.5) col = mix(col, stream_col, 0.35);
+			if (fluid > 0.5) col = mix(col, vec4(1.0, 1.0, 1.0, 1.0), 0.90);
 		} else {
 			vec2 rip = evaluate_graphic_ripples(v_world_pos.xz, TIME, water_depth);
 			if (rip.y > 0.5) col.rgb = mix(col.rgb, deep_color.rgb * 0.75, 0.35);

@@ -10,9 +10,9 @@ extends Resource
 @export_range(0.02, 2.0, 0.01) var foam_thickness: float = 0.35
 
 @export_group("Stepped Depth Colors")
-@export var shallow_color: Color = Color(0.23, 0.64, 0.86, 0.85)
-@export var mid_color: Color = Color(0.12, 0.38, 0.62, 0.90)
-@export var deep_color: Color = Color(0.07, 0.16, 0.26, 0.95)
+@export var shallow_color: Color = Color(0.34, 0.72, 0.73, 0.85)
+@export var mid_color: Color = Color(0.18, 0.48, 0.68, 0.90)
+@export var deep_color: Color = Color(0.08, 0.18, 0.32, 0.95)
 @export_range(0.2, 5.0, 0.1) var shallow_threshold: float = 1.5
 @export_range(1.0, 20.0, 0.5) var deep_threshold: float = 5.0
 
@@ -23,7 +23,7 @@ extends Resource
 @export_range(0.1, 1.2, 0.01) var ripple_radius: float = 0.65
 @export_range(0.01, 1.0, 0.01) var ripple_speed: float = 0.08
 @export_range(0.01, 0.25, 0.005) var ripple_threshold: float = 0.05
-@export var ripple_color: Color = Color(0.68, 0.88, 0.98, 0.55)
+@export var ripple_color: Color = Color(0.42, 0.68, 0.85, 0.55)
 
 @export_group("Side Face Fluid")
 @export_range(0.5, 5.0, 0.1) var side_fluid_speed: float = 2.2

@@ -75,9 +75,9 @@ static func _apply_depth_parameters(mat: ShaderMaterial, config: Resource) -> vo
 	var d_col = config.get("deep_color")
 	var s_th = config.get("shallow_threshold")
 	var d_th = config.get("deep_threshold")
-	mat.set_shader_parameter("shallow_color", s_col if s_col != null else Color(0.23, 0.64, 0.86, 0.85))
-	mat.set_shader_parameter("mid_color", m_col if m_col != null else Color(0.12, 0.38, 0.62, 0.90))
-	mat.set_shader_parameter("deep_color", d_col if d_col != null else Color(0.07, 0.16, 0.26, 0.95))
+	mat.set_shader_parameter("shallow_color", s_col if s_col != null else Color(0.34, 0.72, 0.73, 0.85))
+	mat.set_shader_parameter("mid_color", m_col if m_col != null else Color(0.18, 0.48, 0.68, 0.90))
+	mat.set_shader_parameter("deep_color", d_col if d_col != null else Color(0.08, 0.18, 0.32, 0.95))
 	mat.set_shader_parameter("shallow_threshold", float(s_th) if s_th != null else 1.5)
 	mat.set_shader_parameter("deep_threshold", float(d_th) if d_th != null else 5.0)
 
@@ -95,7 +95,7 @@ static func _apply_ripple_parameters(mat: ShaderMaterial, config: Resource) -> v
 	mat.set_shader_parameter("ripple_radius", float(r_rad) if r_rad != null else 0.65)
 	mat.set_shader_parameter("ripple_speed", float(r_sp) if r_sp != null else 0.08)
 	mat.set_shader_parameter("ripple_threshold", float(r_th) if r_th != null else 0.05)
-	mat.set_shader_parameter("ripple_color", r_col if r_col != null else Color(0.45, 0.65, 0.75, 0.65))
+	mat.set_shader_parameter("ripple_color", r_col if r_col != null else Color(0.42, 0.68, 0.85, 0.55))
 
 static func _apply_side_parameters(mat: ShaderMaterial, config: Resource) -> void:
 	var s_spd = config.get("side_fluid_speed")

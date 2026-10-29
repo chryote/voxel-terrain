@@ -13,8 +13,8 @@ wind_speed = 1.8
 wind_strength = 0.08
 wind_turbulence = 1.2
 distance_fade_enabled = true
-distance_fade_start = 45.0
-distance_fade_max = 60.0
+distance_fade_start = 200.0
+distance_fade_max = 260.0
 lit_threshold = 0.35
 shadow_tint = Color(0.22, 0.24, 0.32, 1)
 

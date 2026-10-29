@@ -204,17 +204,15 @@ func _process_chunk_task(payload: Dictionary) -> void:
 				has_mouth = chunk_data.has_cave_mouth if ("has_cave_mouth" in chunk_data) else false
 
 			mesh_data = mesher.build_mesh(chunk_data, registry)
+			if fol_enabled and chunk_data != null:
+				mesh_data.foliage_data = _foliage_generator.generate(coord, chunk_data, fol_config)
 
 		GenerationPhase.PHASE_FULL:
 			chunk_data = generator.generate(coord, bounds)
 			has_mouth = chunk_data.has_cave_mouth if ("has_cave_mouth" in chunk_data) else false
 			mesh_data = mesher.build_mesh(chunk_data, registry)
-			if fol_enabled:
-				var s_data: SurfaceChunkData = chunk_data as SurfaceChunkData
-				if s_data == null and "surface_data" in chunk_data:
-					s_data = chunk_data.surface_data as SurfaceChunkData
-				if s_data != null:
-					mesh_data.foliage_data = _foliage_generator.generate(coord, s_data, fol_config)
+			if fol_enabled and chunk_data != null:
+				mesh_data.foliage_data = _foliage_generator.generate(coord, chunk_data, fol_config)
 
 	# Off-thread collision baking (ConcavePolygonShape3D created on worker thread)
 	var collision_baker = OffThreadCollisionBaker.new()

@@ -63,3 +63,20 @@ func get_instance_transform(idx: int) -> Transform3D:
 	)
 	return Transform3D(basis, origin)
 
+## Deterministically shuffles instance blocks (12 floats each) in place using a Fisher-Yates shuffle.
+## Ensures any prefix of instances (e.g. 25% or 50% for LOD) is spatially uniform across the chunk.
+func shuffle_deterministically(seed_val: int) -> void:
+	if instance_count <= 1:
+		return
+	var rng: int = seed_val
+	for i in range(instance_count - 1, 0, -1):
+		rng = ((rng * 1103515245 + 12345) & 0x7FFFFFFF)
+		var j: int = rng % (i + 1)
+		if i != j:
+			var off_i: int = i * 12
+			var off_j: int = j * 12
+			for k in range(12):
+				var tmp: float = transform_buffer[off_i + k]
+				transform_buffer[off_i + k] = transform_buffer[off_j + k]
+				transform_buffer[off_j + k] = tmp
+

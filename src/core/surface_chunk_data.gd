@@ -11,6 +11,7 @@ var heights: PackedInt32Array
 var top_material: PackedByteArray
 var side_material: PackedByteArray
 var water_heights: PackedInt32Array
+var mouth_mask: PackedByteArray
 var has_cave_mouth: bool = false
 
 func _init(p_chunk_size: int = 32, p_shell_depth: int = 3) -> void:
@@ -79,9 +80,27 @@ func set_side_material(lx: int, lz: int, mat: int) -> void:
 	if is_in_apron(lx, lz):
 		side_material[_to_index(lx, lz)] = mat
 
+func is_mouth(lx: int, lz: int) -> bool:
+	if not has_cave_mouth or mouth_mask.is_empty():
+		return false
+	if not is_in_apron(lx, lz):
+		return false
+	return mouth_mask[_to_index(lx, lz)] != 0
+
+func set_mouth(lx: int, lz: int, val: bool) -> void:
+	if not is_in_apron(lx, lz):
+		return
+	if mouth_mask.is_empty():
+		if not val:
+			return
+		mouth_mask.resize(apron_size * apron_size)
+		mouth_mask.fill(0)
+	mouth_mask[_to_index(lx, lz)] = 1 if val else 0
+
 func fill(h: int, top_mat: int, side_mat: int, water_h: int = 0) -> void:
 	heights.fill(h)
 	top_material.fill(top_mat)
 	side_material.fill(side_mat)
 	water_heights.fill(water_h)
+	mouth_mask.clear()
 	has_cave_mouth = false

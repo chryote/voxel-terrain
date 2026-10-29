@@ -133,4 +133,80 @@ func test_voxel_world_foliage_lifecycle() -> void:
 	if world.scheduler != null:
 		world.scheduler.clear()
 	world.free()
+func test_chunk_node_lod_detail_transition() -> void:
+	var node = ChunkNodeClass.new()
+	var coord = ChunkCoord.new(0, 0)
+	var mesh_data = MeshData.new()
+	mesh_data.vertices = PackedVector3Array([Vector3(0, 0, 0), Vector3(1, 0, 0), Vector3(0, 0, 1)])
+	mesh_data.indices = PackedInt32Array([0, 1, 2])
+	mesh_data.foliage_data = _create_sample_foliage_data()
+	var total_instances = mesh_data.foliage_data.instance_count
 
+	# 1. Setup in near high-detail tier (dist <= 2)
+	node.setup(coord, Vector3.ZERO, mesh_data, true, null, null, true, false)
+	assert_true(node.is_foliage_enabled(), "Foliage must be enabled")
+	assert_false(node.is_foliage_low_detail(), "Foliage must be in high-detail tier")
+	assert_eq(node.grass_instance.multimesh.mesh, ChunkNodeClass.get_shared_grass_mesh(), "Must use high-detail 3-quad mesh")
+	assert_eq(node.grass_instance.multimesh.visible_instance_count, -1, "High-detail must draw all instances")
+
+	# 2. Transition past 2 chunks into lowest-detail LOD tier (dist > 2)
+	node.set_foliage_enabled(true, true)
+	assert_true(node.is_foliage_enabled(), "Foliage must remain enabled in LOD tier")
+	assert_true(node.is_foliage_low_detail(), "Foliage must report low-detail tier")
+	assert_eq(node.grass_instance.multimesh.mesh, ChunkNodeClass.get_shared_grass_mesh_lod(), "Must switch to lowest-detail 1-quad LOD mesh")
+	var expected_lod_count = maxi(1, int(float(total_instances) * ChunkNodeClass.get_shared_lod_density()))
+	assert_eq(node.grass_instance.multimesh.visible_instance_count, expected_lod_count, "LOD tier must subsample instance count")
+
+	# 3. Transition past max distance (dist > 4) -> disabled
+	node.set_foliage_enabled(false, true)
+	assert_false(node.is_foliage_enabled(), "Foliage must be disabled past max distance")
+	assert_false(node.grass_instance.visible, "grass_instance must be hidden")
+
+	# 4. Transition back to near camera (dist <= 2) -> full detail restored
+	node.set_foliage_enabled(true, false)
+	assert_true(node.is_foliage_enabled(), "Foliage must re-enable")
+	assert_false(node.is_foliage_low_detail(), "High-detail restored")
+	assert_eq(node.grass_instance.multimesh.mesh, ChunkNodeClass.get_shared_grass_mesh(), "High-detail mesh restored")
+	assert_eq(node.grass_instance.multimesh.visible_instance_count, -1, "Full instance count restored")
+
+	# 5. Recycling into pool cleans up detail states
+	node.prepare_for_pool()
+	assert_false(node.is_foliage_low_detail(), "Pool reset must clear low-detail flag")
+	assert_eq(node.grass_instance.multimesh.visible_instance_count, -1, "Pool reset must clear visible_instance_count")
+	node.free()
+
+func test_voxel_world_foliage_lod_distance_tiers() -> void:
+	var world = VoxelWorld.new()
+	world.world_config = WorldConfig.new()
+	world.world_config.map_size_chunks = Vector2i(256, 256)
+	world.world_config.chunk_size = 16
+	world.world_config.view_distance_chunks = 0
+	world.world_config.collision_distance_chunks = 1
+	world.foliage_enabled = true
+	# Near tier: dist 0; Lowest detail tier: dist 1
+	world.foliage_distance_chunks = 0
+	world.foliage_max_distance_chunks = 1
+	world.foliage_lod_density = 0.25
+
+	world._ready()
+
+	var spawn_pos = world.get_spawn_point()
+	var spawn_chunk = world.bounds.world_to_chunk(spawn_pos)
+
+	for key in world._loaded_chunks.keys():
+		var node = world._loaded_chunks[key]
+		if node is ChunkNode:
+			var dist = spawn_chunk.chebyshev_distance_to(node.coord)
+			if dist == 0:
+				# Spawn chunk itself is in high-detail tier (dist <= 0)
+				assert_true(node.is_foliage_enabled(), "Center chunk must have foliage enabled")
+				assert_false(node.is_foliage_low_detail(), "Center chunk must be high detail")
+			elif dist == 1:
+				# Neighbor chunks are past 0 chunks, so they must render with lowest detail
+				assert_true(node.is_foliage_enabled(), "Neighbor chunk within max distance must have foliage enabled")
+				assert_true(node.is_foliage_low_detail(), "Neighbor chunk past near distance must render with lowest detail")
+				assert_eq(node.grass_instance.multimesh.mesh, ChunkNodeClass.get_shared_grass_mesh_lod(), "Must use LOD mesh")
+
+	if world.scheduler != null:
+		world.scheduler.clear()
+	world.free()

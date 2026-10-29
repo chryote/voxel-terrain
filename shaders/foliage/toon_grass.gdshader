@@ -22,8 +22,8 @@ uniform float wind_turbulence : hint_range(0.1, 4.0) = 1.2;
 
 group_uniforms Distance_Fade;
 uniform bool distance_fade_enabled = true;
-uniform float distance_fade_start : hint_range(10.0, 150.0) = 45.0;
-uniform float distance_fade_max : hint_range(20.0, 200.0) = 60.0;
+uniform float distance_fade_start : hint_range(10.0, 1000.0, 5.0) = 45.0;
+uniform float distance_fade_max : hint_range(20.0, 1200.0, 5.0) = 60.0;
 
 group_uniforms Cel_Lighting;
 uniform float lit_threshold : hint_range(0.0, 1.0) = 0.35;

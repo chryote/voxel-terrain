@@ -9,11 +9,20 @@ const FoliageConfigClass = preload("res://src/generation/foliage_generator_confi
 
 func generate(
 	coord: ChunkCoord,
-	surface_data: SurfaceChunkData,
+	data: RefCounted,
 	config: Resource = null
 ) -> FoliageChunkData:
 	var foliage_data = FoliageChunkDataClass.new()
-	if surface_data == null or coord == null:
+	if data == null or coord == null:
+		return foliage_data
+
+	var surface_data: SurfaceChunkData = data as SurfaceChunkData
+	var voxel_data = null
+	if surface_data == null and ("surface_data" in data):
+		surface_data = data.surface_data as SurfaceChunkData
+		voxel_data = data
+
+	if surface_data == null:
 		return foliage_data
 
 	var cfg: FoliageGeneratorConfig = config as FoliageGeneratorConfig
@@ -29,12 +38,22 @@ func generate(
 
 	for lz in range(chunk_size):
 		for lx in range(chunk_size):
+			if surface_data.is_mouth(lx, lz):
+				continue
 			if surface_data.get_top_material(lx, lz) != cfg.target_material_id:
 				continue
+			if voxel_data != null:
+				var col_h = surface_data.get_height(lx, lz)
+				if col_h <= 0 or voxel_data.get_voxel(lx, col_h - 1, lz) == 0:
+					continue
 
 			var wx = chunk_wx + lx
 			var wz = chunk_wz + lz
 			_scatter_voxel_foliage(lx, lz, wx, wz, surface_data, cfg, seed_val, foliage_data)
+
+	if cfg.enabled and foliage_data.instance_count > 1:
+		var shuffle_seed: int = seed_val ^ (coord.x * 73856093) ^ (coord.z * 19349663)
+		foliage_data.shuffle_deterministically(shuffle_seed)
 
 	return foliage_data
 

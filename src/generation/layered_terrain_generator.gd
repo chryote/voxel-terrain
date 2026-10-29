@@ -68,6 +68,7 @@ func check_has_cave_mouth(surface_data: SurfaceChunkData, coord: ChunkCoord, bou
 			return false
 
 	var sea_level = config.sea_level
+	var found_mouth = false
 	for lz in range(-1, c_size + 1):
 		for lx in range(-1, c_size + 1):
 			var gx = coord.x * c_size + lx
@@ -76,8 +77,10 @@ func check_has_cave_mouth(surface_data: SurfaceChunkData, coord: ChunkCoord, bou
 			var wz = (float(gz) + 0.5) * bounds.voxel_size
 			var col_h = float(surface_data.get_height(lx, lz))
 			if cave_carver.mouth_sampler.is_mouth_candidate(wx, wz, col_h, sea_level):
-				return true
-	return false
+				surface_data.set_mouth(lx, lz, true)
+				found_mouth = true
+	surface_data.has_cave_mouth = found_mouth
+	return found_mouth
 
 ## Phase B: Subterranean voxel column population and 3D cave carving
 func generate_subterranean(surface_data: SurfaceChunkData, coord: ChunkCoord, bounds: WorldBounds) -> RefCounted:

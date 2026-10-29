@@ -30,6 +30,8 @@ static var _shared_water_material: Material
 static var _shared_subterranean_water_material: Material
 static var _shared_grass_material: Material
 static var _shared_grass_mesh: Mesh
+static var _shared_grass_mesh_lod: Mesh
+static var _shared_lod_density: float = 0.25
 
 static func configure_shared_materials(
 	surface_mat: Material,
@@ -37,7 +39,8 @@ static func configure_shared_materials(
 	water_mat: Material = null,
 	cave_water_mat: Material = null,
 	grass_mat: Material = null,
-	grass_mesh: Mesh = null
+	grass_mesh: Mesh = null,
+	grass_mesh_lod: Mesh = null
 ) -> void:
 	_shared_material = surface_mat
 	_shared_cave_material = cave_mat
@@ -49,6 +52,8 @@ static func configure_shared_materials(
 		_shared_grass_material = grass_mat
 	if grass_mesh != null:
 		_shared_grass_mesh = grass_mesh
+	if grass_mesh_lod != null:
+		_shared_grass_mesh_lod = grass_mesh_lod
 
 static func get_shared_surface_material() -> Material:
 	return _shared_material
@@ -71,6 +76,19 @@ static func get_shared_grass_mesh() -> Mesh:
 	if _shared_grass_mesh == null and ResourceLoader.exists("res://assets/models/grass_tuft.tres"):
 		_shared_grass_mesh = load("res://assets/models/grass_tuft.tres")
 	return _shared_grass_mesh
+
+static func get_shared_grass_mesh_lod() -> Mesh:
+	if _shared_grass_mesh_lod == null and ResourceLoader.exists("res://assets/models/grass_tuft_lod.tres"):
+		_shared_grass_mesh_lod = load("res://assets/models/grass_tuft_lod.tres")
+	if _shared_grass_mesh_lod == null:
+		return get_shared_grass_mesh()
+	return _shared_grass_mesh_lod
+
+static func set_shared_lod_density(density: float) -> void:
+	_shared_lod_density = clampf(density, 0.05, 1.0)
+
+static func get_shared_lod_density() -> float:
+	return _shared_lod_density
 
 func _init() -> void:
 	if _shared_material == null:
@@ -136,6 +154,7 @@ var _cached_prebaked_cave_shape: ConcavePolygonShape3D = null
 var _cached_foliage_data: RefCounted = null
 var _collision_distance_enabled: bool = false
 var _foliage_distance_enabled: bool = false
+var _foliage_low_detail: bool = false
 
 func setup(
 	p_coord: ChunkCoord,
@@ -144,7 +163,8 @@ func setup(
 	enable_collision: bool,
 	prebaked_surface_shape: ConcavePolygonShape3D = null,
 	prebaked_cave_shape: ConcavePolygonShape3D = null,
-	enable_foliage: bool = false
+	enable_foliage: bool = false,
+	foliage_low_detail: bool = false
 ) -> void:
 	coord = p_coord
 	position = origin
@@ -211,13 +231,13 @@ func setup(
 
 	# 4. Foliage Setup
 	_foliage_distance_enabled = enable_foliage
+	_foliage_low_detail = foliage_low_detail
 	if mesh_data != null and mesh_data.foliage_data != null and not mesh_data.foliage_data.is_empty():
 		_cached_foliage_data = mesh_data.foliage_data
 		if grass_instance != null and grass_instance.multimesh != null:
-			if grass_instance.multimesh.mesh == null:
-				grass_instance.multimesh.mesh = get_shared_grass_mesh()
 			grass_instance.multimesh.instance_count = _cached_foliage_data.instance_count
 			grass_instance.multimesh.buffer = _cached_foliage_data.transform_buffer
+			_apply_foliage_detail(_foliage_low_detail)
 			grass_instance.visible = _foliage_distance_enabled and is_surface_visible()
 	else:
 		_cached_foliage_data = null
@@ -232,6 +252,7 @@ func prepare_for_pool() -> void:
 	has_cave_mouth = false
 	_collision_distance_enabled = false
 	_foliage_distance_enabled = false
+	_foliage_low_detail = false
 	_cached_prebaked_surface_shape = null
 	_cached_prebaked_cave_shape = null
 	_cached_foliage_data = null
@@ -250,6 +271,8 @@ func prepare_for_pool() -> void:
 	if grass_instance != null:
 		if grass_instance.multimesh != null:
 			grass_instance.multimesh.instance_count = 0
+			grass_instance.multimesh.visible_instance_count = -1
+			grass_instance.multimesh.mesh = get_shared_grass_mesh()
 		grass_instance.visible = false
 
 	if collision_shape != null:
@@ -293,6 +316,14 @@ func apply_subterranean_bundle(
 				if _collision_distance_enabled:
 					collision_shape.shape = mesh_data.surface_shape
 
+	if mesh_data.foliage_data != null:
+		_cached_foliage_data = mesh_data.foliage_data
+		if grass_instance != null and grass_instance.multimesh != null:
+			grass_instance.multimesh.instance_count = _cached_foliage_data.instance_count
+			grass_instance.multimesh.buffer = _cached_foliage_data.transform_buffer
+			_apply_foliage_detail(_foliage_low_detail)
+			grass_instance.visible = _foliage_distance_enabled and is_surface_visible()
+
 	if prebaked_cave_shape != null:
 		_cached_prebaked_cave_shape = prebaked_cave_shape
 	elif mesh_data is DualMeshBundle and mesh_data.cave_shape != null:
@@ -329,14 +360,33 @@ func is_subterranean_visible() -> bool:
 func is_surface_visible() -> bool:
 	return mesh_instance != null and mesh_instance.visible
 
-func set_foliage_enabled(enable: bool) -> void:
+func set_foliage_enabled(enable: bool, is_low_detail: bool = false) -> void:
 	_foliage_distance_enabled = enable
+	_foliage_low_detail = is_low_detail
 	if grass_instance != null:
 		var has_data = (_cached_foliage_data != null and not _cached_foliage_data.is_empty())
 		grass_instance.visible = enable and has_data and is_surface_visible()
+		if grass_instance.visible and has_data:
+			_apply_foliage_detail(is_low_detail)
 
 func is_foliage_enabled() -> bool:
 	return _foliage_distance_enabled and grass_instance != null and grass_instance.visible
+
+func is_foliage_low_detail() -> bool:
+	return _foliage_low_detail
+
+func _apply_foliage_detail(is_low_detail: bool) -> void:
+	if grass_instance == null or grass_instance.multimesh == null or _cached_foliage_data == null:
+		return
+	var mm = grass_instance.multimesh
+	var target_mesh = get_shared_grass_mesh_lod() if is_low_detail else get_shared_grass_mesh()
+	if target_mesh != null and mm.mesh != target_mesh:
+		mm.mesh = target_mesh
+	if is_low_detail:
+		var lod_count = maxi(1, int(float(_cached_foliage_data.instance_count) * _shared_lod_density))
+		mm.visible_instance_count = mini(lod_count, _cached_foliage_data.instance_count)
+	else:
+		mm.visible_instance_count = -1
 
 func has_cave_mesh() -> bool:
 	return cave_mesh_instance != null and cave_mesh_instance.mesh != null

@@ -19,8 +19,8 @@ const DEFAULT_TEXTURE_PATH = "res://assets/textures/grass_tuft.png"
 
 @export_group("Distance Dither Fade")
 @export var distance_fade_enabled: bool = true
-@export_range(10.0, 150.0, 5.0) var distance_fade_start: float = 45.0
-@export_range(20.0, 200.0, 5.0) var distance_fade_max: float = 60.0
+@export_range(10.0, 1000.0, 5.0) var distance_fade_start: float = 45.0
+@export_range(20.0, 1200.0, 5.0) var distance_fade_max: float = 60.0
 
 @export_group("Cel Lighting")
 @export_range(0.0, 1.0, 0.05) var lit_threshold: float = 0.35

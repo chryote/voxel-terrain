@@ -115,3 +115,78 @@ func test_foliage_architecture_purity() -> void:
 		assert_false("res://src/world" in content, "%s must not reference src/world" % path)
 		assert_false("res://src/player" in content, "%s must not reference src/player" % path)
 		assert_true(content.split("\n").size() < 140, "%s must be under 140 lines" % path)
+func test_foliage_lod_spatial_uniformity() -> void:
+	var gen = FoliageGeneratorClass.new()
+	var coord = ChunkCoord.new(0, 0)
+	var cfg = FoliageConfigClass.new()
+	cfg.density_probability = 1.0
+
+	var s_data = SurfaceChunkData.new(16, 2)
+	s_data.fill(20, MaterialDef.ID_GRASS, MaterialDef.ID_DIRT)
+
+	var res = gen.generate(coord, s_data, cfg)
+	assert_true(res.instance_count > 10, "Should generate multiple instances")
+
+	# Inspect the first 25% of instances (the LOD slice used when visible_instance_count is subsampled)
+	var lod_count = maxi(1, res.instance_count / 4)
+	var max_z = -999.0
+	for i in range(lod_count):
+		var t = res.get_instance_transform(i)
+		max_z = maxf(max_z, t.origin.z)
+
+	# Shuffled prefix must span past half the chunk (> 8.0 m) instead of being clumped in early rows
+	assert_true(max_z > 8.0, "LOD quarter slice must span across the far half of the chunk to prevent empty patches (got max_z: %f)" % max_z)
+
+func test_foliage_skips_cave_mouth_columns() -> void:
+	var gen = FoliageGeneratorClass.new()
+	var coord = ChunkCoord.new(0, 0)
+	var cfg = FoliageConfigClass.new()
+	cfg.density_probability = 1.0
+
+	var s_data = SurfaceChunkData.new(8, 2)
+	s_data.fill(20, MaterialDef.ID_GRASS, MaterialDef.ID_DIRT)
+	s_data.has_cave_mouth = true
+
+	# Mark a 3x3 region (from lx=2..4, lz=2..4) as cave mouth void
+	for lz in range(2, 5):
+		for lx in range(2, 5):
+			s_data.set_mouth(lx, lz, true)
+
+	var res = gen.generate(coord, s_data, cfg)
+	assert_true(res.instance_count > 0, "Non-mouth columns must still spawn foliage")
+
+	for i in range(res.instance_count):
+		var t = res.get_instance_transform(i)
+		var col_x = clampi(int(floor(t.origin.x)), 0, 7)
+		var col_z = clampi(int(floor(t.origin.z)), 0, 7)
+		assert_false(s_data.is_mouth(col_x, col_z), "No foliage may spawn on columns marked as cave mouth (got col %d, %d)" % [col_x, col_z])
+
+func test_foliage_skips_hollow_voxel_columns() -> void:
+	var gen = FoliageGeneratorClass.new()
+	var coord = ChunkCoord.new(0, 0)
+	var cfg = FoliageConfigClass.new()
+	cfg.density_probability = 1.0
+
+	var s_data = SurfaceChunkData.new(8, 2)
+	s_data.fill(20, MaterialDef.ID_GRASS, MaterialDef.ID_DIRT)
+
+	var v_data = VoxelChunkData.new(8, 32)
+	v_data.surface_data = s_data
+	# Fill voxels up to surface height 20
+	for lz in range(8):
+		for lx in range(8):
+			for ly in range(19):
+				v_data.set_voxel(lx, ly, lz, MaterialDef.ID_STONE)
+			v_data.set_voxel(lx, 19, lz, MaterialDef.ID_GRASS)
+
+	# Carve out top block at (3, 3) to air (0)
+	v_data.set_voxel(3, 19, 3, 0)
+
+	var res = gen.generate(coord, v_data, cfg)
+	assert_true(res.instance_count > 0, "Solid columns must spawn foliage")
+
+	for i in range(res.instance_count):
+		var t = res.get_instance_transform(i)
+		var col_x = clampi(int(floor(t.origin.x)), 0, 7)
+		var col_z = clampi(int(floor(t.origin.z)), 0, 7)
+		assert_false(col_x == 3 and col_z == 3, "No foliage may spawn on carved air voxels")

@@ -19,6 +19,11 @@ var _tasks_to_reclaim: Array[int] = []    # list of all task_ids created
 var _canceled_keys: Dictionary = {}       # task_key or chunk_key -> true
 var _completed_results: Array[Dictionary] = []
 
+const FoliageGeneratorClass = preload("res://src/generation/foliage_generator.gd")
+var foliage_enabled: bool = true
+var foliage_config: Resource = null
+var _foliage_generator: FoliageGeneratorClass = FoliageGeneratorClass.new()
+
 func _make_task_key(coord: ChunkCoord, phase: int) -> String:
 	return "%d:%d" % [coord.to_key(), phase]
 
@@ -136,6 +141,8 @@ func _schedule_task_internal(
 		"registry": registry,
 		"surface_data": surface_data,
 		"bake_cave_collision": bake_cave_collision,
+		"foliage_enabled": foliage_enabled,
+		"foliage_config": foliage_config,
 		"task_key": task_key,
 		"base_key": base_key
 	}
@@ -163,6 +170,8 @@ func _process_chunk_task(payload: Dictionary) -> void:
 	var registry: MaterialRegistry = payload.registry
 	var task_key: String = payload.task_key
 	var base_key: String = payload.base_key
+	var fol_enabled: bool = payload.get("foliage_enabled", true)
+	var fol_config: Resource = payload.get("foliage_config", null)
 
 	var chunk_data: RefCounted = null
 	var mesh_data: MeshData = null
@@ -180,6 +189,8 @@ func _process_chunk_task(payload: Dictionary) -> void:
 				has_mouth = chunk_data.has_cave_mouth if ("has_cave_mouth" in chunk_data) else false
 
 			mesh_data = mesher.build_mesh(chunk_data, registry)
+			if fol_enabled and chunk_data is SurfaceChunkData:
+				mesh_data.foliage_data = _foliage_generator.generate(coord, chunk_data, fol_config)
 
 		GenerationPhase.PHASE_SUBTERRANEAN:
 			var cached_surf: SurfaceChunkData = payload.get("surface_data", null)
@@ -198,6 +209,12 @@ func _process_chunk_task(payload: Dictionary) -> void:
 			chunk_data = generator.generate(coord, bounds)
 			has_mouth = chunk_data.has_cave_mouth if ("has_cave_mouth" in chunk_data) else false
 			mesh_data = mesher.build_mesh(chunk_data, registry)
+			if fol_enabled:
+				var s_data: SurfaceChunkData = chunk_data as SurfaceChunkData
+				if s_data == null and "surface_data" in chunk_data:
+					s_data = chunk_data.surface_data as SurfaceChunkData
+				if s_data != null:
+					mesh_data.foliage_data = _foliage_generator.generate(coord, s_data, fol_config)
 
 	# Off-thread collision baking (ConcavePolygonShape3D created on worker thread)
 	var collision_baker = OffThreadCollisionBaker.new()

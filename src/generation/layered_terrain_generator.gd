@@ -239,6 +239,7 @@ func _populate_voxel_columns(surface_data: SurfaceChunkData, bounds: WorldBounds
 			eff_max_h = mini(eff_max_h, clampi(needed_h, VoxelChunkData.SECTION_HEIGHT, max_h))
 
 	var v_data = VoxelChunkData.new(c_size, eff_max_h)
+	v_data.surface_data = surface_data
 
 	for lz in range(-1, c_size + 1):
 		for lx in range(-1, c_size + 1):

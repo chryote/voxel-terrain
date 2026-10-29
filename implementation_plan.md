@@ -1,255 +1,194 @@
-# Implementation Plan: Stylized Non-Photorealistic (NPR) Toon Water Shader
+# Implementation Plan: Stylized Non-Photorealistic (NPR) Grass Foliage System
 
-## 1. Executive Summary & Problem Motivation
+## 1. Executive Summary & Design Motivation
 
-In the current terrain rendering pipeline, inland elevated lakes, river basins, subterranean cave pools, and the continental ocean plane (`WaterPlane`) rely on default Godot `StandardMaterial3D` instances with generic PBR roughness, metallic highlights, and linear alpha blending (`Color(0.12, 0.38, 0.65, 0.75)`).
+In the current procedural voxel terrain engine, the surface landscape features rich continent elevation, realistic fluvial carving, and Moebius-style graphic novel rendering (ASCII cross-hatching, halftone stippling, 2nd-order Laplacian ink outlines, and stepped toon water). However, the ground plane currently consists exclusively of solid voxel top-faces.
 
-This creates an aesthetic dissonance against the rest of the visual stack:
-- The voxel terrain uses **Moebius-style cel-shading, ink outlines, and ASCII cross-hatching**.
-- The sky uses **discrete stepped color bands** (`banded_sky.gdshader`).
-- In contrast, the current water exhibits realistic specular reflections and muddy, smooth gradients, breaking visual cohesion.
+To bring lush, organic vibrancy to plains and hills while preserving the strict graphic novel aesthetic, we will implement a high-performance **Stylized NPR Grass Foliage System**.
 
-To establish complete visual harmony with the graphic novel / retro-flat aesthetic, we will implement a dedicated **Stylized NPR Toon Water Shader** (`res://shaders/water/toon_water.gdshader`) and an accompanying architectural pipeline.
+### Primary Technical Mandates:
+1. **Zero Framerate Regression**: Maintain $\ge 144\text{ FPS}$ ($\le 6.94\text{ ms}$ frame time) and total draw calls $< 50$ (baseline: 22.3 calls).
+2. **Main-Thread Budget Adherence**: Ingestion and buffer upload into `ChunkNode` must take $\le 0.1\text{ ms}$, well within the established `max_mesh_apply_budget_ms = 1.0 ms` cap.
+3. **Pure Decoupled Architecture**: All scatter calculations, jitter sampling, and buffer generation must run completely off-thread on `WorkerThreadPool` inside pure `RefCounted` domain objects with zero `Node` dependencies.
+4. **Greedy Meshing Decoupling**: Because `SurfaceShellMesher` merges flat terrain quads, grass distribution must sample underlying `SurfaceChunkData` columns matching `MaterialDef.ID_GRASS` rather than relying on mesh vertices.
+5. **Distance Gating & Near-Field Culling**: Foliage is only spawned/rendered within a near-camera radius ($\le 2\text{ chunks}$, $\sim 64\text{ m}$). Distant horizon chunks (distance 3 to 8) allocate zero grass instances.
 
 ---
 
-## 2. The Four Pillars of NPR Graphic Novel Water
+## 2. The Five Architectural Pillars
 
 ```
-                       [ Camera View Ray ]
-                               │
-                               ▼
-        Water Surface (Unshaded / Flat Emission, No Specular)
- ┌─────────────────────────────────────────────────────────────┐
- │  Foam Line (Crisp Solid White Step, depth_diff < foam_th)   │ ◄── Terrain Intersection
- ├─────────────────────────────────────────────────────────────┤
- │  Shallow Band (Flat Cyan-Azure, depth_diff < shallow_th)    │
- ├─────────────────────────────────────────────────────────────┤
- │  Mid-Depth Band (Flat Cobalt Blue, depth_diff < deep_th)    │
- ├─────────────────────────────────────────────────────────────┤
- │  Abyss / Deep Band (Flat Dark Navy, depth_diff >= deep_th)  │
- ├─────────────────────────────────────────────────────────────┤
- │  Graphic Surface Ripples: Stepped Cellular / Voronoi Lines   │
- └─────────────────────────────────────────────────────────────┘
+                      [ WorkerThreadPool: Off-Thread ]
+             SurfaceChunkData (Inspect ID_GRASS top columns)
+                                   │
+                                   ▼
+        Deterministic Wang / Hash Scatter (Seed + lx, lz)
+         - Density: 1 to 3 tufts per voxel
+         - Sub-voxel jitter (dx, dz) & random Y-rotation
+         - Voxel height clamp (Y = float(h))
+                                   │
+                                   ▼
+                   FoliageChunkData (RefCounted)
+            Contains: PackedFloat32Array transform_buffer
+                                   │
+═══════════════════════════════════╪══════════════════════════════════════════
+                      [ Main Thread: Ingestion Budget ]
+                                   ▼
+               ChunkNode (MultiMeshInstance3D Pooling)
+         - multimesh.set_buffer(foliage_data.transform_buffer)
+         - Exactly 1 draw call per chunk (0 for horizon chunks)
+         - Cast Shadow: OFF
+         - Collision: NONE
+                                   │
+                                   ▼
+             Toon Grass Spatial Shader (toon_grass.gdshader)
+         - Vertex Wind Sway (harmonic sine wave)
+         - Distance-aware alpha dither / discard fade (45m -> 60m)
+         - Diffuse toon shading, specular disabled, cull disabled
 ```
 
-The shader is built around four specific non-photorealistic characteristics:
+### Pillar 1: Pure Off-Thread Scatter Calculation (`FoliageGenerator`)
+- Runs concurrently with terrain meshing on `WorkerThreadPool`.
+- Checks `SurfaceChunkData.get_top_material(x, z) == MaterialDef.ID_GRASS`.
+- Uses a deterministic hash (`hash_coords(world_x, world_z, seed)`) to produce identical, repeatable grass layouts without storing static arrays in save games or world files.
+- Generates a tightly packed `PackedFloat32Array` formatted for Godot's `MultiMesh` (12 floats per instance: $3\times 4$ column-major affine transform).
+- Memory footprint: $\approx 150\text{ instances} \times 12\text{ floats} \times 4\text{ bytes} \approx 7.2\text{ KB}$ per chunk.
 
-### 1. Hard-Edge Intersection Foam
-- **Mechanism**: Samples the scene depth buffer (`hint_depth_texture`) behind the transparent water surface in screen space.
-- **Linearization**: Converts raw non-linear logarithmic depth into metric view-space distance via `INV_PROJECTION_MATRIX`.
-- **Crisp Step Threshold**: Calculates the distance difference $\Delta z = z_{\text{scene}} - z_{\text{water}}$. Where $\Delta z < \text{foam\_thickness}$ (e.g. $0.35\,\text{m}$), it outputs a **100% solid, opaque white band** (`#ffffff`).
-- **No Soft Gradients**: Replaces standard `smoothstep()` or linear fades with a hard binary step (`step()` or discrete conditional), matching the crisp hand-inked line aesthetic.
+### Pillar 2: Hardware-Instanced Batching (`MultiMeshInstance3D`)
+- Each `ChunkNode` manages a pooled `MultiMeshInstance3D` (`grass_instance`).
+- Setting `multimesh.buffer = baked_buffer` takes $< 0.05\text{ ms}$ on the main thread.
+- Guarantees **exactly 1 hardware draw call** per chunk for all foliage instances.
+- Horizon chunks (distance $> 2$) have `visible = false` and `multimesh.instance_count = 0`.
 
-### 2. Stepped Depth Color (Discrete Comic Bands)
-- **Mechanism**: Instead of exponential Beer-Lambert absorption or smooth gradient blending, water color is quantized into **2 or 3 distinct, flat color horizons** based on depth behind the surface:
-  - **Shallow Horizon** ($\Delta z < 1.5\,\text{m}$): Vibrant, high-key cyan/azure (`#3ba3db`).
-  - **Mid-Depth Horizon** ($1.5\,\text{m} \le \Delta z < 5.0\,\text{m}$): Saturated comic cobalt (`#1f619e`).
-  - **Deep Abyss Horizon** ($\Delta z \ge 5.0\,\text{m}$): Deep navy ink (`#112942`).
-- **Zero In-Between Blending**: Pure flat polygon fills for each band.
+### Pillar 3: Near-Distance Radius Gating & LOD
+- Radius threshold: $R \le 2\text{ chunks}$ ($64\text{ m}$).
+- Active grass chunks: between 13 and 25 chunks depending on continent topography.
+- Active instances: $2,500\text{ to }5,000$ instances total across the entire world.
+- Primitives added: $\approx 10,000\text{ to }20,000\text{ triangles}$ (well within the $+50,000$ triangle foliage budget).
+- Beyond $45\text{ m}$, the shader executes a smooth screen-space dither dissolve out to $60\text{ m}$, preventing abrupt pop-in during movement.
 
-### 3. Stylized Surface Noise (Graphic Ripple Lines)
-- **Mechanism**: To make the surface feel alive without looking like continuous liquid waves, dual scrolling procedural cellular/Voronoi coordinates (`TIME * speed_1` and `TIME * speed_2`) generate sharp interference patterns.
-- **Binary Line Extraction**: Evaluated with a strict threshold (`step(threshold, cellular_val)`) to generate crisp $1$-pixel or single-block contour lines resembling ink-drawn ripple rings.
-- **Color Accent**: Active ripple lines render as crisp foam-white or shallow-tinted accents over the flat water base.
+### Pillar 4: Graphic Novel Stylized Visuals & Assets
+- **Mesh Asset (`assets/models/grass_tuft.tres`)**:
+  - Low-poly stylized tuft: 3 intersecting crossed quads (6 quads total, 12 triangles) or 2 crossed quads (4 triangles).
+  - Outward-curved normals along the blade tops to achieve soft, non-faceted toon lighting.
+  - Vertex colors encoding vertical height: root color (`Color(0.22, 0.35, 0.18)`) to tip color (`Color(0.55, 0.78, 0.32)`).
+- **Texture Asset (`assets/textures/grass_tuft.png`)**:
+  - Crisp, comic-book style grass blades with defined black ink contour silhouettes and flat cell color fill.
+  - Transparent alpha background with sharp silhouette matching the Moebius ink outline aesthetic.
+- **Spatial Shader (`shaders/foliage/toon_grass.gdshader`)**:
+  - `render_mode diffuse_toon, specular_disabled, cull_disabled;`
+  - Subtle wind swaying via vertex deformation driven by `TIME` and `WORLD_POSITION`, masked by normalized vertex height `UV.y`.
 
-### 4. No Normal Maps or Specular Highlights (Flat / Unlit Shading)
-- **Mechanism**: Uses `render_mode unshaded, cull_back` (or emission-based flat shading).
-- **Aesthetic Alignment**: Completely omits microfacet roughness, Fresnel reflections, and Blinn-Phong specular glints.
-- **Lighting Cohesion**: Matches the flat-colored faces of voxel grass, dirt, and rock blocks, avoiding realistic water reflections that clash with cel-shaded terrain.
-
----
-
-## 3. Core Architectural Principles & Clean Code Standards
-
-Following the repository's strict architectural constraints (enforced by `test_ascii_architecture.gd` and `test_graphic_novel_architecture.gd`):
-
-1. **Separation of Concerns**:
-   - **`ToonWaterConfig`** (`res://src/rendering/toon_water_config.gd`): Pure `Resource` exporting customizable thresholds (foam thickness, depth steps, ripple speed, color palette).
-   - **`ToonWaterMaterialProvider`** (`res://src/rendering/toon_water_material_provider.gd`): Pure `RefCounted` material cache and uniform binder.
-   - **`TerrainMaterialProvider`** (`res://src/rendering/terrain_material_provider.gd`): Material lifecycle facade. Calls `ToonWaterMaterialProvider.get_water_material()` in 1 line, maintaining its $\le 170$ lines file size limit.
-   - **`toon_water.gdshader`** (`res://shaders/water/toon_water.gdshader`): Pure GPU spatial shader handling linear depth reconstruction, foam stepping, and cellular ripples.
-2. **File and Function Length Bounds**:
-   - `toon_water.gdshader`: $\le 140$ lines total.
-   - `toon_water_material_provider.gd`: $\le 120$ lines total.
-   - `toon_water_config.gd`: $\le 70$ lines total.
-   - All helper functions: $< 35$ lines.
-3. **Zero Coupling**:
-   - Pure rendering domain classes contain zero `Node` or `Node3D` inheritance.
-   - Zero dependencies on `src/world` or `src/player`.
-4. **Greedy Meshing & Performance Preservation**:
-   - Shader runs entirely on existing greedy-meshed quads from `SurfaceShellMesher` (`ElevatedWaterMesher`), `ChasmShellMesher`, and `WaterPlane` (PlaneMesh).
-   - Zero CPU vertex generation overhead.
+### Pillar 5: Pooling & Zero Node Allocation Overhead
+- `grass_instance` is created once in `ChunkNode._ensure_nodes_exist()`.
+- When chunks are recycled via `ChunkNode.prepare_for_pool()`, `grass_instance.multimesh.instance_count = 0` and `visible = false`.
+- Zero node instantiation or deletion during active gameplay streaming.
 
 ---
 
-## 4. Technical Implementation Steps
+## 3. Directory & File Structure Plan
 
-### Phase 1: Spatial Shader Construction (`res://shaders/water/toon_water.gdshader`)
-
-Create the dedicated spatial shader with Godot 4 depth texture sampling:
-
-```glsl
-shader_type spatial;
-render_mode unshaded, cull_back, depth_draw_always;
-
-uniform sampler2D depth_texture : hint_depth_texture, repeat_disable, filter_nearest;
-
-group_uniforms Foam_Settings;
-uniform vec4 foam_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
-uniform float foam_thickness : hint_range(0.05, 1.5) = 0.35;
-
-group_uniforms Stepped_Depth_Colors;
-uniform vec4 shallow_color : source_color = vec4(0.23, 0.64, 0.86, 0.85);
-uniform vec4 mid_color : source_color = vec4(0.12, 0.38, 0.62, 0.90);
-uniform vec4 deep_color : source_color = vec4(0.07, 0.16, 0.26, 0.95);
-uniform float shallow_threshold : hint_range(0.2, 5.0) = 1.5;
-uniform float deep_threshold : hint_range(1.0, 20.0) = 5.0;
-
-group_uniforms Graphic_Ripples;
-uniform bool ripples_enabled = true;
-uniform float ripple_scale : hint_range(0.05, 1.0) = 0.25;
-uniform float ripple_speed : hint_range(0.01, 1.0) = 0.08;
-uniform float ripple_threshold : hint_range(0.5, 0.99) = 0.88;
-uniform vec4 ripple_color : source_color = vec4(1.0, 1.0, 1.0, 0.9);
+```
+res://
+├── assets/
+│   ├── models/
+│   │   └── grass_tuft.tres                     # Low-poly stylized cross-quad ArrayMesh
+│   └── textures/
+│       └── grass_tuft.png                      # Stylized NPR hand-inked grass blade texture
+├── config/
+│   └── foliage_config.tres                     # Foliage tuning parameters (density, wind, scale)
+├── shaders/
+│   └── foliage/
+│       └── toon_grass.gdshader                 # Cel-shaded, wind-animated, dither-faded shader
+├── src/
+│   ├── core/
+│   │   └── foliage_chunk_data.gd               # RefCounted container for baked MultiMesh buffers
+│   ├── generation/
+│   │   ├── foliage_generator.gd                # Deterministic PRNG scatter logic on ID_GRASS
+│   │   └── foliage_generator_config.gd         # Resource exposing density, jitter, and scale limits
+│   ├── rendering/
+│   │   ├── foliage_material_provider.gd        # Material factory, caching, and wind uniform binder
+│   │   └── foliage_mesh_factory.gd             # Procedural generator for grass_tuft.tres mesh
+│   └── world/
+│       └── chunk_node.gd (update)              # Pool integration for MultiMeshInstance3D
+└── tests/
+    └── unit/
+        ├── test_foliage_architecture.gd        # Zero-Node & layer dependency verification
+        ├── test_foliage_generator.gd           # Determinism, boundary checks, and material filtering
+        └── test_foliage_mesh_factory.gd        # Vertex buffer, normal curvature, and UV checks
 ```
 
-#### Key Shader Functions:
-1. `get_linear_depth(vec2 screen_uv, mat4 inv_proj)`:
-   - Samples `depth_texture` at `screen_uv`.
-   - Reconstructs view space $Z$: `view_pos = inv_proj * vec4(screen_uv * 2.0 - 1.0, raw_depth, 1.0); return -view_pos.z / view_pos.w;`
-2. `evaluate_procedural_ripples(vec2 world_xz, float time)`:
-   - Computes dual-layer scrolling cellular/Voronoi hash.
-   - Evaluates `step(ripple_threshold, pattern_value)` for crisp line rings.
-3. `fragment()`:
-   - Computes `depth_diff = scene_depth - (-VERTEX.z)`.
-   - Evaluates stepped depth color (shallow vs mid vs deep).
-   - If `depth_diff < foam_thickness`, overrides with solid `foam_color`.
-   - If ripples are enabled and active, layers crisp `ripple_color`.
-   - Sets `ALBEDO = col.rgb; ALPHA = col.a;`.
-
 ---
 
-### Phase 2: Configuration Resource (`res://src/rendering/toon_water_config.gd`)
+## 4. Technical Specifications & File Constraints
 
-Create a dedicated pure configuration resource exposing all designer-tunable parameters:
+Following the engine's strict architectural linter (`test_architecture.gd`):
 
-```gdscript
-class_name ToonWaterConfig
-extends Resource
+1. **`src/core/foliage_chunk_data.gd`**:
+   - `class_name FoliageChunkData extends RefCounted`
+   - Properties: `instance_count: int`, `transform_buffer: PackedFloat32Array`.
+   - Length: $< 60$ lines. Zero `Node` dependencies.
 
-@export_group("Foam Line")
-@export var foam_color: Color = Color(1.0, 1.0, 1.0, 1.0)
-@export_range(0.05, 1.5, 0.05) var foam_thickness: float = 0.35
+2. **`src/generation/foliage_generator.gd`**:
+   - `class_name FoliageGenerator extends RefCounted`
+   - Method: `generate_chunk_foliage(coord: ChunkCoord, s_data: SurfaceChunkData, config: FoliageGeneratorConfig) -> FoliageChunkData`
+   - Loops over inner chunk coordinates $(x \in [0, 31], z \in [0, 31])$.
+   - If `s_data.get_top_material(x, z) != MaterialDef.ID_GRASS`, skip.
+   - Computes deterministic hash for instance count (1 to `max_per_voxel`), position offset `Vector3(x + dx, h, z + dz)`, random Y rotation, and scale variance.
+   - Length: $< 140$ lines. Pure computation.
 
-@export_group("Stepped Depth Colors")
-@export var shallow_color: Color = Color(0.23, 0.64, 0.86, 0.85)
-@export var mid_color: Color = Color(0.12, 0.38, 0.62, 0.90)
-@export var deep_color: Color = Color(0.07, 0.16, 0.26, 0.95)
-@export_range(0.2, 5.0, 0.1) var shallow_threshold: float = 1.5
-@export_range(1.0, 20.0, 0.5) var deep_threshold: float = 5.0
-
-@export_group("Stylized Ripples")
-@export var ripples_enabled: bool = true
-@export_range(0.05, 1.0, 0.01) var ripple_scale: float = 0.25
-@export_range(0.01, 1.0, 0.01) var ripple_speed: float = 0.08
-@export_range(0.5, 0.99, 0.01) var ripple_threshold: float = 0.88
-@export var ripple_color: Color = Color(1.0, 1.0, 1.0, 0.9)
-```
-
-Also add presets (e.g. `ocean_day`, `alpine_lake`, `toxic_subterranean`, `night_chasm`).
-
----
-
-### Phase 3: Material Provider & Registry (`res://src/rendering/toon_water_material_provider.gd`)
-
-Create a pure `RefCounted` singleton/factory managing shader instantiation and caching:
-- `get_water_material(config: Resource = null) -> ShaderMaterial`:
-  - Returns cached surface water material with updated uniforms.
-- `get_subterranean_water_material(config: Resource = null) -> ShaderMaterial`:
-  - Returns material tuned for cave basins (deeper/darker mid & deep colors, muted ripples).
-- `apply_to_material(mat: ShaderMaterial, config: ToonWaterConfig) -> void`:
-  - Binds shader parameters safely with fallbacks.
-- Line length: $< 120$ lines. Zero scene node dependencies.
-
----
-
-### Phase 4: Integration with Terrain Material Provider & World Components
-
-1. **`TerrainMaterialProvider`** (`res://src/rendering/terrain_material_provider.gd`):
-   - Add delegator methods:
-     ```gdscript
-     static func get_water_material(config: Resource = null) -> ShaderMaterial:
-         return ToonWaterMaterialProvider.get_water_material(config)
-
-     static func get_subterranean_water_material(config: Resource = null) -> ShaderMaterial:
-         return ToonWaterMaterialProvider.get_subterranean_water_material(config)
+3. **`shaders/foliage/toon_grass.gdshader`**:
+   - `shader_type spatial;`
+   - `render_mode diffuse_toon, specular_disabled, cull_disabled;`
+   - Vertex wind displacement:
+     ```glsl
+     float wind = sin(TIME * wind_speed + v_world_pos.x * 0.7 + v_world_pos.z * 0.5) * wind_strength;
+     VERTEX.x += wind * (1.0 - UV.y);
      ```
-   - Maintains strict line length $\le 170$ lines.
-2. **`WaterPlane`** (`res://src/world/water_plane.gd`):
-   - Replace the legacy `StandardMaterial3D` assignment with `TerrainMaterialProvider.get_water_material()`.
-3. **`ChunkNode`** (`res://src/world/chunk_node.gd`):
-   - Update `_shared_water_material` and `_shared_subterranean_water_material` initialization to use `TerrainMaterialProvider`.
-4. **Theme Configuration Resources**:
-   - Add default `ToonWaterConfig` to `config/graphic_novel_theme.tres` and `config/ascii_terrain_theme.tres`.
+   - Distance dither fade using Bayer $4\times 4$ threshold matrix or screen-space hash to smoothly dissolve blades between `fade_start_dist` ($45\text{ m}$) and `max_dist` ($60\text{ m}$).
+   - Length: $< 120$ lines.
+
+4. **`src/world/chunk_node.gd`**:
+   - Introduce `var grass_instance: MultiMeshInstance3D`.
+   - In `setup(...)`: if `foliage_data != null and foliage_data.instance_count > 0 and distance <= 2`:
+     - Assign `grass_instance.multimesh.buffer = foliage_data.transform_buffer`
+     - `grass_instance.visible = true`
+   - In `prepare_for_pool()`:
+     - Clear buffer, reset instance count to 0, `grass_instance.visible = false`.
 
 ---
 
-### Phase 5: Verification & Unit Tests
+## 5. Performance Budget Target Matrix
 
-Add targeted test suites to ensure 100% test pass rate and verify architectural constraints:
-
-1. **`tests/unit/test_toon_water_shader.gd`**:
-   - Test shader resource loading and syntax compilation in Godot 4.4.1.
-   - Verify `render_mode unshaded` is active.
-   - Verify absence of normal maps and specular calculations.
-   - Verify depth texture sampling (`hint_depth_texture`).
-   - Verify step-based foam and stepped depth color logic.
-2. **`tests/unit/test_toon_water_architecture.gd`**:
-   - Audit `toon_water_config.gd` and `toon_water_material_provider.gd`:
-     - Assert zero `Node`, `Node3D`, or scene tree dependencies.
-     - Assert zero references to `src/world` or `src/player`.
-     - Assert line counts $\le 160$ lines and helper functions $< 35$ lines.
-   - Verify `WaterPlane` and `ChunkNode` correctly receive `ShaderMaterial` instances.
-   - Verify cache identity: repeated calls to `get_water_material()` return the same instance.
-3. **Full Test Suite Execution**:
-   - Run `tests/run_tests.gd` via Godot CLI to guarantee 0 regressions across all 309+ existing tests.
+| Metric | Current Terrain Baseline | Projected with Grass ($\le 2$ Chunks) | Budget Limit |
+| :--- | :--- | :--- | :--- |
+| **Hardware Draw Calls** | 22.3 calls | **35 – 45 calls** | $< 50\text{ calls}$ |
+| **Visible Active Triangles** | ~31,051 tris | **~45,000 – 51,000 tris** | $< 81,000\text{ tris}$ (+50k budget) |
+| **Main-Thread Ingestion Time**| ~0.85 ms / chunk | **~0.90 ms / chunk** | $\le 1.0\text{ ms}$ budget cap |
+| **Framerate (Target)** | 165 FPS (6.06 ms) | **$\ge 144\text{ FPS}$ ($\le 6.94\text{ ms}$)** | $\ge 144\text{ FPS}$ |
+| **Memory per Chunk Node** | ~45 KB | **~52 KB (+7 KB buffer)** | Negligible |
 
 ---
 
-## 5. Visual Palette Specifications
+## 6. Implementation Rollout Phases
 
-To match the existing graphic novel color schemes:
-
-| Parameter | Surface Ocean & Inland Lakes | Subterranean Cave Pools |
-| :--- | :--- | :--- |
-| **Foam Color** | `#ffffff` (Solid Chalk White) | `#d4e8f2` (Subtle Phosphor Tint) |
-| **Foam Thickness** | `0.35 m` (~1/3 block width) | `0.25 m` (Tight edge line) |
-| **Shallow Color** | `#3ca2dc` (Comic Azure Cyan, 85% alpha) | `#256a8a` (Deep Turquoise, 90% alpha) |
-| **Mid-Depth Color** | `#1c578f` (Saturated Cobalt, 90% alpha) | `#143d54` (Abyssal Teal, 95% alpha) |
-| **Deep Abyss Color**| `#0d1e30` (Dark Navy Ink, 98% alpha) | `#08141c` (Void Black, 100% alpha) |
-| **Shallow Threshold**| `1.5 m` (1.5 blocks) | `1.0 m` (1 block) |
-| **Deep Threshold** | `5.0 m` (5 blocks) | `3.5 m` (3.5 blocks) |
-| **Ripple Style** | Active Crisp Rings (`speed=0.08`) | Minimal / Placid Lines (`speed=0.02`) |
-
----
-
-## 6. Implementation Rollout Plan
-
-- [x] **Step 1**: Create `res://shaders/water/toon_water.gdshader` implementing the 4 NPR pillars.
-- [x] **Step 2**: Create `res://src/rendering/toon_water_config.gd` with clean parameters and presets.
-- [x] **Step 3**: Create `res://src/rendering/toon_water_material_provider.gd` with caching and uniform binding.
-- [x] **Step 4**: Wire provider into `TerrainMaterialProvider.gd` without exceeding line length limits.
-- [x] **Step 5**: Update `WaterPlane.gd` and `ChunkNode.gd` to bind the new toon water materials.
-- [x] **Step 6**: Add unit tests in `tests/unit/test_toon_water_shader.gd` and architectural checks.
-- [x] **Step 7**: Execute full regression and benchmark test suite via headless Godot CLI.
-
----
-
-## 7. Visual Refinements & NPR Polish
-
-- [x] **Ocean Foam Suppression**: Added `foam_enabled` toggle and dedicated `get_ocean_material()` preset (`foam_enabled = false`, `ripples_enabled = false`) for `WaterPlane`, eliminating distant white noise on the horizon.
-- [x] **Pixelized Mainland Foam**: Upgraded cellular distance function in `toon_water.gdshader` to Chebyshev-Manhattan blocky metric with world-space `pixel_density` grid quantization, replacing smooth Euclidean circles with crisp retro pixel-art contours.
-- [x] **Fluid Side Faces**: Implemented vertical normal detection (`abs(v_world_normal.y) < 0.5`) in `toon_water.gdshader` with animated downward-streaming fluid cascading (`side_fluid_speed`) along vertical face drop-offs.
-- [x] **3D Cascading Waterfalls & Drops (Option A)**: Updated `WaterSurfaceMesher` (`water_surface_mesher.gd`) with 1D greedy run-length merging across West (-X), East (+X), South (-Z), and North (+Z) cardinal directions. Whenever elevated inland water borders a lower river pool, riverbank, dry cliff, or ocean drop, vertical waterfall quads are generated. Normals activate the shader's `evaluate_side_fluid_flow` downward fluid animation.
-
+- [x] **Phase 1: Asset Creation**
+  - [x] Generate stylized comic-ink grass tuft sprite texture (`assets/textures/grass_tuft.png`).
+  - [x] Generate procedural low-poly cross-quad ArrayMesh (`assets/models/grass_tuft.tres`).
+- [x] **Phase 2: Core Data & Off-Thread Scatter**
+  - [x] Implement `FoliageChunkData` (`src/core/foliage_chunk_data.gd`).
+  - [x] Implement `FoliageGeneratorConfig` (`src/generation/foliage_generator_config.gd`).
+  - [x] Implement `FoliageGenerator` (`src/generation/foliage_generator.gd`).
+  - [x] Add unit tests in `tests/unit/test_foliage_generator.gd`.
+- [x] **Phase 3: Stylized Spatial Shader & Material Provider**
+  - [x] Implement `shaders/foliage/toon_grass.gdshader` (cel-shaded, wind, dither fade).
+  - [x] Implement `FoliageMaterialProvider` (`src/rendering/foliage_material_provider.gd`).
+  - [x] Create default resource `config/foliage_config.tres`.
+- [x] **Phase 4: Scene Layer & ChunkNode Pooling Integration**
+  - [x] Update `ChunkNode` with pooled `MultiMeshInstance3D` support.
+  - [x] Hook foliage data pass-through in `ChunkScheduler` and `SurfaceShellMesher` / `VoxelWorld`.
+  - [x] Enforce distance gating ($\le 2$ chunks) in streaming logic.
+- [x] **Phase 5: Verification & Benchmark Regression**
+  - [x] Run architecture linter (`test_architecture.gd`).
+  - [x] Run full unit test suite (335 tests, 100% pass) to guarantee 0 regressions.
+  - [x] Profile draw calls and frame times via `tests/benchmark/bench_rendering.gd` (19 draw surfaces, <50 target met).

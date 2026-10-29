@@ -20,6 +20,7 @@ var water_voxels: PackedByteArray
 var surface_heights: PackedInt32Array
 var has_surface_heights: bool = false
 var has_cave_mouth: bool = false
+var surface_data: RefCounted = null
 
 var section_count: int = 10
 var section_status: PackedByteArray
@@ -149,6 +150,7 @@ func clear() -> void:
 	has_surface_heights = false
 	has_cave_mouth = false
 	surface_heights.clear()
+	surface_data = null
 	section_status.fill(SECTION_EMPTY)
 	has_section_status = true
 

@@ -11,6 +11,7 @@ var has_cave_mouth: bool = false
 # Primary / Surface visual and water instances
 var mesh_instance: MeshInstance3D
 var water_instance: MeshInstance3D
+var grass_instance: MultiMeshInstance3D
 
 # Subterranean cave visual and water instances
 var cave_mesh_instance: MeshInstance3D
@@ -27,14 +28,27 @@ static var _shared_material: Material
 static var _shared_cave_material: Material
 static var _shared_water_material: Material
 static var _shared_subterranean_water_material: Material
+static var _shared_grass_material: Material
+static var _shared_grass_mesh: Mesh
 
-static func configure_shared_materials(surface_mat: Material, cave_mat: Material, water_mat: Material = null, cave_water_mat: Material = null) -> void:
+static func configure_shared_materials(
+	surface_mat: Material,
+	cave_mat: Material,
+	water_mat: Material = null,
+	cave_water_mat: Material = null,
+	grass_mat: Material = null,
+	grass_mesh: Mesh = null
+) -> void:
 	_shared_material = surface_mat
 	_shared_cave_material = cave_mat
 	if water_mat != null:
 		_shared_water_material = water_mat
 	if cave_water_mat != null:
 		_shared_subterranean_water_material = cave_water_mat
+	if grass_mat != null:
+		_shared_grass_material = grass_mat
+	if grass_mesh != null:
+		_shared_grass_mesh = grass_mesh
 
 static func get_shared_surface_material() -> Material:
 	return _shared_material
@@ -48,18 +62,29 @@ static func get_shared_water_material() -> Material:
 static func get_shared_subterranean_water_material() -> Material:
 	return _shared_subterranean_water_material
 
+static func get_shared_grass_material() -> Material:
+	if _shared_grass_material == null:
+		_shared_grass_material = MaterialProviderClass.get_grass_material()
+	return _shared_grass_material
+
+static func get_shared_grass_mesh() -> Mesh:
+	if _shared_grass_mesh == null and ResourceLoader.exists("res://assets/models/grass_tuft.tres"):
+		_shared_grass_mesh = load("res://assets/models/grass_tuft.tres")
+	return _shared_grass_mesh
+
 func _init() -> void:
 	if _shared_material == null:
 		_shared_material = MaterialProviderClass.get_surface_material()
-
 	if _shared_cave_material == null:
 		_shared_cave_material = MaterialProviderClass.get_cave_material()
-
 	if _shared_water_material == null:
 		_shared_water_material = MaterialProviderClass.get_water_material()
-
 	if _shared_subterranean_water_material == null:
 		_shared_subterranean_water_material = MaterialProviderClass.get_subterranean_water_material()
+	if _shared_grass_material == null:
+		_shared_grass_material = MaterialProviderClass.get_grass_material()
+	if _shared_grass_mesh == null and ResourceLoader.exists("res://assets/models/grass_tuft.tres"):
+		_shared_grass_mesh = load("res://assets/models/grass_tuft.tres")
 
 func _ready() -> void:
 	_ensure_nodes_exist()
@@ -76,10 +101,21 @@ func _ensure_nodes_exist() -> void:
 		cave_mesh_instance = MeshInstance3D.new()
 		cave_mesh_instance.name = "CaveMeshInstance"
 		cave_mesh_instance.material_override = _shared_cave_material
-		# Subterranean geometry is never reached by directional sunlight shadows
 		cave_mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		cave_mesh_instance.visible = false
 		add_child(cave_mesh_instance)
+
+	if grass_instance == null:
+		grass_instance = MultiMeshInstance3D.new()
+		grass_instance.name = "GrassMultiMeshInstance"
+		grass_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		grass_instance.visible = false
+		var mm = MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = get_shared_grass_mesh()
+		grass_instance.multimesh = mm
+		grass_instance.material_override = get_shared_grass_material()
+		add_child(grass_instance)
 
 	if static_body == null:
 		static_body = StaticBody3D.new()
@@ -97,7 +133,9 @@ func _ensure_nodes_exist() -> void:
 
 var _cached_prebaked_surface_shape: ConcavePolygonShape3D = null
 var _cached_prebaked_cave_shape: ConcavePolygonShape3D = null
+var _cached_foliage_data: RefCounted = null
 var _collision_distance_enabled: bool = false
+var _foliage_distance_enabled: bool = false
 
 func setup(
 	p_coord: ChunkCoord,
@@ -105,7 +143,8 @@ func setup(
 	mesh_data: MeshData,
 	enable_collision: bool,
 	prebaked_surface_shape: ConcavePolygonShape3D = null,
-	prebaked_cave_shape: ConcavePolygonShape3D = null
+	prebaked_cave_shape: ConcavePolygonShape3D = null,
+	enable_foliage: bool = false
 ) -> void:
 	coord = p_coord
 	position = origin
@@ -170,14 +209,32 @@ func setup(
 			cave_water_instance.visible = false
 			cave_water_instance.mesh = null
 
+	# 4. Foliage Setup
+	_foliage_distance_enabled = enable_foliage
+	if mesh_data != null and mesh_data.foliage_data != null and not mesh_data.foliage_data.is_empty():
+		_cached_foliage_data = mesh_data.foliage_data
+		if grass_instance != null and grass_instance.multimesh != null:
+			if grass_instance.multimesh.mesh == null:
+				grass_instance.multimesh.mesh = get_shared_grass_mesh()
+			grass_instance.multimesh.instance_count = _cached_foliage_data.instance_count
+			grass_instance.multimesh.buffer = _cached_foliage_data.transform_buffer
+			grass_instance.visible = _foliage_distance_enabled and is_surface_visible()
+	else:
+		_cached_foliage_data = null
+		if grass_instance != null and grass_instance.multimesh != null:
+			grass_instance.multimesh.instance_count = 0
+			grass_instance.visible = false
+
 	set_collision_enabled(enable_collision)
 
 func prepare_for_pool() -> void:
 	coord = null
 	has_cave_mouth = false
 	_collision_distance_enabled = false
+	_foliage_distance_enabled = false
 	_cached_prebaked_surface_shape = null
 	_cached_prebaked_cave_shape = null
+	_cached_foliage_data = null
 
 	if mesh_instance != null:
 		mesh_instance.mesh = null
@@ -190,6 +247,10 @@ func prepare_for_pool() -> void:
 	if cave_water_instance != null:
 		cave_water_instance.mesh = null
 		cave_water_instance.visible = false
+	if grass_instance != null:
+		if grass_instance.multimesh != null:
+			grass_instance.multimesh.instance_count = 0
+		grass_instance.visible = false
 
 	if collision_shape != null:
 		collision_shape.shape = null
@@ -246,13 +307,13 @@ func apply_subterranean_bundle(
 			else:
 				cave_collision_shape.disabled = true
 
-func set_subterranean_visible(visible: bool) -> void:
+func set_subterranean_visible(sub_visible: bool) -> void:
 	if cave_mesh_instance != null:
-		cave_mesh_instance.visible = visible
+		cave_mesh_instance.visible = sub_visible
 	if cave_water_instance != null:
-		cave_water_instance.visible = visible
+		cave_water_instance.visible = sub_visible
 	if cave_collision_shape != null:
-		if visible:
+		if sub_visible:
 			if cave_collision_shape.shape == null and _cached_prebaked_cave_shape != null:
 				cave_collision_shape.shape = _cached_prebaked_cave_shape
 			if _collision_distance_enabled and cave_collision_shape.shape != null:
@@ -265,6 +326,18 @@ func set_subterranean_visible(visible: bool) -> void:
 func is_subterranean_visible() -> bool:
 	return cave_mesh_instance != null and cave_mesh_instance.visible
 
+func is_surface_visible() -> bool:
+	return mesh_instance != null and mesh_instance.visible
+
+func set_foliage_enabled(enable: bool) -> void:
+	_foliage_distance_enabled = enable
+	if grass_instance != null:
+		var has_data = (_cached_foliage_data != null and not _cached_foliage_data.is_empty())
+		grass_instance.visible = enable and has_data and is_surface_visible()
+
+func is_foliage_enabled() -> bool:
+	return _foliage_distance_enabled and grass_instance != null and grass_instance.visible
+
 func has_cave_mesh() -> bool:
 	return cave_mesh_instance != null and cave_mesh_instance.mesh != null
 
@@ -274,7 +347,6 @@ func set_collision_enabled(enable: bool) -> void:
 	_collision_distance_enabled = enable
 
 	if enable:
-		# Surface collision shape (bind cached pre-baked shape or fallback to trimesh)
 		if collision_shape.shape == null:
 			if _cached_prebaked_surface_shape != null:
 				collision_shape.shape = _cached_prebaked_surface_shape
@@ -288,7 +360,6 @@ func set_collision_enabled(enable: bool) -> void:
 		else:
 			collision_shape.disabled = true
 
-		# Cave collision shape (bound only if subterranean collision is active)
 		if cave_collision_shape != null:
 			if is_subterranean_visible():
 				if cave_collision_shape.shape == null and _cached_prebaked_cave_shape != null:
@@ -303,7 +374,6 @@ func set_collision_enabled(enable: bool) -> void:
 		collision_shape.disabled = true
 		if cave_collision_shape != null:
 			cave_collision_shape.disabled = true
-
 
 func is_collision_enabled() -> bool:
 	var surf_active = (collision_shape != null and not collision_shape.disabled and collision_shape.shape != null)

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="FoliageGeneratorConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/generation/foliage_generator_config.gd" id="1_cfg"]
+
+[resource]
+script = ExtResource("1_cfg")
+enabled = true
+world_seed = 1337
+density_probability = 0.55
+max_tufts_per_voxel = 2
+jitter_spread = 0.35
+target_material_id = 1
+min_scale = 0.75
+max_scale = 1.25
+random_y_rotation = true
+

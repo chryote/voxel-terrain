@@ -3,7 +3,6 @@ extends RefCounted
 
 ## Material factory providing shared ShaderMaterial instances for voxel terrain geometry.
 ## Keeps ChunkNode and meshing logic completely decoupled from specific visual shaders and themes.
-
 const HALFTONE_SHADER_PATH = "res://shaders/terrain/halftone_terrain.gdshader"
 const ASCII_SHADER_PATH = "res://shaders/terrain/ascii_terrain.gdshader"
 
@@ -13,18 +12,20 @@ const AsciiAtlasGeneratorClass = preload("res://src/rendering/ascii_atlas_genera
 const AsciiMaterialMapperClass = preload("res://src/rendering/ascii_material_mapper.gd")
 const StrataPaletteRegistryClass = preload("res://src/rendering/strata_palette_registry.gd")
 const ToonWaterProviderClass = preload("res://src/rendering/toon_water_material_provider.gd")
+const FoliageProviderClass = preload("res://src/rendering/foliage_material_provider.gd")
 
 static var _cached_surface_material: ShaderMaterial = null
 static var _cached_cave_material: ShaderMaterial = null
 static var _cached_ascii_surface_material: ShaderMaterial = null
 static var _cached_ascii_cave_material: ShaderMaterial = null
 
+static func get_grass_material(config: Resource = null) -> ShaderMaterial:
+	return FoliageProviderClass.get_grass_material(config)
 static func get_water_material(config: Resource = null) -> ShaderMaterial:
 	return ToonWaterProviderClass.get_water_material(config)
 
 static func get_ocean_material(config: Resource = null) -> ShaderMaterial:
 	return ToonWaterProviderClass.get_ocean_material(config)
-
 static func get_subterranean_water_material(config: Resource = null) -> ShaderMaterial:
 	return ToonWaterProviderClass.get_subterranean_water_material(config)
 
@@ -90,6 +91,7 @@ static func reset() -> void:
 	_cached_ascii_surface_material = null
 	_cached_ascii_cave_material = null
 	ToonWaterProviderClass.reset()
+	FoliageProviderClass.reset()
 
 static func _get_or_update_halftone(config: Resource, is_cave: bool) -> ShaderMaterial:
 	var cached = _cached_cave_material if is_cave else _cached_surface_material

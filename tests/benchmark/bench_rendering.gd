@@ -32,6 +32,8 @@ func bench_render_surface_scene_complexity() -> void:
 	var loaded_chunks = world.get_loaded_chunk_count()
 	var visible_surface_meshes = 0
 	var visible_water_meshes = 0
+	var visible_foliage_meshes = 0
+	var total_foliage_instances = 0
 	var total_mesh_instances = 0
 
 	for key in world._loaded_chunks.keys():
@@ -42,6 +44,9 @@ func bench_render_surface_scene_complexity() -> void:
 				visible_surface_meshes += 1
 			if node.water_instance != null and node.water_instance.mesh != null and node.water_instance.visible:
 				visible_water_meshes += 1
+			if node.grass_instance != null and node.grass_instance.multimesh != null and node.grass_instance.visible:
+				visible_foliage_meshes += 1
+				total_foliage_instances += node.grass_instance.multimesh.instance_count
 
 	var dc = int(RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME))
 	if dc <= 0:
@@ -56,15 +61,18 @@ func bench_render_surface_scene_complexity() -> void:
 	# Record metrics into BenchmarkCase results dictionary
 	_results["surface_visible_draw_surfaces"] = {
 		"name": "surface_visible_draw_surfaces",
-		"avg_ms": float(visible_surface_meshes + visible_water_meshes),
+		"avg_ms": float(visible_surface_meshes + visible_water_meshes + visible_foliage_meshes),
 		"median_ms": float(visible_surface_meshes),
-		"p95_ms": float(visible_surface_meshes + visible_water_meshes),
+		"p95_ms": float(visible_surface_meshes + visible_water_meshes + visible_foliage_meshes),
 		"min_ms": float(visible_surface_meshes),
-		"max_ms": float(visible_surface_meshes + visible_water_meshes),
+		"max_ms": float(visible_surface_meshes + visible_water_meshes + visible_foliage_meshes),
 		"iterations": 1,
 		"loaded_chunks": loaded_chunks,
 		"visible_surface_meshes": visible_surface_meshes,
 		"visible_water_meshes": visible_water_meshes,
+		"visible_foliage_meshes": visible_foliage_meshes,
+		"total_foliage_instances": total_foliage_instances,
+		"total_foliage_triangles": total_foliage_instances * 6,
 		"hardware_draw_calls": dc,
 		"hardware_primitives": prims,
 		"process_time_ms": proc_ms

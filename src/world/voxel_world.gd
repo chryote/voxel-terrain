@@ -41,6 +41,16 @@ signal spawn_mode_changed(is_underground: bool, spawn_position: Vector3)
 			if node is ChunkNode and node.cave_water_instance != null:
 				node.cave_water_instance.visible = val and node.is_subterranean_visible()
 
+@export var foliage_enabled: bool = true:
+	set(val):
+		foliage_enabled = val
+		if scheduler != null:
+			scheduler.foliage_enabled = val
+		_update_chunk_collisions(true)
+@export var foliage_distance_chunks: int = 2
+@export var foliage_generator_config: Resource = null
+@export var foliage_theme: Resource = null
+
 const SpawnFinder = preload("res://src/world/spawn_finder.gd")
 
 var bounds: WorldBounds
@@ -142,6 +152,24 @@ func _ready() -> void:
 		mesher.cave_water_enabled = cave_water_enabled
 	streamer = ChunkStreamer.new()
 	scheduler = ChunkScheduler.new()
+	scheduler.foliage_enabled = foliage_enabled
+	if foliage_generator_config != null:
+		scheduler.foliage_config = foliage_generator_config
+	elif ResourceLoader.exists("res://config/default_foliage_generator.tres"):
+		scheduler.foliage_config = load("res://config/default_foliage_generator.tres")
+
+	var fol_theme = foliage_theme
+	if fol_theme == null and ResourceLoader.exists("res://config/foliage_config.tres"):
+		fol_theme = load("res://config/foliage_config.tres")
+	if fol_theme != null:
+		var ProviderClass = preload("res://src/rendering/terrain_material_provider.gd")
+		ChunkNode.configure_shared_materials(
+			ChunkNode.get_shared_surface_material(),
+			ChunkNode.get_shared_cave_material(),
+			ChunkNode.get_shared_water_material(),
+			ChunkNode.get_shared_subterranean_water_material(),
+			ProviderClass.get_grass_material(fol_theme)
+		)
 
 	_chunks_root = Node3D.new()
 	_chunks_root.name = "Chunks"
@@ -253,6 +281,12 @@ func _load_chunk_sync(coord: ChunkCoord) -> void:
 
 	var chunk_data = generator.generate(coord, bounds)
 	var mesh_data = mesher.build_mesh(chunk_data, material_registry)
+	if foliage_enabled:
+		var s_data: SurfaceChunkData = chunk_data as SurfaceChunkData
+		if s_data == null and "surface_data" in chunk_data:
+			s_data = chunk_data.surface_data as SurfaceChunkData
+		if s_data != null and scheduler != null and scheduler._foliage_generator != null:
+			mesh_data.foliage_data = scheduler._foliage_generator.generate(coord, s_data, scheduler.foliage_config)
 
 	var chunk_node = _acquire_chunk_node(coord)
 	_loaded_chunks[key] = chunk_node
@@ -260,7 +294,7 @@ func _load_chunk_sync(coord: ChunkCoord) -> void:
 	var origin = bounds.chunk_origin(coord)
 	var baker = OffThreadCollisionBaker.new()
 	var shapes = baker.bake_shapes_for_bundle(mesh_data)
-	chunk_node.setup(coord, origin, mesh_data, true, shapes.surface_shape, shapes.cave_shape)
+	chunk_node.setup(coord, origin, mesh_data, true, shapes.surface_shape, shapes.cave_shape, foliage_enabled)
 	_mouth_cache[key] = chunk_node.has_cave_mouth
 	subterranean_coordinator.register_surface_chunk(coord, chunk_node.has_cave_mouth)
 	subterranean_coordinator.mark_subterranean_ready(coord)
@@ -308,6 +342,7 @@ func _process_completed_chunks() -> void:
 
 		var dist_to_focus = focus_chunk.chebyshev_distance_to(coord)
 		var enable_collision = (dist_to_focus <= world_config.collision_distance_chunks)
+		var enable_foliage = foliage_enabled and (dist_to_focus <= foliage_distance_chunks)
 
 		var chunk_node: ChunkNode
 		if _loaded_chunks.has(key):
@@ -319,7 +354,7 @@ func _process_completed_chunks() -> void:
 		var origin = bounds.chunk_origin(coord)
 		var surf_shape = item.get("surface_shape", null)
 		var cave_shape = item.get("cave_shape", null)
-		chunk_node.setup(coord, origin, mesh_data, enable_collision, surf_shape, cave_shape)
+		chunk_node.setup(coord, origin, mesh_data, enable_collision, surf_shape, cave_shape, enable_foliage)
 		_mouth_cache[key] = chunk_node.has_cave_mouth
 
 		var s_data = item.get("data", null) as SurfaceChunkData
@@ -480,6 +515,8 @@ func _update_layer_visibility(force: bool = false) -> void:
 		water_plane.set_ocean_visible(not is_subterranean)
 
 func _update_chunk_collisions(force: bool = false) -> void:
+	if bounds == null or world_config == null or _loaded_chunks == null:
+		return
 	var focus_pos = _get_focus_position()
 	var focus_chunk = bounds.world_to_chunk(focus_pos)
 
@@ -488,10 +525,12 @@ func _update_chunk_collisions(force: bool = false) -> void:
 	_last_collision_chunk = focus_chunk
 
 	var col_dist = world_config.collision_distance_chunks
+	var fol_dist = foliage_distance_chunks
 	for chunk_node in _loaded_chunks.values():
 		if chunk_node is ChunkNode:
 			var dist = focus_chunk.chebyshev_distance_to(chunk_node.coord)
 			chunk_node.set_collision_enabled(dist <= col_dist)
+			chunk_node.set_foliage_enabled(foliage_enabled and (dist <= fol_dist))
 
 
 # -----------------------------------------------------------------------------

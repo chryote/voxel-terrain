@@ -184,7 +184,10 @@ func _ready() -> void:
 			ChunkNode.get_shared_subterranean_water_material(),
 			ProviderClass.get_grass_material(fol_theme),
 			ChunkNode.get_shared_grass_mesh(),
-			ChunkNode.get_shared_grass_mesh_lod()
+			ChunkNode.get_shared_grass_mesh_lod(),
+			ProviderClass.get_bush_material(fol_theme),
+			ChunkNode.get_shared_bush_mesh(),
+			ChunkNode.get_shared_bush_mesh_lod()
 		)
 		_sync_foliage_fade_distance()
 
@@ -538,21 +541,26 @@ func _update_layer_visibility(force: bool = false) -> void:
 
 
 func _sync_foliage_fade_distance() -> void:
-	var fol_mat = ChunkNode.get_shared_grass_material() as ShaderMaterial
-	if fol_mat == null:
-		return
-	if foliage_theme != null and ("distance_fade_enabled" in foliage_theme) and not foliage_theme.distance_fade_enabled:
-		fol_mat.set_shader_parameter("distance_fade_enabled", false)
-		return
-	fol_mat.set_shader_parameter("distance_fade_enabled", true)
+	var fol_mats = [
+		ChunkNode.get_shared_grass_material() as ShaderMaterial,
+		ChunkNode.get_shared_bush_material() as ShaderMaterial
+	]
 	var c_size = world_config.chunk_size if world_config != null else 32
 	var v_size = world_config.voxel_size if world_config != null else 1.0
 	var view_dist = world_config.view_distance_chunks if world_config != null else 8
 	var max_chunks = mini(foliage_max_distance_chunks, view_dist)
 	var max_meters = float(max_chunks * c_size) * v_size
 	var fade_start = maxf(20.0, max_meters * 0.8)
-	fol_mat.set_shader_parameter("distance_fade_start", fade_start)
-	fol_mat.set_shader_parameter("distance_fade_max", max_meters)
+
+	for m in fol_mats:
+		if m == null:
+			continue
+		if foliage_theme != null and ("distance_fade_enabled" in foliage_theme) and not foliage_theme.distance_fade_enabled:
+			m.set_shader_parameter("distance_fade_enabled", false)
+			continue
+		m.set_shader_parameter("distance_fade_enabled", true)
+		m.set_shader_parameter("distance_fade_start", fade_start)
+		m.set_shader_parameter("distance_fade_max", max_meters)
 
 func _update_chunk_collisions(force: bool = false) -> void:
 	if bounds == null or world_config == null or _loaded_chunks == null:

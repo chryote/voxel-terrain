@@ -21,6 +21,9 @@ static var _cached_ascii_cave_material: ShaderMaterial = null
 
 static func get_grass_material(config: Resource = null) -> ShaderMaterial:
 	return FoliageProviderClass.get_grass_material(config)
+
+static func get_bush_material(config: Resource = null) -> ShaderMaterial:
+	return FoliageProviderClass.get_bush_material(config)
 static func get_water_material(config: Resource = null) -> ShaderMaterial:
 	return ToonWaterProviderClass.get_water_material(config)
 

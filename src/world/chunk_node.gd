@@ -12,6 +12,7 @@ var has_cave_mouth: bool = false
 var mesh_instance: MeshInstance3D
 var water_instance: MeshInstance3D
 var grass_instance: MultiMeshInstance3D
+var bush_instance: MultiMeshInstance3D
 
 # Subterranean cave visual and water instances
 var cave_mesh_instance: MeshInstance3D
@@ -31,6 +32,9 @@ static var _shared_subterranean_water_material: Material
 static var _shared_grass_material: Material
 static var _shared_grass_mesh: Mesh
 static var _shared_grass_mesh_lod: Mesh
+static var _shared_bush_material: Material
+static var _shared_bush_mesh: Mesh
+static var _shared_bush_mesh_lod: Mesh
 static var _shared_lod_density: float = 0.25
 
 static func configure_shared_materials(
@@ -40,7 +44,10 @@ static func configure_shared_materials(
 	cave_water_mat: Material = null,
 	grass_mat: Material = null,
 	grass_mesh: Mesh = null,
-	grass_mesh_lod: Mesh = null
+	grass_mesh_lod: Mesh = null,
+	bush_mat: Material = null,
+	bush_mesh: Mesh = null,
+	bush_mesh_lod: Mesh = null
 ) -> void:
 	_shared_material = surface_mat
 	_shared_cave_material = cave_mat
@@ -54,6 +61,12 @@ static func configure_shared_materials(
 		_shared_grass_mesh = grass_mesh
 	if grass_mesh_lod != null:
 		_shared_grass_mesh_lod = grass_mesh_lod
+	if bush_mat != null:
+		_shared_bush_material = bush_mat
+	if bush_mesh != null:
+		_shared_bush_mesh = bush_mesh
+	if bush_mesh_lod != null:
+		_shared_bush_mesh_lod = bush_mesh_lod
 
 static func get_shared_surface_material() -> Material:
 	return _shared_material
@@ -75,6 +88,10 @@ static func get_shared_grass_material() -> Material:
 static func get_shared_grass_mesh() -> Mesh:
 	if _shared_grass_mesh == null and ResourceLoader.exists("res://assets/models/grass_tuft.tres"):
 		_shared_grass_mesh = load("res://assets/models/grass_tuft.tres")
+	if _shared_bush_material == null:
+		_shared_bush_material = MaterialProviderClass.get_bush_material()
+	if _shared_bush_mesh == null and ResourceLoader.exists("res://assets/models/bush.tres"):
+		_shared_bush_mesh = load("res://assets/models/bush.tres")
 	return _shared_grass_mesh
 
 static func get_shared_grass_mesh_lod() -> Mesh:
@@ -83,6 +100,23 @@ static func get_shared_grass_mesh_lod() -> Mesh:
 	if _shared_grass_mesh_lod == null:
 		return get_shared_grass_mesh()
 	return _shared_grass_mesh_lod
+
+static func get_shared_bush_material() -> Material:
+	if _shared_bush_material == null:
+		_shared_bush_material = MaterialProviderClass.get_bush_material()
+	return _shared_bush_material
+
+static func get_shared_bush_mesh() -> Mesh:
+	if _shared_bush_mesh == null and ResourceLoader.exists("res://assets/models/bush.tres"):
+		_shared_bush_mesh = load("res://assets/models/bush.tres")
+	return _shared_bush_mesh
+
+static func get_shared_bush_mesh_lod() -> Mesh:
+	if _shared_bush_mesh_lod == null and ResourceLoader.exists("res://assets/models/bush_lod.tres"):
+		_shared_bush_mesh_lod = load("res://assets/models/bush_lod.tres")
+	if _shared_bush_mesh_lod == null:
+		return get_shared_bush_mesh()
+	return _shared_bush_mesh_lod
 
 static func set_shared_lod_density(density: float) -> void:
 	_shared_lod_density = clampf(density, 0.05, 1.0)
@@ -103,6 +137,10 @@ func _init() -> void:
 		_shared_grass_material = MaterialProviderClass.get_grass_material()
 	if _shared_grass_mesh == null and ResourceLoader.exists("res://assets/models/grass_tuft.tres"):
 		_shared_grass_mesh = load("res://assets/models/grass_tuft.tres")
+	if _shared_bush_material == null:
+		_shared_bush_material = MaterialProviderClass.get_bush_material()
+	if _shared_bush_mesh == null and ResourceLoader.exists("res://assets/models/bush.tres"):
+		_shared_bush_mesh = load("res://assets/models/bush.tres")
 
 func _ready() -> void:
 	_ensure_nodes_exist()
@@ -134,6 +172,18 @@ func _ensure_nodes_exist() -> void:
 		grass_instance.multimesh = mm
 		grass_instance.material_override = get_shared_grass_material()
 		add_child(grass_instance)
+
+	if bush_instance == null:
+		bush_instance = MultiMeshInstance3D.new()
+		bush_instance.name = "BushMultiMeshInstance"
+		bush_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		bush_instance.visible = false
+		var mm = MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = get_shared_bush_mesh()
+		bush_instance.multimesh = mm
+		bush_instance.material_override = get_shared_bush_material()
+		add_child(bush_instance)
 
 	if static_body == null:
 		static_body = StaticBody3D.new()
@@ -239,11 +289,21 @@ func setup(
 			grass_instance.multimesh.buffer = _cached_foliage_data.transform_buffer
 			_apply_foliage_detail(_foliage_low_detail)
 			grass_instance.visible = _foliage_distance_enabled and is_surface_visible()
+		if bush_instance != null and bush_instance.multimesh != null:
+			var b_count = _cached_foliage_data.bush_instance_count if "bush_instance_count" in _cached_foliage_data else 0
+			bush_instance.multimesh.instance_count = b_count
+			if b_count > 0:
+				bush_instance.multimesh.buffer = _cached_foliage_data.bush_transform_buffer
+			_apply_bush_detail(_foliage_low_detail)
+			bush_instance.visible = _foliage_distance_enabled and is_surface_visible() and (b_count > 0)
 	else:
 		_cached_foliage_data = null
 		if grass_instance != null and grass_instance.multimesh != null:
 			grass_instance.multimesh.instance_count = 0
 			grass_instance.visible = false
+		if bush_instance != null and bush_instance.multimesh != null:
+			bush_instance.multimesh.instance_count = 0
+			bush_instance.visible = false
 
 	set_collision_enabled(enable_collision)
 
@@ -256,6 +316,10 @@ func prepare_for_pool() -> void:
 	_cached_prebaked_surface_shape = null
 	_cached_prebaked_cave_shape = null
 	_cached_foliage_data = null
+
+	if bush_instance != null and bush_instance.multimesh != null:
+		bush_instance.multimesh.instance_count = 0
+		bush_instance.visible = false
 
 	if mesh_instance != null:
 		mesh_instance.mesh = null
@@ -323,6 +387,13 @@ func apply_subterranean_bundle(
 			grass_instance.multimesh.buffer = _cached_foliage_data.transform_buffer
 			_apply_foliage_detail(_foliage_low_detail)
 			grass_instance.visible = _foliage_distance_enabled and is_surface_visible()
+		if bush_instance != null and bush_instance.multimesh != null:
+			var b_count = _cached_foliage_data.bush_instance_count if "bush_instance_count" in _cached_foliage_data else 0
+			bush_instance.multimesh.instance_count = b_count
+			if b_count > 0:
+				bush_instance.multimesh.buffer = _cached_foliage_data.bush_transform_buffer
+			_apply_bush_detail(_foliage_low_detail)
+			bush_instance.visible = _foliage_distance_enabled and is_surface_visible() and (b_count > 0)
 
 	if prebaked_cave_shape != null:
 		_cached_prebaked_cave_shape = prebaked_cave_shape
@@ -368,9 +439,17 @@ func set_foliage_enabled(enable: bool, is_low_detail: bool = false) -> void:
 		grass_instance.visible = enable and has_data and is_surface_visible()
 		if grass_instance.visible and has_data:
 			_apply_foliage_detail(is_low_detail)
+	if bush_instance != null:
+		var b_count = _cached_foliage_data.bush_instance_count if (_cached_foliage_data != null and "bush_instance_count" in _cached_foliage_data) else 0
+		bush_instance.visible = enable and (b_count > 0) and is_surface_visible()
+		if bush_instance.visible and (b_count > 0):
+			_apply_bush_detail(is_low_detail)
 
 func is_foliage_enabled() -> bool:
-	return _foliage_distance_enabled and grass_instance != null and grass_instance.visible
+	return _foliage_distance_enabled and (
+		(grass_instance != null and grass_instance.visible) or
+		(bush_instance != null and bush_instance.visible)
+	)
 
 func is_foliage_low_detail() -> bool:
 	return _foliage_low_detail
@@ -385,6 +464,20 @@ func _apply_foliage_detail(is_low_detail: bool) -> void:
 	if is_low_detail:
 		var lod_count = maxi(1, int(float(_cached_foliage_data.instance_count) * _shared_lod_density))
 		mm.visible_instance_count = mini(lod_count, _cached_foliage_data.instance_count)
+	else:
+		mm.visible_instance_count = -1
+
+func _apply_bush_detail(is_low_detail: bool) -> void:
+	if bush_instance == null or bush_instance.multimesh == null or _cached_foliage_data == null:
+		return
+	var mm = bush_instance.multimesh
+	var target_mesh = get_shared_bush_mesh_lod() if is_low_detail else get_shared_bush_mesh()
+	if target_mesh != null and mm.mesh != target_mesh:
+		mm.mesh = target_mesh
+	var b_count = _cached_foliage_data.bush_instance_count if "bush_instance_count" in _cached_foliage_data else 0
+	if is_low_detail:
+		var lod_count = maxi(1, int(float(b_count) * _shared_lod_density))
+		mm.visible_instance_count = mini(lod_count, b_count)
 	else:
 		mm.visible_instance_count = -1
 

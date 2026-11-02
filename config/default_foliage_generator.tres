@@ -13,4 +13,8 @@ target_material_id = 1
 min_scale = 0.75
 max_scale = 1.25
 random_y_rotation = true
-
+bushes_enabled = true
+bush_density_probability = 0.05
+bush_jitter_spread = 0.25
+bush_min_scale = 0.8
+bush_max_scale = 1.35

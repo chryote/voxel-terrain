@@ -50,56 +50,45 @@ func generate(
 			var wx = chunk_wx + lx
 			var wz = chunk_wz + lz
 			_scatter_voxel_foliage(lx, lz, wx, wz, surface_data, cfg, seed_val, foliage_data)
+			if cfg.bushes_enabled:
+				_scatter_voxel_bush(lx, lz, wx, wz, surface_data, cfg, seed_val, foliage_data)
 
-	if cfg.enabled and foliage_data.instance_count > 1:
+	if cfg.enabled and (foliage_data.instance_count > 1 or foliage_data.bush_instance_count > 1):
 		var shuffle_seed: int = seed_val ^ (coord.x * 73856093) ^ (coord.z * 19349663)
 		foliage_data.shuffle_deterministically(shuffle_seed)
 
 	return foliage_data
 
 func _scatter_voxel_foliage(
-	lx: int,
-	lz: int,
-	wx: int,
-	wz: int,
-	surface_data: SurfaceChunkData,
-	cfg: FoliageGeneratorConfig,
-	seed_val: int,
-	out_data: FoliageChunkData
+	lx: int, lz: int, wx: int, wz: int,
+	surface_data: SurfaceChunkData, cfg: FoliageGeneratorConfig, seed_val: int, out_data: FoliageChunkData
 ) -> void:
-	var spawn_hash = _hash_coord(wx, wz, seed_val, 0)
-	if _hash_to_float(spawn_hash) > cfg.density_probability:
+	if _hash_to_float(_hash_coord(wx, wz, seed_val, 0)) > cfg.density_probability:
 		return
-
-	var count_hash = _hash_coord(wx, wz, seed_val, 1)
-	var max_tufts = maxi(1, cfg.max_tufts_per_voxel)
-	var tuft_count = 1 + (count_hash % max_tufts)
+	var tuft_count = 1 + (_hash_coord(wx, wz, seed_val, 1) % maxi(1, cfg.max_tufts_per_voxel))
 	var h = float(surface_data.get_height(lx, lz))
-
 	for t_idx in range(tuft_count):
-		var t = _build_tuft_transform(lx, lz, wx, wz, h, t_idx, cfg, seed_val)
+		var t = _build_transform(lx, lz, wx, wz, h, 2 + t_idx * 4, cfg.jitter_spread, cfg.min_scale, cfg.max_scale, cfg.random_y_rotation, seed_val)
 		out_data.add_instance(t)
 
-func _build_tuft_transform(
-	lx: int,
-	lz: int,
-	wx: int,
-	wz: int,
-	h: float,
-	t_idx: int,
-	cfg: FoliageGeneratorConfig,
-	seed_val: int
+func _scatter_voxel_bush(
+	lx: int, lz: int, wx: int, wz: int,
+	surface_data: SurfaceChunkData, cfg: FoliageGeneratorConfig, seed_val: int, out_data: FoliageChunkData
+) -> void:
+	if _hash_to_float(_hash_coord(wx, wz, seed_val, 100)) > cfg.bush_density_probability:
+		return
+	var h = float(surface_data.get_height(lx, lz))
+	var t = _build_transform(lx, lz, wx, wz, h, 101, cfg.bush_jitter_spread, cfg.bush_min_scale, cfg.bush_max_scale, cfg.random_y_rotation, seed_val)
+	out_data.add_bush_instance(t)
+
+func _build_transform(
+	lx: int, lz: int, wx: int, wz: int, h: float,
+	salt_base: int, jitter: float, min_s: float, max_s: float, rand_rot: bool, seed_val: int
 ) -> Transform3D:
-	var jx_hash = _hash_coord(wx, wz, seed_val, 2 + t_idx * 4)
-	var jz_hash = _hash_coord(wx, wz, seed_val, 3 + t_idx * 4)
-	var rot_hash = _hash_coord(wx, wz, seed_val, 4 + t_idx * 4)
-	var scale_hash = _hash_coord(wx, wz, seed_val, 5 + t_idx * 4)
-
-	var dx = (_hash_to_float(jx_hash) * 2.0 - 1.0) * cfg.jitter_spread
-	var dz = (_hash_to_float(jz_hash) * 2.0 - 1.0) * cfg.jitter_spread
-	var scale_factor = lerpf(cfg.min_scale, cfg.max_scale, _hash_to_float(scale_hash))
-	var angle = _hash_to_float(rot_hash) * TAU if cfg.random_y_rotation else 0.0
-
+	var dx = (_hash_to_float(_hash_coord(wx, wz, seed_val, salt_base + 0)) * 2.0 - 1.0) * jitter
+	var dz = (_hash_to_float(_hash_coord(wx, wz, seed_val, salt_base + 1)) * 2.0 - 1.0) * jitter
+	var angle = _hash_to_float(_hash_coord(wx, wz, seed_val, salt_base + 2)) * TAU if rand_rot else 0.0
+	var scale_factor = lerpf(min_s, max_s, _hash_to_float(_hash_coord(wx, wz, seed_val, salt_base + 3)))
 	var origin = Vector3(float(lx) + 0.5 + dx, h, float(lz) + 0.5 + dz)
 	var basis = Basis().rotated(Vector3.UP, angle).scaled(Vector3(scale_factor, scale_factor, scale_factor))
 	return Transform3D(basis, origin)

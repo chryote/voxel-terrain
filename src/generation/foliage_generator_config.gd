@@ -18,3 +18,9 @@ extends Resource
 @export_range(0.5, 2.5, 0.05) var max_scale: float = 1.25 ## Maximum uniform scale multiplier
 @export var random_y_rotation: bool = true ## Random yaw rotation [0..2*PI]
 
+@export_group("Bushes")
+@export var bushes_enabled: bool = true
+@export_range(0.0, 0.5, 0.01) var bush_density_probability: float = 0.05 ## Probability of placing a bush on a candidate voxel
+@export_range(0.05, 0.45, 0.05) var bush_jitter_spread: float = 0.25 ## Bush horizontal jitter offset (+/- meters)
+@export_range(0.5, 2.0, 0.05) var bush_min_scale: float = 0.8 ## Minimum uniform scale for bushes
+@export_range(0.8, 3.0, 0.05) var bush_max_scale: float = 1.35 ## Maximum uniform scale for bushes

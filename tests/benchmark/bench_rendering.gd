@@ -34,6 +34,7 @@ func bench_render_surface_scene_complexity() -> void:
 	var visible_water_meshes = 0
 	var visible_foliage_meshes = 0
 	var total_foliage_instances = 0
+	var total_bush_instances = 0
 	var total_mesh_instances = 0
 
 	for key in world._loaded_chunks.keys():
@@ -47,6 +48,9 @@ func bench_render_surface_scene_complexity() -> void:
 			if node.grass_instance != null and node.grass_instance.multimesh != null and node.grass_instance.visible:
 				visible_foliage_meshes += 1
 				total_foliage_instances += node.grass_instance.multimesh.instance_count
+			if node.bush_instance != null and node.bush_instance.multimesh != null and node.bush_instance.visible:
+				visible_foliage_meshes += 1
+				total_bush_instances += node.bush_instance.multimesh.instance_count
 
 	var dc = int(RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME))
 	if dc <= 0:
@@ -72,7 +76,8 @@ func bench_render_surface_scene_complexity() -> void:
 		"visible_water_meshes": visible_water_meshes,
 		"visible_foliage_meshes": visible_foliage_meshes,
 		"total_foliage_instances": total_foliage_instances,
-		"total_foliage_triangles": total_foliage_instances * 6,
+		"total_bush_instances": total_bush_instances,
+		"total_foliage_triangles": total_foliage_instances * 6 + total_bush_instances * 12,
 		"hardware_draw_calls": dc,
 		"hardware_primitives": prims,
 		"process_time_ms": proc_ms

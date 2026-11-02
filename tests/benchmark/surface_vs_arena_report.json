@@ -1,109 +1,109 @@
 {
   "disparity": {
-    "bake_ratio": 0.559735394915119,
-    "gen_ratio": 1.64201990316154,
-    "mesh_ratio": 1.2273230622638,
-    "total_ratio": 1.40884080095221
+    "bake_ratio": 1.0754308278099,
+    "gen_ratio": 1.73516013613754,
+    "mesh_ratio": 1.55963298695556,
+    "total_ratio": 1.60818278530293
   },
   "surface": {
     "bake_stats": {
-      "avg": 1.75658,
-      "max": 5.598,
-      "median": 1.5245,
-      "min": 0.345,
-      "p95": 3.632,
-      "pct": 12.8426375156093,
-      "total": 175.658
+      "avg": 1.77275,
+      "max": 5.229,
+      "median": 1.538,
+      "min": 0.392,
+      "p95": 3.506,
+      "pct": 11.4645006289227,
+      "total": 177.275
     },
     "chunk_count": 100,
     "gen_stats": {
-      "avg": 8.81468,
-      "max": 10.242,
-      "median": 8.7505,
-      "min": 8.332,
-      "p95": 9.354,
-      "pct": 64.4455362443449,
-      "total": 881.468
+      "avg": 9.1672,
+      "max": 10.998,
+      "median": 9.075,
+      "min": 8.566,
+      "p95": 10.082,
+      "pct": 59.2849359274912,
+      "total": 916.72
     },
     "geometry": {
-      "avg_triangles": 2021.88,
-      "avg_vertices": 4043.76,
+      "avg_triangles": 2022.44,
+      "avg_vertices": 4044.88,
       "total_cave_triangles": 0,
       "total_cave_vertices": 0,
-      "total_triangles": 202188,
-      "total_vertices": 404376
+      "total_triangles": 202244,
+      "total_vertices": 404488
     },
     "mesh_stats": {
-      "avg": 3.10646,
-      "max": 5.708,
-      "median": 2.9695,
-      "min": 1.602,
-      "p95": 4.782,
-      "pct": 22.7118262400458,
-      "total": 310.646
+      "avg": 4.523,
+      "max": 10.374,
+      "median": 3.602,
+      "min": 1.645,
+      "p95": 8.911,
+      "pct": 29.2505634435861,
+      "total": 452.3
     },
     "name": "Surface Overland",
-    "throughput_chunks_per_sec": 73.1116004714236,
-    "total_duration_ms": 1367.772,
+    "throughput_chunks_per_sec": 64.6707128976037,
+    "total_duration_ms": 1546.295,
     "total_stats": {
-      "avg": 13.67772,
-      "max": 20.171,
-      "median": 13.4195,
-      "min": 10.507,
-      "p95": 17.036,
+      "avg": 15.46295,
+      "max": 24.554,
+      "median": 14.9625,
+      "min": 11.045,
+      "p95": 21.213,
       "pct": 100.0,
-      "total": 1367.772
+      "total": 1546.295
     }
   },
-  "timestamp": "2026-10-19T13:36:55",
+  "timestamp": "2026-11-02T20:43:20",
   "underground_arena": {
     "bake_stats": {
-      "avg": 0.98322,
-      "max": 2.454,
-      "median": 0.847,
-      "min": 0.285,
-      "p95": 2.011,
-      "pct": 5.10240672806521,
-      "total": 98.322
+      "avg": 1.90647,
+      "max": 4.908,
+      "median": 1.788,
+      "min": 0.461,
+      "p95": 3.633,
+      "pct": 7.66658959072676,
+      "total": 190.647
     },
     "chunk_count": 100,
     "gen_stats": {
-      "avg": 14.47388,
-      "max": 16.267,
-      "median": 14.665,
-      "min": 9.694,
-      "p95": 15.664,
-      "pct": 75.1120020882494,
-      "total": 1447.388
+      "avg": 15.90656,
+      "max": 35.812,
+      "median": 15.968,
+      "min": 9.546,
+      "p95": 18.393,
+      "pct": 63.9658989232827,
+      "total": 1590.656
     },
     "geometry": {
-      "avg_triangles": 1340.32,
-      "avg_vertices": 2680.64,
-      "total_cave_triangles": 42304,
-      "total_cave_vertices": 84608,
-      "total_triangles": 134032,
-      "total_vertices": 268064
+      "avg_triangles": 2454.06,
+      "avg_vertices": 4908.12,
+      "total_cave_triangles": 100870,
+      "total_cave_vertices": 201740,
+      "total_triangles": 245406,
+      "total_vertices": 490812
     },
     "mesh_stats": {
-      "avg": 3.81263,
-      "max": 6.049,
-      "median": 3.913,
-      "min": 1.635,
-      "p95": 5.009,
-      "pct": 19.7855911836855,
-      "total": 381.263
+      "avg": 7.05422,
+      "max": 16.152,
+      "median": 6.669,
+      "min": 1.838,
+      "p95": 12.778,
+      "pct": 28.3675114859906,
+      "total": 705.422
     },
     "name": "Underground Arena",
-    "throughput_chunks_per_sec": 51.894863083188,
-    "total_duration_ms": 1926.973,
+    "throughput_chunks_per_sec": 40.2135338648222,
+    "total_duration_ms": 2486.725,
     "total_stats": {
-      "avg": 19.26973,
-      "max": 23.976,
-      "median": 19.353,
-      "min": 12.075,
-      "p95": 22.129,
+      "avg": 24.86725,
+      "max": 42.87,
+      "median": 24.6305,
+      "min": 14.837,
+      "p95": 31.309,
       "pct": 100.0,
-      "total": 1926.973
+      "total": 2486.725
     }
   }
 }

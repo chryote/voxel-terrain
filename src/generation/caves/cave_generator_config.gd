@@ -19,7 +19,7 @@ extends Resource
 
 @export_group("Cave Mouth Generation Limits")
 @export var limit_cave_mouths: bool = true ## Master switch to limit cave mouth generation across continent
-@export var max_chasm_mouths: int = 3 ## Maximum allowed cave mouths leading to underground chasms
+@export var max_chasm_mouths: int = 1 ## Maximum allowed cave mouths leading to underground chasms
 @export var max_tunnel_mouths: int = 1 ## Maximum allowed cave mouths leading to interconnected 3D tunnels
 @export var max_dead_end_mouths: int = 0 ## Maximum allowed shallow dead-end cave mouths
 @export_range(0.0, 0.8) var min_inland_threshold: float = 0.28 ## Minimum continental inland factor required for cave mouth placement (prevents mouths near coasts and on offshore islands)

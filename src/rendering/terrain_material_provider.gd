@@ -24,11 +24,13 @@ static func get_grass_material(config: Resource = null) -> ShaderMaterial:
 
 static func get_bush_material(config: Resource = null) -> ShaderMaterial:
 	return FoliageProviderClass.get_bush_material(config)
+
 static func get_water_material(config: Resource = null) -> ShaderMaterial:
 	return ToonWaterProviderClass.get_water_material(config)
 
 static func get_ocean_material(config: Resource = null) -> ShaderMaterial:
 	return ToonWaterProviderClass.get_ocean_material(config)
+
 static func get_subterranean_water_material(config: Resource = null) -> ShaderMaterial:
 	return ToonWaterProviderClass.get_subterranean_water_material(config)
 
@@ -110,31 +112,22 @@ static func _get_or_update_halftone(config: Resource, is_cave: bool) -> ShaderMa
 
 static func _create_halftone_material(config: Resource, is_cave: bool) -> ShaderMaterial:
 	var mat = ShaderMaterial.new()
-	var shader = load(HALFTONE_SHADER_PATH) as Shader
-	if shader != null:
-		mat.shader = shader
-	if config == null:
-		config = GraphicNovelConfigClass.create_default_config()
-	_apply_halftone_uniforms(mat, config, is_cave)
+	mat.shader = load(HALFTONE_SHADER_PATH) as Shader
+	_apply_halftone_uniforms(mat, config if config != null else GraphicNovelConfigClass.create_default_config(), is_cave)
 	return mat
 
 static func _create_ascii_material(config: Resource, is_cave: bool) -> ShaderMaterial:
 	var mat = ShaderMaterial.new()
-	var shader = load(ASCII_SHADER_PATH) as Shader
-	if shader != null:
-		mat.shader = shader
-	if config == null:
-		config = AsciiAtlasConfigClass.create_default_config()
-	_apply_ascii_uniforms(mat, config, is_cave)
+	mat.shader = load(ASCII_SHADER_PATH) as Shader
+	_apply_ascii_uniforms(mat, config if config != null else AsciiAtlasConfigClass.create_default_config(), is_cave)
 	return mat
 
 static func _apply_halftone_uniforms(mat: ShaderMaterial, config: Resource, is_cave: bool) -> void:
 	if mat == null or config == null:
 		return
 	var tex = config.get("halftone_texture") as Texture2D
-	var use_proc = bool(config.get("use_procedural_pattern"))
 	mat.set_shader_parameter("halftone_texture", tex)
-	mat.set_shader_parameter("use_procedural_pattern", use_proc or (tex == null))
+	mat.set_shader_parameter("use_procedural_pattern", bool(config.get("use_procedural_pattern")) or (tex == null))
 	mat.set_shader_parameter("halftone_scale", float(config.get("halftone_scale")))
 	mat.set_shader_parameter("halftone_intensity", float(config.get("halftone_intensity")))
 	mat.set_shader_parameter("lit_threshold", float(config.get("lit_threshold")))

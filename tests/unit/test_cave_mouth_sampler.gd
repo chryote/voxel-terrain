@@ -119,6 +119,8 @@ func test_cave_mouth_chunk_apron_candidate_detection() -> void:
 	var bounds = world_config.create_world_bounds()
 	var gen_config = ContinentGeneratorConfig.new()
 	var cave_config = CaveGeneratorConfig.new()
+	cave_config.max_chasm_mouths = 1
+	cave_config.max_tunnel_mouths = 10
 	var generator = VolumetricTerrainGenerator.new(world_config.world_seed, gen_config, cave_config)
 	generator.init_cave_mouths(bounds)
 

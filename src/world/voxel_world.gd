@@ -89,6 +89,20 @@ var subterranean_coordinator: SubterraneanStreamCoordinator = SubterraneanStream
 var _mouth_cache: Dictionary = {} # key -> bool
 var _pending_completed_chunks: Array[Dictionary] = []
 var _chunk_node_pool: Array[ChunkNode] = []
+var _pending_foliage_uploads: Array[ChunkNode] = []
+@export_range(1, 8) var max_foliage_uploads_per_frame: int = 2
+var _pending_collision_updates: Array[ChunkNode] = []
+@export_range(8, 64) var max_collision_updates_per_frame: int = 24
+
+func _process_pending_foliage_uploads() -> void:
+	if _pending_foliage_uploads.is_empty():
+		return
+	var uploads_done = 0
+	while not _pending_foliage_uploads.is_empty() and uploads_done < max_foliage_uploads_per_frame:
+		var node = _pending_foliage_uploads.pop_front()
+		if is_instance_valid(node) and node.coord != null and node.has_pending_foliage_upload():
+			node.upload_foliage_buffers()
+			uploads_done += 1
 
 func _acquire_chunk_node(coord: ChunkCoord) -> ChunkNode:
 	var chunk_node: ChunkNode
@@ -227,6 +241,7 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	_process_completed_chunks()
+	_process_pending_foliage_uploads()
 	_update_streaming()
 	_update_chunk_collisions()
 	_update_layer_visibility()
@@ -237,6 +252,8 @@ func _notification(what: int) -> void:
 		if scheduler != null:
 			scheduler.clear()
 		_pending_completed_chunks.clear()
+		_pending_foliage_uploads.clear()
+		_pending_collision_updates.clear()
 		_cleanup_chunk_pool()
 		_last_streaming_chunk = null
 		_last_streaming_position = Vector3(INF, INF, INF)
@@ -246,6 +263,8 @@ func _exit_tree() -> void:
 	if scheduler != null:
 		scheduler.clear()
 	_pending_completed_chunks.clear()
+	_pending_foliage_uploads.clear()
+	_pending_collision_updates.clear()
 	_cleanup_chunk_pool()
 	_last_streaming_chunk = null
 	_last_streaming_position = Vector3(INF, INF, INF)
@@ -318,7 +337,9 @@ func _load_chunk_sync(coord: ChunkCoord) -> void:
 	var dist_sync = focus_chunk_sync.chebyshev_distance_to(coord)
 	var enable_fol_sync = foliage_enabled and (dist_sync <= foliage_max_distance_chunks)
 	var is_low_detail_sync = (dist_sync > foliage_distance_chunks)
-	chunk_node.setup(coord, origin, mesh_data, true, shapes.surface_shape, shapes.cave_shape, enable_fol_sync, is_low_detail_sync)
+	chunk_node.setup(coord, origin, mesh_data, true, shapes.surface_shape, shapes.cave_shape, enable_fol_sync, is_low_detail_sync, true)
+	if chunk_node.has_pending_foliage_upload():
+		_pending_foliage_uploads.append(chunk_node)
 	_mouth_cache[key] = chunk_node.has_cave_mouth
 	subterranean_coordinator.register_surface_chunk(coord, chunk_node.has_cave_mouth)
 	subterranean_coordinator.mark_subterranean_ready(coord)
@@ -379,7 +400,9 @@ func _process_completed_chunks() -> void:
 		var origin = bounds.chunk_origin(coord)
 		var surf_shape = item.get("surface_shape", null)
 		var cave_shape = item.get("cave_shape", null)
-		chunk_node.setup(coord, origin, mesh_data, enable_collision, surf_shape, cave_shape, enable_foliage, is_low_detail)
+		chunk_node.setup(coord, origin, mesh_data, enable_collision, surf_shape, cave_shape, enable_foliage, is_low_detail, true)
+		if chunk_node.has_pending_foliage_upload():
+			_pending_foliage_uploads.append(chunk_node)
 		_mouth_cache[key] = chunk_node.has_cave_mouth
 
 		var s_data = item.get("data", null) as SurfaceChunkData
@@ -568,20 +591,69 @@ func _update_chunk_collisions(force: bool = false) -> void:
 	var focus_pos = _get_focus_position()
 	var focus_chunk = bounds.world_to_chunk(focus_pos)
 
-	if not force and _last_collision_chunk != null and _last_collision_chunk.equals(focus_chunk):
+	var chunk_changed = (_last_collision_chunk == null or not _last_collision_chunk.equals(focus_chunk))
+	if not force and not chunk_changed:
+		_process_pending_collision_slice(focus_chunk)
 		return
+
 	_last_collision_chunk = focus_chunk
+	_pending_collision_updates.clear()
 
 	var col_dist = world_config.collision_distance_chunks
 	var fol_near_dist = foliage_distance_chunks
 	var fol_max_dist = foliage_max_distance_chunks
-	for chunk_node in _loaded_chunks.values():
-		if chunk_node is ChunkNode:
-			var dist = focus_chunk.chebyshev_distance_to(chunk_node.coord)
-			chunk_node.set_collision_enabled(dist <= col_dist)
-			var enable_fol = foliage_enabled and (dist <= fol_max_dist)
-			var is_low_detail = (dist > fol_near_dist)
-			chunk_node.set_foliage_enabled(enable_fol, is_low_detail)
+
+	var all_nodes = _loaded_chunks.values()
+	var total_count = all_nodes.size()
+
+	# In test environments, initial spawn, or small maps, process synchronously
+	if force or total_count <= 32:
+		for chunk_node in all_nodes:
+			if chunk_node is ChunkNode:
+				_apply_chunk_collision_and_foliage(chunk_node, focus_chunk, col_dist, fol_near_dist, fol_max_dist)
+		return
+
+	# In larger worlds, prioritize immediate collision proximity (dist <= col_dist)
+	# and time-slice distant chunk updates across consecutive frames
+	for chunk_node in all_nodes:
+		if not (chunk_node is ChunkNode):
+			continue
+		var dist = focus_chunk.chebyshev_distance_to(chunk_node.coord)
+		if dist <= col_dist:
+			_apply_chunk_collision_and_foliage(chunk_node, focus_chunk, col_dist, fol_near_dist, fol_max_dist)
+		else:
+			_pending_collision_updates.append(chunk_node)
+
+	_process_pending_collision_slice(focus_chunk)
+
+func _process_pending_collision_slice(focus_chunk: ChunkCoord) -> void:
+	if _pending_collision_updates.is_empty():
+		return
+	var col_dist = world_config.collision_distance_chunks if world_config != null else 2
+	var fol_near_dist = foliage_distance_chunks
+	var fol_max_dist = foliage_max_distance_chunks
+	var count = 0
+	while not _pending_collision_updates.is_empty() and count < max_collision_updates_per_frame:
+		var node = _pending_collision_updates.pop_front()
+		if is_instance_valid(node) and node.coord != null:
+			_apply_chunk_collision_and_foliage(node, focus_chunk, col_dist, fol_near_dist, fol_max_dist)
+			count += 1
+
+func _apply_chunk_collision_and_foliage(
+	chunk_node: ChunkNode,
+	focus_chunk: ChunkCoord,
+	col_dist: int,
+	fol_near_dist: int,
+	fol_max_dist: int
+) -> void:
+	var dist = focus_chunk.chebyshev_distance_to(chunk_node.coord)
+	var should_enable_col = (dist <= col_dist)
+	if chunk_node.is_collision_enabled() != should_enable_col:
+		chunk_node.set_collision_enabled(should_enable_col)
+
+	var enable_fol = foliage_enabled and (dist <= fol_max_dist)
+	var is_low_detail = (dist > fol_near_dist)
+	chunk_node.set_foliage_enabled(enable_fol, is_low_detail)
 
 
 # -----------------------------------------------------------------------------
@@ -689,6 +761,8 @@ func get_pending_completed_chunk_count() -> int:
 
 func clear_pending_chunks() -> void:
 	_pending_completed_chunks.clear()
+	_pending_foliage_uploads.clear()
+	_pending_collision_updates.clear()
 
 func get_pooled_chunk_count() -> int:
 	return _chunk_node_pool.size()

@@ -11,6 +11,6 @@ voxel_size = 1.0
 sea_level = 24
 max_height = 256
 view_distance_chunks = 8
-collision_distance_chunks = 3
+collision_distance_chunks = 2
 max_mesh_applies_per_frame = 4
 shell_depth = 3

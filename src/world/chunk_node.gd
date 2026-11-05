@@ -205,6 +205,27 @@ var _cached_foliage_data: RefCounted = null
 var _collision_distance_enabled: bool = false
 var _foliage_distance_enabled: bool = false
 var _foliage_low_detail: bool = false
+var _foliage_buffers_dirty: bool = false
+
+func has_pending_foliage_upload() -> bool:
+	return _foliage_buffers_dirty and _cached_foliage_data != null and not _cached_foliage_data.is_empty()
+
+func upload_foliage_buffers() -> void:
+	if not _foliage_buffers_dirty or _cached_foliage_data == null:
+		return
+	if grass_instance != null and grass_instance.multimesh != null:
+		grass_instance.multimesh.instance_count = _cached_foliage_data.instance_count
+		grass_instance.multimesh.buffer = _cached_foliage_data.transform_buffer
+		_apply_foliage_detail(_foliage_low_detail)
+		grass_instance.visible = _foliage_distance_enabled and is_surface_visible()
+	if bush_instance != null and bush_instance.multimesh != null:
+		var b_count = _cached_foliage_data.bush_instance_count if "bush_instance_count" in _cached_foliage_data else 0
+		bush_instance.multimesh.instance_count = b_count
+		if b_count > 0:
+			bush_instance.multimesh.buffer = _cached_foliage_data.bush_transform_buffer
+		_apply_bush_detail(_foliage_low_detail)
+		bush_instance.visible = _foliage_distance_enabled and is_surface_visible() and (b_count > 0)
+	_foliage_buffers_dirty = false
 
 func setup(
 	p_coord: ChunkCoord,
@@ -214,7 +235,8 @@ func setup(
 	prebaked_surface_shape: ConcavePolygonShape3D = null,
 	prebaked_cave_shape: ConcavePolygonShape3D = null,
 	enable_foliage: bool = false,
-	foliage_low_detail: bool = false
+	foliage_low_detail: bool = false,
+	defer_foliage_upload: bool = false
 ) -> void:
 	coord = p_coord
 	position = origin
@@ -284,20 +306,18 @@ func setup(
 	_foliage_low_detail = foliage_low_detail
 	if mesh_data != null and mesh_data.foliage_data != null and not mesh_data.foliage_data.is_empty():
 		_cached_foliage_data = mesh_data.foliage_data
-		if grass_instance != null and grass_instance.multimesh != null:
-			grass_instance.multimesh.instance_count = _cached_foliage_data.instance_count
-			grass_instance.multimesh.buffer = _cached_foliage_data.transform_buffer
-			_apply_foliage_detail(_foliage_low_detail)
-			grass_instance.visible = _foliage_distance_enabled and is_surface_visible()
-		if bush_instance != null and bush_instance.multimesh != null:
-			var b_count = _cached_foliage_data.bush_instance_count if "bush_instance_count" in _cached_foliage_data else 0
-			bush_instance.multimesh.instance_count = b_count
-			if b_count > 0:
-				bush_instance.multimesh.buffer = _cached_foliage_data.bush_transform_buffer
-			_apply_bush_detail(_foliage_low_detail)
-			bush_instance.visible = _foliage_distance_enabled and is_surface_visible() and (b_count > 0)
+		_foliage_buffers_dirty = true
+		if not defer_foliage_upload and enable_foliage:
+			upload_foliage_buffers()
+		else:
+			if grass_instance != null:
+				grass_instance.visible = _foliage_distance_enabled and is_surface_visible()
+			if bush_instance != null:
+				var b_count = _cached_foliage_data.bush_instance_count if "bush_instance_count" in _cached_foliage_data else 0
+				bush_instance.visible = _foliage_distance_enabled and is_surface_visible() and (b_count > 0)
 	else:
 		_cached_foliage_data = null
+		_foliage_buffers_dirty = false
 		if grass_instance != null and grass_instance.multimesh != null:
 			grass_instance.multimesh.instance_count = 0
 			grass_instance.visible = false
@@ -313,6 +333,7 @@ func prepare_for_pool() -> void:
 	_collision_distance_enabled = false
 	_foliage_distance_enabled = false
 	_foliage_low_detail = false
+	_foliage_buffers_dirty = false
 	_cached_prebaked_surface_shape = null
 	_cached_prebaked_cave_shape = null
 	_cached_foliage_data = null
@@ -382,18 +403,9 @@ func apply_subterranean_bundle(
 
 	if mesh_data.foliage_data != null:
 		_cached_foliage_data = mesh_data.foliage_data
-		if grass_instance != null and grass_instance.multimesh != null:
-			grass_instance.multimesh.instance_count = _cached_foliage_data.instance_count
-			grass_instance.multimesh.buffer = _cached_foliage_data.transform_buffer
-			_apply_foliage_detail(_foliage_low_detail)
-			grass_instance.visible = _foliage_distance_enabled and is_surface_visible()
-		if bush_instance != null and bush_instance.multimesh != null:
-			var b_count = _cached_foliage_data.bush_instance_count if "bush_instance_count" in _cached_foliage_data else 0
-			bush_instance.multimesh.instance_count = b_count
-			if b_count > 0:
-				bush_instance.multimesh.buffer = _cached_foliage_data.bush_transform_buffer
-			_apply_bush_detail(_foliage_low_detail)
-			bush_instance.visible = _foliage_distance_enabled and is_surface_visible() and (b_count > 0)
+		_foliage_buffers_dirty = true
+		if _foliage_distance_enabled:
+			upload_foliage_buffers()
 
 	if prebaked_cave_shape != null:
 		_cached_prebaked_cave_shape = prebaked_cave_shape
@@ -434,6 +446,8 @@ func is_surface_visible() -> bool:
 func set_foliage_enabled(enable: bool, is_low_detail: bool = false) -> void:
 	_foliage_distance_enabled = enable
 	_foliage_low_detail = is_low_detail
+	if enable and _foliage_buffers_dirty:
+		upload_foliage_buffers()
 	if grass_instance != null:
 		var has_data = (_cached_foliage_data != null and not _cached_foliage_data.is_empty())
 		grass_instance.visible = enable and has_data and is_surface_visible()

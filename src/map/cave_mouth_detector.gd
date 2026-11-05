@@ -218,13 +218,14 @@ func classify_cave_mouth(
 	# -------------------------------------------------------------------------
 	# 2. Check for connection to Interconnected 3D Worm Tunnels (Medium Priority: Yellow)
 	# -------------------------------------------------------------------------
-	for off in sample_offsets:
-		var sx = wx + off.x
-		var sz = wz + off.y
+	if cave_carver == null or cave_carver.config == null or not cave_carver.config.limit_cave_mouths or cave_carver.config.max_tunnel_mouths != 0:
+		for off in sample_offsets:
+			var sx = wx + off.x
+			var sz = wz + off.y
 
-		for ty in range(int(surface_h), 2, -1):
-			if tunnel_sampler.get_tunnel_carve(sx, float(ty), sz) > 0.05:
-				return CaveMouthDataClass.Type.TUNNEL
+			for ty in range(int(surface_h), 2, -1):
+				if tunnel_sampler.get_tunnel_carve(sx, float(ty), sz) > 0.05:
+					return CaveMouthDataClass.Type.TUNNEL
 
 	# -------------------------------------------------------------------------
 	# 3. Neither chasm nor tunnel connects: Dead Cave (Red)

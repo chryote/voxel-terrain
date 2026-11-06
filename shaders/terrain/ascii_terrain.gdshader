@@ -17,6 +17,7 @@ uniform float parallax_strength : hint_range(0.0, 0.05) = 0.015;
 group_uniforms Cel_Lighting;
 uniform float lit_threshold : hint_range(0.0, 1.0) = 0.30;
 uniform vec4 shadow_tint : source_color = vec4(0.18, 0.16, 0.17, 1.0);
+uniform float pixel_size : hint_range(1.0, 16.0, 1.0) = 4.0;
 
 group_uniforms Sedimentary_Strata;
 uniform bool strata_enabled = true;
@@ -42,13 +43,10 @@ vec2 calculate_voxel_face_uv(vec3 pos, vec3 norm, float frequency) {
 }
 
 vec2 get_atlas_tile_uv(vec2 cell_uv, int glyph_idx, ivec2 grid) {
-	vec2 tile_size = 1.0 / vec2(grid);
-	return (vec2(float(glyph_idx % grid.x), float(glyph_idx / grid.x)) + clamp(cell_uv, 0.005, 0.995)) * tile_size;
+	return (vec2(float(glyph_idx % grid.x), float(glyph_idx / grid.x)) + clamp(cell_uv, 0.005, 0.995)) / vec2(grid);
 }
 
-vec2 evaluate_parallax(vec2 cell_uv, vec3 view_dir_tangent, float height, float strength) {
-	return cell_uv - view_dir_tangent.xy * (1.0 - height) * strength;
-}
+vec2 evaluate_parallax(vec2 cell_uv, vec3 view_dir_tangent, float height, float strength) { return cell_uv - view_dir_tangent.xy * (1.0 - height) * strength; }
 
 int decode_material_id(vec4 col) {
 	if (col.a < 0.98 && col.a > 0.002) return clamp(int(round(col.a * 255.0)), 1, 10);
@@ -62,29 +60,24 @@ int decode_material_id(vec4 col) {
 }
 
 vec4 sample_glyph_data(vec2 face_uv, int glyph_idx) {
-	vec2 dx = dFdx(face_uv) / vec2(atlas_grid), dy = dFdy(face_uv) / vec2(atlas_grid);
-	return textureGrad(ascii_atlas, get_atlas_tile_uv(fract(face_uv), glyph_idx, atlas_grid), dx, dy);
+	return textureGrad(ascii_atlas, get_atlas_tile_uv(fract(face_uv), glyph_idx, atlas_grid), dFdx(face_uv) / vec2(atlas_grid), dFdy(face_uv) / vec2(atlas_grid));
 }
 
 vec3 perturb_normal_micro_relief(vec3 norm, vec2 face_uv, int glyph_idx, float strength, mat3 view_mat) {
 	vec2 uv_c = fract(face_uv), dx = dFdx(face_uv) / vec2(atlas_grid), dy = dFdy(face_uv) / vec2(atlas_grid);
 	float eps = 0.035;
-	vec2 uv_dx = clamp(uv_c + vec2(eps, 0.0), vec2(0.005), vec2(0.995));
-	vec2 uv_dy = clamp(uv_c + vec2(0.0, eps), vec2(0.005), vec2(0.995));
+	vec2 uv_dx = clamp(uv_c + vec2(eps, 0.0), vec2(0.005), vec2(0.995)), uv_dy = clamp(uv_c + vec2(0.0, eps), vec2(0.005), vec2(0.995));
 	float h_c  = textureGrad(ascii_atlas, get_atlas_tile_uv(uv_c, glyph_idx, atlas_grid), dx, dy).g;
 	float h_dx = textureGrad(ascii_atlas, get_atlas_tile_uv(uv_dx, glyph_idx, atlas_grid), dx, dy).g;
 	float h_dy = textureGrad(ascii_atlas, get_atlas_tile_uv(uv_dy, glyph_idx, atlas_grid), dx, dy).g;
-	float du = clamp((h_dx - h_c) * strength * 2.0, -0.08, 0.08);
-	float dv = clamp((h_dy - h_c) * strength * 2.0, -0.08, 0.08);
+	float du = clamp((h_dx - h_c) * strength * 2.0, -0.08, 0.08), dv = clamp((h_dy - h_c) * strength * 2.0, -0.08, 0.08);
 	vec3 an = abs(v_world_normal);
 	vec3 pert_w = (an.y >= an.x && an.y >= an.z) ? vec3(-du, 0.0, -dv) * sign(v_world_normal.y) :
 		((an.x >= an.z) ? vec3(0.0, -dv, -du) * sign(v_world_normal.x) : vec3(-du, -dv, 0.0) * sign(v_world_normal.z));
 	return normalize(norm + view_mat * pert_w);
 }
 
-float hash_cell(vec2 p) {
-	return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
-}
+float hash_cell(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
 
 int select_procedural_glyph(int mat_id, vec2 cell_id, vec3 pos, float slope, out int out_band) {
 	float jitter = hash_cell(cell_id);
@@ -126,6 +119,15 @@ vec3 evaluate_subtle_color(vec3 base_col, int mat_id, int band, float stroke_mas
 	return mix(cavity_col, stroke_col, stroke_mask);
 }
 
+float get_bayer_4x4(vec2 p) {
+	int x = (int(p.x) % 4 + 4) % 4, y = (int(p.y) % 4 + 4) % 4;
+	const float b[16] = float[](
+		0.0/16.0, 8.0/16.0, 2.0/16.0, 10.0/16.0, 12.0/16.0, 4.0/16.0, 14.0/16.0, 6.0/16.0,
+		3.0/16.0, 11.0/16.0, 1.0/16.0, 9.0/16.0, 15.0/16.0, 7.0/16.0, 13.0/16.0, 5.0/16.0
+	);
+	return b[x + y * 4];
+}
+
 void fragment() {
 	vec2 face_uv = calculate_voxel_face_uv(v_world_pos, v_world_normal, glyphs_per_voxel);
 	int band;
@@ -133,8 +135,7 @@ void fragment() {
 	vec2 uv_c = fract(face_uv), dx = dFdx(face_uv) / vec2(atlas_grid), dy = dFdy(face_uv) / vec2(atlas_grid);
 	float eps = 0.035;
 	vec4 glyph_data = textureGrad(ascii_atlas, get_atlas_tile_uv(uv_c, glyph_idx, atlas_grid), dx, dy);
-	float stroke_mask = smoothstep(0.35, 0.55, glyph_data.g);
-	float h_c  = glyph_data.g;
+	float stroke_mask = smoothstep(0.35, 0.55, glyph_data.g), h_c = glyph_data.g;
 	float h_dx = textureGrad(ascii_atlas, get_atlas_tile_uv(clamp(uv_c + vec2(eps, 0.0), vec2(0.005), vec2(0.995)), glyph_idx, atlas_grid), dx, dy).g;
 	float h_dy = textureGrad(ascii_atlas, get_atlas_tile_uv(clamp(uv_c + vec2(0.0, eps), vec2(0.005), vec2(0.995)), glyph_idx, atlas_grid), dx, dy).g;
 	float emboss = clamp(dot(vec2(h_dx - h_c, h_dy - h_c), vec2(0.707, 0.707)) * 4.0 * depth_relief_strength, -0.4, 0.4);
@@ -147,7 +148,8 @@ void fragment() {
 }
 
 void light() {
+	vec2 p = floor(FRAGCOORD.xy / max(pixel_size, 1.0));
 	float n_dot_l = max(dot(NORMAL, LIGHT), 0.0) * ATTENUATION;
-	float is_lit = step(lit_threshold, n_dot_l);
+	float is_lit = (clamp((n_dot_l - (lit_threshold - 0.12)) / 0.24, 0.0, 1.0) > get_bayer_4x4(p)) ? 1.0 : 0.0;
 	DIFFUSE_LIGHT += mix(ALBEDO * shadow_tint.rgb, ALBEDO * LIGHT_COLOR, is_lit);
 }

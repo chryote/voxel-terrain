@@ -30,6 +30,8 @@ func test_foliage_shader_compilation_and_features() -> void:
 	assert_true(code.contains("distance_fade_start"), "Must declare distance_fade_start uniform")
 	assert_true(code.contains("distance_fade_max"), "Must declare distance_fade_max uniform")
 	assert_true(code.contains("alpha_scissor_threshold"), "Must declare alpha_scissor_threshold uniform")
+	assert_true(code.contains("pixel_size"), "Must declare pixel_size uniform for pixel-art cel shading")
+	assert_true(code.contains("filter_nearest_mipmap"), "Must use filter_nearest_mipmap for crisp pixel art texels")
 
 func test_foliage_config_defaults() -> void:
 	var cfg = FoliageConfigClass.create_default_config()
@@ -40,6 +42,7 @@ func test_foliage_config_defaults() -> void:
 	assert_almost_eq(cfg.distance_fade_start, 45.0, 0.1, "Default fade start should be 45.0 m")
 	assert_almost_eq(cfg.distance_fade_max, 60.0, 0.1, "Default fade max should be 60.0 m")
 	assert_almost_eq(cfg.alpha_scissor_threshold, 0.5, 0.01, "Default alpha scissor should be 0.5")
+	assert_almost_eq(cfg.pixel_size, 4.0, 0.01, "Default pixel size should be 4.0")
 
 func test_foliage_material_provider_caching() -> void:
 	var mat1 = FoliageProviderClass.get_grass_material()

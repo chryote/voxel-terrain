@@ -30,6 +30,7 @@ const DEFAULT_BUSH_TEXTURE_PATH = "res://assets/textures/bush.png"
 @export_group("Cel Lighting")
 @export_range(0.0, 1.0, 0.05) var lit_threshold: float = 0.35
 @export var shadow_tint: Color = Color(0.20, 0.13, 0.14, 1.0)
+@export_range(1.0, 16.0, 1.0) var pixel_size: float = 4.0
 
 static func create_default_config() -> Resource:
 	var cfg = new()

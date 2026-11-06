@@ -48,8 +48,9 @@ float quantize_light(float n_dot_l, float attenuation) {
 }
 
 void light() {
+	vec2 pixel_coord = floor(FRAGCOORD.xy / 4.0) * 4.0;
 	float is_lit = quantize_light(dot(NORMAL, LIGHT), ATTENUATION);
-	float pattern = evaluate_halftone(FRAGCOORD.xy, halftone_scale);
+	float pattern = evaluate_halftone(pixel_coord, halftone_scale);
 
 	vec3 lit_color = ALBEDO * LIGHT_COLOR;
 	// In shadow: tint with cool ambient comic hue and apply halftone dot darkness

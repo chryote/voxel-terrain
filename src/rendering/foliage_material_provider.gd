@@ -62,7 +62,7 @@ static func _bind_wind_and_light_uniforms(mat: ShaderMaterial, config: Resource)
 	var props = [
 		"wind_enabled", "wind_speed", "wind_strength", "wind_turbulence",
 		"distance_fade_enabled", "distance_fade_start", "distance_fade_max",
-		"lit_threshold", "shadow_tint"
+		"lit_threshold", "shadow_tint", "pixel_size"
 	]
 	for p in props:
 		if p in config:

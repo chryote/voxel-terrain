@@ -36,6 +36,7 @@ func test_shader_uniforms_declared() -> void:
 	assert_true(code.contains("parallax_strength"), "Must declare parallax_strength uniform")
 	assert_true(code.contains("lit_threshold"), "Must declare lit_threshold uniform")
 	assert_true(code.contains("shadow_tint"), "Must declare shadow_tint uniform")
+	assert_true(code.contains("pixel_size"), "Must declare pixel_size uniform for pixel-art cel shading")
 	assert_true(code.contains("strata_enabled"), "Must declare strata_enabled uniform")
 	assert_true(code.contains("strata_color_0"), "Must declare strata_color_0 uniform")
 

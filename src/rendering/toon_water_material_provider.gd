@@ -60,6 +60,7 @@ static func apply_to_material(mat: ShaderMaterial, config: Resource) -> void:
 	_apply_depth_parameters(mat, config)
 	_apply_ripple_parameters(mat, config)
 	_apply_side_parameters(mat, config)
+	_apply_atmosphere_parameters(mat, config)
 
 static func _apply_foam_parameters(mat: ShaderMaterial, config: Resource) -> void:
 	var f_en = config.get("foam_enabled")
@@ -100,3 +101,9 @@ static func _apply_ripple_parameters(mat: ShaderMaterial, config: Resource) -> v
 static func _apply_side_parameters(mat: ShaderMaterial, config: Resource) -> void:
 	var s_spd = config.get("side_fluid_speed")
 	mat.set_shader_parameter("side_fluid_speed", float(s_spd) if s_spd != null else 2.2)
+
+static func _apply_atmosphere_parameters(mat: ShaderMaterial, config: Resource) -> void:
+	if config.get("haze_color") != null: mat.set_shader_parameter("haze_color", config.get("haze_color"))
+	if config.get("haze_intensity") != null: mat.set_shader_parameter("haze_intensity", float(config.get("haze_intensity")))
+	if config.get("haze_start_distance") != null: mat.set_shader_parameter("haze_start_distance", float(config.get("haze_start_distance")))
+	if config.get("haze_max_distance") != null: mat.set_shader_parameter("haze_max_distance", float(config.get("haze_max_distance")))

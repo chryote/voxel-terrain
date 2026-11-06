@@ -12,6 +12,7 @@ extends Node3D
 @export var min_pitch_deg: float = -75.0
 @export var max_pitch_deg: float = 75.0
 @export var lerp_speed: float = 10.0
+@export var far_clip: float = 10000.0
 
 var yaw_pivot: Node3D
 var pitch_pivot: Node3D
@@ -44,6 +45,7 @@ func _setup_hierarchy() -> void:
 	camera = Camera3D.new()
 	camera.name = "Camera3D"
 	camera.fov = normal_fov
+	camera.far = far_clip
 	camera.position = Vector3(shoulder_offset_x, shoulder_offset_y, 0.0)
 	spring_arm.add_child(camera)
 

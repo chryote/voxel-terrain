@@ -75,7 +75,10 @@ var _spawn_finder: SpawnFinder = SpawnFinder.new()
 
 var water_plane: WaterPlane
 var world_boundary: WorldBoundary
+var extreme_distance_terrain: ExtremeDistanceTerrain
 var _chunks_root: Node3D
+
+const ExtremeDistanceTerrainClass = preload("res://src/world/extreme_distance_terrain.gd")
 
 var _loaded_chunks: Dictionary = {} # key -> ChunkNode
 var _initial_ready_emitted: bool = false
@@ -142,7 +145,10 @@ func _apply_terrain_theme() -> void:
 func _ready() -> void:
 	_apply_terrain_theme()
 	if world_config == null:
-		world_config = WorldConfig.new()
+		if ResourceLoader.exists("res://config/default_world.tres"):
+			world_config = load("res://config/default_world.tres")
+		else:
+			world_config = WorldConfig.new()
 	if generator_config == null:
 		generator_config = ContinentGeneratorConfig.new()
 	if cave_config == null:
@@ -219,6 +225,44 @@ func _ready() -> void:
 	add_child(water_plane)
 	water_plane.setup(bounds, float(world_config.sea_level) * world_config.voxel_size)
 
+	if world_config != null and world_config.extreme_lod_enabled:
+		extreme_distance_terrain = ExtremeDistanceTerrainClass.new()
+		extreme_distance_terrain.name = "ExtremeDistanceTerrain"
+		add_child(extreme_distance_terrain)
+		extreme_distance_terrain.setup(
+			bounds,
+			generator,
+			material_registry,
+			world_config.extreme_lod_resolution,
+			terrain_theme
+		)
+		if extreme_distance_terrain.has_method("set_atmospheric_haze"):
+			extreme_distance_terrain.set_atmospheric_haze(
+				world_config.extreme_lod_haze_color,
+				world_config.extreme_lod_haze_intensity,
+				world_config.extreme_lod_haze_start,
+				world_config.extreme_lod_haze_max_distance,
+				world_config.extreme_lod_haze_enabled
+			)
+		if extreme_distance_terrain.has_method("set_monochromatic_palette"):
+			extreme_distance_terrain.set_monochromatic_palette(
+				world_config.extreme_lod_mono_blue_low,
+				world_config.extreme_lod_mono_blue_mid,
+				world_config.extreme_lod_mono_blue_high,
+				world_config.extreme_lod_mono_blend,
+				-1.0,
+				360.0,
+				world_config.extreme_lod_mono_enabled
+			)
+		if extreme_distance_terrain.has_method("set_pixel_art_style"):
+			extreme_distance_terrain.set_pixel_art_style(
+				world_config.extreme_lod_pixel_art_enabled,
+				world_config.extreme_lod_pixel_size,
+				world_config.extreme_lod_terrace_step,
+				world_config.extreme_lod_depth_step_distance
+			)
+		_update_extreme_lod_clip()
+
 	# Synchronously pre-load spawn chunk and 3x3 neighborhood so collision exists before frame 0 physics
 	var spawn_pos = get_spawn_point()
 	var spawn_chunk = bounds.world_to_chunk(spawn_pos)
@@ -245,6 +289,18 @@ func _process(_delta: float) -> void:
 	_update_streaming()
 	_update_chunk_collisions()
 	_update_layer_visibility()
+	_update_extreme_lod_clip()
+
+func _update_extreme_lod_clip() -> void:
+	if extreme_distance_terrain == null or not is_instance_valid(extreme_distance_terrain):
+		return
+	var focus_pos = _get_focus_position()
+	var c_size = float(world_config.chunk_size) if world_config != null else 32.0
+	var v_size = world_config.voxel_size if world_config != null else 1.0
+	var view_dist = float(world_config.view_distance_chunks) if world_config != null else 8.0
+	var margin = world_config.extreme_lod_clip_margin if world_config != null else 16.0
+	var clip_radius = maxf(0.0, view_dist * c_size * v_size - margin)
+	extreme_distance_terrain.update_clip(focus_pos, clip_radius, margin)
 
 
 func _notification(what: int) -> void:
@@ -539,6 +595,8 @@ func _update_layer_visibility(force: bool = false) -> void:
 				node.set_subterranean_visible(false)
 		if water_plane != null:
 			water_plane.set_ocean_visible(true)
+		if extreme_distance_terrain != null:
+			extreme_distance_terrain.set_macro_visible(world_config.extreme_lod_enabled if world_config != null else true)
 		return
 
 	var focus_pos = _get_focus_position()
@@ -561,6 +619,9 @@ func _update_layer_visibility(force: bool = false) -> void:
 	if water_plane != null:
 		var is_subterranean = (current_state == LayerVisibilityCoordinator.PlayerLayerState.SUBTERRANEAN) or in_chasm
 		water_plane.set_ocean_visible(not is_subterranean)
+	if extreme_distance_terrain != null:
+		var is_subterranean = (current_state == LayerVisibilityCoordinator.PlayerLayerState.SUBTERRANEAN) or in_chasm
+		extreme_distance_terrain.set_macro_visible((not is_subterranean) and (world_config.extreme_lod_enabled if world_config != null else true))
 
 
 func _sync_foliage_fade_distance() -> void:

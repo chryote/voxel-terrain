@@ -36,9 +36,11 @@ static func create_ocean_config() -> Resource:
 	cfg.foam_enabled = false
 	cfg.ripples_enabled = false
 	cfg.foam_thickness = 0.0
-	cfg.shallow_color = Color(0.18, 0.55, 0.78, 0.85)
-	cfg.mid_color = Color(0.10, 0.34, 0.55, 0.92)
-	cfg.deep_color = Color(0.05, 0.14, 0.24, 0.98)
+	cfg.shallow_color = Color(0.28, 0.58, 0.74, 0.85)
+	cfg.mid_color = Color(0.24, 0.46, 0.62, 0.90)
+	cfg.deep_color = Color(0.20, 0.35, 0.50, 0.95)
+	cfg.shallow_threshold = 2.0
+	cfg.deep_threshold = 12.0
 	return cfg
 
 static func create_subterranean_config() -> Resource:

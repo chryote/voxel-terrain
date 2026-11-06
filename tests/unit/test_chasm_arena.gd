@@ -290,6 +290,7 @@ func test_arena_boundary_seams() -> void:
 	var world_config = WorldConfig.new()
 	var bounds = world_config.create_world_bounds()
 	var cave_config = CaveGeneratorConfig.new()
+	cave_config.max_tunnel_mouths = 1
 	cave_config.use_directed_worm_corridors = false
 	var gen = LayeredTerrainGenerator.new(1337, null, cave_config)
 	var selector = preload("res://tests/benchmark/chunk_bench/benchmark_chunk_selector.gd").new()

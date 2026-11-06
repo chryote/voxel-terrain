@@ -16,6 +16,13 @@ uniform vec4 deep_color : source_color = vec4(0.08, 0.18, 0.32, 0.95);
 uniform float shallow_threshold : hint_range(0.2, 5.0) = 1.5;
 uniform float deep_threshold : hint_range(1.0, 20.0) = 5.0;
 
+group_uniforms Atmospheric_Perspective;
+uniform bool atmosphere_enabled = true;
+uniform vec4 haze_color : source_color = vec4(0.42, 0.50, 0.62, 1.0);
+uniform float haze_start_distance : hint_range(50.0, 2000.0) = 300.0;
+uniform float haze_max_distance : hint_range(500.0, 8000.0) = 3000.0;
+uniform float haze_intensity : hint_range(0.0, 1.0) = 0.65;
+
 group_uniforms Graphic_Ripples;
 uniform bool ripples_enabled = true;
 uniform float pixel_density : hint_range(1.0, 32.0) = 8.0;
@@ -69,11 +76,14 @@ float get_linear_scene_depth(vec2 screen_uv, mat4 inv_proj) {
 	return -view_pos.z / max(abs(view_pos.w), 0.00001);
 }
 
-// Stepped discrete color horizons based on depth behind water surface
+// Stepped discrete color horizons based on depth behind water surface with smooth watercolor transition
 vec4 evaluate_stepped_depth(float depth_diff) {
-	if (depth_diff < shallow_threshold) return shallow_color;
-	if (depth_diff < deep_threshold) return mid_color;
-	return deep_color;
+	if (depth_diff < shallow_threshold) {
+		float t = depth_diff / max(shallow_threshold, 0.001);
+		return mix(shallow_color, mid_color, t * 0.5);
+	}
+	float t = clamp((depth_diff - shallow_threshold) / max(deep_threshold - shallow_threshold, 0.001), 0.0, 1.0);
+	return mix(mid_color, deep_color, smoothstep(0.0, 1.0, t));
 }
 
 // Procedural anime water caustics with pixelized grid & optical shadow
@@ -131,6 +141,12 @@ void fragment() {
 
 	if (foam_enabled && !is_side && depth_diff < foam_thickness) {
 		col = foam_color;
+	}
+
+	if (atmosphere_enabled) {
+		float dist = length(VERTEX);
+		float t = clamp((dist - haze_start_distance) / max(1.0, haze_max_distance - haze_start_distance), 0.0, 1.0);
+		col.rgb = mix(col.rgb, haze_color.rgb, smoothstep(0.0, 1.0, t) * haze_intensity);
 	}
 
 	ALBEDO = col.rgb;

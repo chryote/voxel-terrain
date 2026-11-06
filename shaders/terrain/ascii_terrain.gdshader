@@ -66,8 +66,7 @@ vec3 perturb_normal_micro_relief(vec3 norm, vec2 face_uv, int glyph_idx, float s
 	float h_dy = textureGrad(ascii_atlas, get_atlas_tile_uv(clamp(uv_c + vec2(0.0, eps), vec2(0.005), vec2(0.995)), glyph_idx, atlas_grid), dx, dy).g;
 	float du = clamp((h_dx - h_c) * strength * 2.0, -0.08, 0.08), dv = clamp((h_dy - h_c) * strength * 2.0, -0.08, 0.08);
 	vec3 an = abs(v_world_normal);
-	vec3 pert_w = (an.y >= an.x && an.y >= an.z) ? vec3(-du, 0.0, -dv) * sign(v_world_normal.y) :
-		((an.x >= an.z) ? vec3(0.0, -dv, -du) * sign(v_world_normal.x) : vec3(-du, -dv, 0.0) * sign(v_world_normal.z));
+	vec3 pert_w = (an.y >= an.x && an.y >= an.z) ? vec3(-du, 0.0, -dv) * sign(v_world_normal.y) : ((an.x >= an.z) ? vec3(0.0, -dv, -du) * sign(v_world_normal.x) : vec3(-du, -dv, 0.0) * sign(v_world_normal.z));
 	return normalize(norm + view_mat * pert_w);
 }
 float hash_cell(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
@@ -90,14 +89,7 @@ int select_procedural_glyph(int mat_id, vec2 cell_id, vec3 pos, float slope, out
 	vec2 m_coord = (abs(v_world_normal.y) < 0.5) ? vec2((abs(v_world_normal.x) > 0.5) ? pos.z : pos.x, pos.y) : pos.xz;
 	float macro = sin(m_coord.x * macro_variation_scale) * cos(m_coord.y * macro_variation_scale) * 0.5 + 0.5;
 	float pattern = macro * 0.6 + jitter * 0.4;
-	int band = 1;
-	if (mat_id == 1) {
-		if (slope > 0.40) band = (jitter > 0.75) ? 0 : 1;
-		else if (pattern < 0.22 && jitter > 0.70) band = 0;
-		else if (pattern > 0.58) band = 2;
-	} else {
-		band = (pattern > 0.60) ? 2 : ((pattern < 0.20) ? 0 : 1);
-	}
+	int band = (mat_id == 1) ? ((slope > 0.40) ? ((jitter > 0.75) ? 0 : 1) : ((pattern < 0.22 && jitter > 0.70) ? 0 : ((pattern > 0.58) ? 2 : 1))) : ((pattern > 0.60) ? 2 : ((pattern < 0.20) ? 0 : 1));
 	out_band = band;
 	return int(round(texelFetch(material_lut, ivec2(mat_id, out_band), 0).r * 255.0));
 }
@@ -115,15 +107,11 @@ vec3 evaluate_subtle_color(vec3 base_col, int mat_id, int band, float stroke_mas
 	}
 	if (stains_enabled) {
 		float taint_kind, s_val = evaluate_procedural_stain(v_world_pos, v_world_normal, taint_kind);
-		if (s_val > stain_threshold) {
-			ground_col = mix(ground_col, mix(stain_color_dark.rgb, stain_color_green.rgb, taint_kind), smoothstep(stain_threshold, stain_threshold + 0.12, s_val) * stain_intensity);
-		}
+		if (s_val > stain_threshold) ground_col = mix(ground_col, mix(stain_color_dark.rgb, stain_color_green.rgb, taint_kind), smoothstep(stain_threshold, stain_threshold + 0.12, s_val) * stain_intensity);
 	}
 	vec3 cavity_col = ground_col * (1.0 - cavity_shadow_intensity * 0.35 * (1.0 - cavity_ao) * fade);
 	float eff_contrast = glyph_contrast * fade;
-	if (mat_id == 1 && band == 0) {
-		return mix(mix(ground_col, vec3(0.18), 0.16 * fade) * mix(1.0, cavity_ao, 0.12 * fade), mix(ground_col, vec3(0.216), 0.42 * fade) + emboss * 0.06, stroke_mask);
-	}
+	if (mat_id == 1 && band == 0) return mix(mix(ground_col, vec3(0.18), 0.16 * fade) * mix(1.0, cavity_ao, 0.12 * fade), mix(ground_col, vec3(0.216), 0.42 * fade) + emboss * 0.06, stroke_mask);
 	if (band == 0) return mix(ground_col * (1.0 - 0.20 * fade) * cavity_ao, ground_col * (1.0 - eff_contrast * 0.90), stroke_mask);
 	vec3 stroke_col = (band == 2) ? (ground_col * (1.0 + eff_contrast * 0.55) + vec3(0.015) * fade + emboss * 0.12) : (ground_col * (1.0 - eff_contrast * 0.40) + emboss * 0.08);
 	return mix(cavity_col, stroke_col, stroke_mask);
@@ -145,11 +133,14 @@ void fragment() {
 	float h_dx = textureGrad(ascii_atlas, get_atlas_tile_uv(clamp(uv_c + vec2(eps, 0.0), vec2(0.005), vec2(0.995)), glyph_idx, atlas_grid), dx, dy).g;
 	float h_dy = textureGrad(ascii_atlas, get_atlas_tile_uv(clamp(uv_c + vec2(0.0, eps), vec2(0.005), vec2(0.995)), glyph_idx, atlas_grid), dx, dy).g;
 	float emboss = clamp(dot(vec2(h_dx - h_c, h_dy - h_c), vec2(0.707, 0.707)) * 4.0 * depth_relief_strength, -0.4, 0.4);
-
-	ALBEDO = evaluate_subtle_color(COLOR.rgb, decode_material_id(COLOR), band, stroke_mask, glyph_data.b, emboss, detail_fade);
+	vec3 ground_col = evaluate_subtle_color(COLOR.rgb, decode_material_id(COLOR), band, stroke_mask, glyph_data.b, emboss, detail_fade);
+	float dist_fade = clamp((length(VERTEX) - 35.0) / 185.0, 0.0, 1.0) * 0.65;
+	float valley_mist = clamp((26.0 - v_world_pos.y) / 20.0, 0.0, 1.0) * 0.75;
+	ALBEDO = mix(ground_col, vec3(0.13, 0.15, 0.16), clamp(max(dist_fade, valley_mist), 0.0, 0.88));
 	NORMAL = perturb_normal_micro_relief(NORMAL, face_uv, glyph_idx, depth_relief_strength * 0.20 * detail_fade, mat3(VIEW_MATRIX));
 	ROUGHNESS = 1.0; SPECULAR = 0.0;
 }
+
 void light() {
 	vec2 p = floor(FRAGCOORD.xy / max(pixel_size, 1.0));
 	float n_dot_l = max(dot(NORMAL, LIGHT), 0.0) * ATTENUATION;

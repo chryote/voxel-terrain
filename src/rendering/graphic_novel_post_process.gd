@@ -69,6 +69,11 @@ func apply_config() -> void:
 	post_material.set_shader_parameter("normal_threshold", float(config.get("normal_threshold")))
 	post_material.set_shader_parameter("outline_fade_start", float(config.get("outline_fade_start")))
 	post_material.set_shader_parameter("max_outline_distance", float(config.get("max_outline_distance")))
+	post_material.set_shader_parameter("vignette_enabled", bool(config.get("vignette_enabled")))
+	post_material.set_shader_parameter("vignette_color", config.get("vignette_color"))
+	post_material.set_shader_parameter("vignette_intensity", float(config.get("vignette_intensity")))
+	post_material.set_shader_parameter("vignette_radius", float(config.get("vignette_radius")))
+	post_material.set_shader_parameter("vignette_softness", float(config.get("vignette_softness")))
 
 func set_outlines_enabled(p_enabled: bool) -> void:
 	if config != null:

@@ -37,15 +37,26 @@ ambient_light_source = 3
 ambient_light_color = Color(0.28, 0.31, 0.36, 1.0)
 ambient_light_energy = 0.45
 tonemap_mode = 2
+ssao_enabled = true
+ssao_radius = 1.4
+ssao_intensity = 3.0
+ssao_power = 1.5
+ssao_detail = 0.5
+ssao_horizon = 0.06
+ssao_sharpness = 0.98
 fog_enabled = true
 fog_mode = 0
-fog_light_color = Color(0.14, 0.16, 0.18, 1)
-fog_light_energy = 0.95
-fog_density = 0.012
-fog_aerial_perspective = 0.55
-fog_sky_affect = 0.3
+fog_light_color = Color(0.12, 0.14, 0.16, 1)
+fog_light_energy = 1.05
+fog_density = 0.016
+fog_aerial_perspective = 0.70
+fog_sky_affect = 0.4
 fog_height = 24.0
-fog_height_density = 0.08
+fog_height_density = 0.12
+adjustment_enabled = true
+adjustment_contrast = 1.12
+adjustment_saturation = 0.88
+adjustment_brightness = 0.98
 
 [node name="Main" type="Node3D"]
 script = ExtResource("1_main")
@@ -58,6 +69,11 @@ transform = Transform3D(0.819152, -0.40558, 0.40558, 0, 0.707107, 0.707107, -0.5
 light_color = Color(0.72, 0.74, 0.78, 1)
 light_energy = 0.85
 shadow_enabled = true
+directional_shadow_max_distance = 250.0
+directional_shadow_split_1 = 0.1
+directional_shadow_split_2 = 0.25
+directional_shadow_split_3 = 0.55
+directional_shadow_blend_splits = true
 
 [node name="GraphicNovelPostProcess" type="Node3D" parent="."]
 script = ExtResource("5_postprocess")

@@ -20,9 +20,21 @@ group_uniforms Cel_Lighting;
 uniform float lit_threshold : hint_range(0.0, 1.0) = 0.30;
 uniform vec4 shadow_tint : source_color = vec4(0.18, 0.16, 0.17, 1.0);
 
+varying vec3 v_world_pos;
+varying vec3 v_world_normal;
+
+void vertex() {
+	v_world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	v_world_normal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
+}
+
 void fragment() {
-	// Preserve baked vertex colors from MeshData (Grass, Dirt, Stone, etc.)
-	ALBEDO = COLOR.rgb;
+	// Atmospheric aerial perspective fade and deep valley height mist
+	float dist_fade = clamp((length(VERTEX) - 35.0) / 185.0, 0.0, 1.0) * 0.65;
+	float valley_mist = clamp((26.0 - v_world_pos.y) / 20.0, 0.0, 1.0) * 0.75;
+	vec3 ground_col = mix(COLOR.rgb, vec3(0.13, 0.15, 0.16), clamp(max(dist_fade, valley_mist), 0.0, 0.88));
+
+	ALBEDO = ground_col;
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 }
@@ -53,6 +65,7 @@ void light() {
 	float pattern = evaluate_halftone(pixel_coord, halftone_scale);
 
 	vec3 lit_color = ALBEDO * LIGHT_COLOR;
+
 	// In shadow: tint with cool ambient comic hue and apply halftone dot darkness
 	vec3 shadow_base = ALBEDO * shadow_tint.rgb;
 	vec3 shadow_with_dots = mix(shadow_base, shadow_base * (1.0 - halftone_intensity), pattern);

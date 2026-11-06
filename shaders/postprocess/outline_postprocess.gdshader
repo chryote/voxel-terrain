@@ -4,7 +4,7 @@ render_mode unshaded, depth_draw_never, depth_test_disabled, cull_disabled;
 /**
  * Outline Post-Processing Spatial Shader (Graphic Novel / Moebius Aesthetic)
  * Fullscreen NDC quad shader using 2nd-order Laplacian depth edge detection
- * and normal divergence with distance-aware fade to prevent grazing-angle ink blots.
+ * and normal divergence with distance-aware fade, plus camera-space vignetting.
  */
 
 uniform sampler2D depth_texture : hint_depth_texture, repeat_disable, filter_nearest;
@@ -20,6 +20,13 @@ uniform float normal_threshold : hint_range(0.05, 1.5) = 0.55;
 group_uniforms Distance_Fade;
 uniform float outline_fade_start : hint_range(10.0, 200.0) = 45.0;
 uniform float max_outline_distance : hint_range(20.0, 500.0) = 150.0;
+
+group_uniforms Vignette_Settings;
+uniform bool vignette_enabled = true;
+uniform vec4 vignette_color : source_color = vec4(0.02, 0.02, 0.03, 1.0);
+uniform float vignette_intensity : hint_range(0.0, 1.0) = 0.45;
+uniform float vignette_radius : hint_range(0.0, 1.0) = 0.28;
+uniform float vignette_softness : hint_range(0.05, 1.0) = 0.42;
 
 void vertex() {
 	POSITION = vec4(VERTEX.xy, 1.0, 1.0);
@@ -43,122 +50,162 @@ float evaluate_normal_edge(vec3 n_p1, vec3 n_p2) {
 	return length(n_p1 - n_p2);
 }
 
-void fragment() {
-	if (!outlines_enabled) {
-		discard;
-	}
+// Camera-space vignetting to increase desolate, claustrophobic atmosphere
+float calculate_vignette(vec2 uv, ivec2 vp_size) {
+	vec2 delta = (uv - vec2(0.5)) * vec2(1.0, float(vp_size.y) / float(vp_size.x));
+	float dist_sq = dot(delta, delta);
+	return smoothstep(vignette_radius, vignette_radius + vignette_softness, dist_sq) * vignette_intensity;
+}
 
+void fragment() {
 	ivec2 p = ivec2(FRAGCOORD.xy);
 	ivec2 vp_size = ivec2(VIEWPORT_SIZE);
-	int r = max(int(round(outline_thickness)), 1);
 
-	float center_raw_depth = texelFetch(depth_texture, p, 0).r;
-	if (center_raw_depth >= 0.99999) {
-		// Outlines are drawn on the interior boundary of geometry, never into the sky
-		discard;
-	}
-
-	// Integer pixel offsets clamped strictly within viewport bounds to guarantee symmetric arms
-	ivec2 p_up    = clamp(p + ivec2(0, r), ivec2(0), vp_size - ivec2(1));
-	ivec2 p_down  = clamp(p - ivec2(0, r), ivec2(0), vp_size - ivec2(1));
-	ivec2 p_right = clamp(p + ivec2(r, 0), ivec2(0), vp_size - ivec2(1));
-	ivec2 p_left  = clamp(p - ivec2(r, 0), ivec2(0), vp_size - ivec2(1));
-
-	ivec2 p_up2    = clamp(p + ivec2(0, 2 * r), ivec2(0), vp_size - ivec2(1));
-	ivec2 p_down2  = clamp(p - ivec2(0, 2 * r), ivec2(0), vp_size - ivec2(1));
-	ivec2 p_right2 = clamp(p + ivec2(2 * r, 0), ivec2(0), vp_size - ivec2(1));
-	ivec2 p_left2  = clamp(p - ivec2(2 * r, 0), ivec2(0), vp_size - ivec2(1));
-
-	float raw_up    = texelFetch(depth_texture, p_up, 0).r;
-	float raw_down  = texelFetch(depth_texture, p_down, 0).r;
-	float raw_right = texelFetch(depth_texture, p_right, 0).r;
-	float raw_left  = texelFetch(depth_texture, p_left, 0).r;
-
-	float raw_up2    = texelFetch(depth_texture, p_up2, 0).r;
-	float raw_down2  = texelFetch(depth_texture, p_down2, 0).r;
-	float raw_right2 = texelFetch(depth_texture, p_right2, 0).r;
-	float raw_left2  = texelFetch(depth_texture, p_left2, 0).r;
-
-	// Check if neighboring taps are sky, requiring 2-pixel depth to reject single-pixel rasterization gaps
-	bool sky_up    = (raw_up >= 0.99999)    && (raw_up2 >= 0.99999);
-	bool sky_down  = (raw_down >= 0.99999)  && (raw_down2 >= 0.99999);
-	bool sky_right = (raw_right >= 0.99999) && (raw_right2 >= 0.99999);
-	bool sky_left  = (raw_left >= 0.99999)  && (raw_left2 >= 0.99999);
-
-	bool is_sky_silhouette = (sky_up || sky_down || sky_right || sky_left);
-
-	if (is_sky_silhouette) {
-		ALBEDO = outline_color.rgb;
-		ALPHA = outline_color.a;
-	} else {
-		float center_depth = get_linear_depth(p, INV_PROJECTION_MATRIX);
-		vec3 n_c = texelFetch(normal_roughness_texture, p, 0).rgb * 2.0 - 1.0;
-
-		// Sanitize sub-pixel rasterization gaps: if a tap hit an isolated gap (raw depth >= 0.99999),
-		// clamp it to center depth and normal so it cannot blow up depth/normal divergence on surrounding pixels.
-		float d_up    = (raw_up >= 0.99999)    ? center_depth : get_linear_depth(p_up, INV_PROJECTION_MATRIX);
-		float d_down  = (raw_down >= 0.99999)  ? center_depth : get_linear_depth(p_down, INV_PROJECTION_MATRIX);
-		float d_right = (raw_right >= 0.99999) ? center_depth : get_linear_depth(p_right, INV_PROJECTION_MATRIX);
-		float d_left  = (raw_left >= 0.99999)  ? center_depth : get_linear_depth(p_left, INV_PROJECTION_MATRIX);
-
-		// Suppress isolated pinholes at center: if center depth is strictly deeper than all 4 neighbors by >0.5m
-		if ((center_depth > max(d_up, d_down) + 0.5) && (center_depth > max(d_right, d_left) + 0.5)) {
-			discard;
-		}
-
-		float d_up2    = (raw_up2 >= 0.99999)    ? d_up : get_linear_depth(p_up2, INV_PROJECTION_MATRIX);
-		float d_down2  = (raw_down2 >= 0.99999)  ? d_down : get_linear_depth(p_down2, INV_PROJECTION_MATRIX);
-		float d_right2 = (raw_right2 >= 0.99999) ? d_right : get_linear_depth(p_right2, INV_PROJECTION_MATRIX);
-		float d_left2  = (raw_left2 >= 0.99999)  ? d_left : get_linear_depth(p_left2, INV_PROJECTION_MATRIX);
-
-		// Suppress 1-pixel depth pinhole spikes on taps that immediately revert at 2r
-		if (abs(d_up - center_depth) > 0.6 && abs(d_up2 - center_depth) < 0.3) d_up = center_depth;
-		if (abs(d_down - center_depth) > 0.6 && abs(d_down2 - center_depth) < 0.3) d_down = center_depth;
-		if (abs(d_right - center_depth) > 0.6 && abs(d_right2 - center_depth) < 0.3) d_right = center_depth;
-		if (abs(d_left - center_depth) > 0.6 && abs(d_left2 - center_depth) < 0.3) d_left = center_depth;
-
-		// 2nd-order Laplacian evaluates curvature/step across perfectly symmetric integer taps
-		float lap_v = evaluate_depth_edge(center_depth, d_up, d_down);
-		float lap_h = evaluate_depth_edge(center_depth, d_right, d_left);
-		float depth_edge = max(lap_v, lap_h);
-
-		// Opposing normal divergence, sanitizing sub-pixel gaps with center normal
-		vec3 n_up    = (raw_up >= 0.99999)    ? n_c : (texelFetch(normal_roughness_texture, p_up, 0).rgb * 2.0 - 1.0);
-		vec3 n_down  = (raw_down >= 0.99999)  ? n_c : (texelFetch(normal_roughness_texture, p_down, 0).rgb * 2.0 - 1.0);
-		vec3 n_right = (raw_right >= 0.99999) ? n_c : (texelFetch(normal_roughness_texture, p_right, 0).rgb * 2.0 - 1.0);
-		vec3 n_left  = (raw_left >= 0.99999)  ? n_c : (texelFetch(normal_roughness_texture, p_left, 0).rgb * 2.0 - 1.0);
-
-		// Suppress 1-pixel normal spikes on taps that immediately revert at 2r
-		vec3 n_up2    = (raw_up2 >= 0.99999)    ? n_up : (texelFetch(normal_roughness_texture, p_up2, 0).rgb * 2.0 - 1.0);
-		vec3 n_down2  = (raw_down2 >= 0.99999)  ? n_down : (texelFetch(normal_roughness_texture, p_down2, 0).rgb * 2.0 - 1.0);
-		vec3 n_right2 = (raw_right2 >= 0.99999) ? n_right : (texelFetch(normal_roughness_texture, p_right2, 0).rgb * 2.0 - 1.0);
-		vec3 n_left2  = (raw_left2 >= 0.99999)  ? n_left : (texelFetch(normal_roughness_texture, p_left2, 0).rgb * 2.0 - 1.0);
-
-		if (length(n_up - n_c) > 0.4 && length(n_up2 - n_c) < 0.2) n_up = n_c;
-		if (length(n_down - n_c) > 0.4 && length(n_down2 - n_c) < 0.2) n_down = n_c;
-		if (length(n_right - n_c) > 0.4 && length(n_right2 - n_c) < 0.2) n_right = n_c;
-		if (length(n_left - n_c) > 0.4 && length(n_left2 - n_c) < 0.2) n_left = n_c;
-
-		float norm_v = evaluate_normal_edge(n_up, n_down);
-		float norm_h = evaluate_normal_edge(n_right, n_left);
-		float normal_edge = max(norm_v, norm_h);
-
-		// Distance attenuation: soften interior block creases at long range
-		float dist_fade = clamp(1.0 - (center_depth - outline_fade_start) / max(max_outline_distance - outline_fade_start, 1.0), 0.0, 1.0);
-
-		// Block creases have large normal divergence (> normal_threshold).
-		// On flat surfaces with continuous normals (normal_edge < 0.12), depth edge is suppressed
-		// unless there is a true major occlusion drop-off step (> depth_threshold * 2.5),
-		// completely eliminating 1-pixel fireflies/specks caused by sub-pixel rasterization.
-		bool is_normal_edge = (normal_edge > normal_threshold) && (dist_fade > 0.0);
-		bool is_depth_edge = (depth_edge > depth_threshold) && (dist_fade > 0.0) && (normal_edge > 0.35 || depth_edge > (depth_threshold * 2.5));
-
-		if (is_normal_edge || is_depth_edge) {
-			float alpha_weight = (is_depth_edge) ? 1.0 : dist_fade;
-			ALBEDO = outline_color.rgb;
-			ALPHA = outline_color.a * alpha_weight;
+	if (!outlines_enabled) {
+		if (vignette_enabled) {
+			float vig = calculate_vignette(SCREEN_UV, vp_size);
+			if (vig > 0.005) {
+				ALBEDO = vignette_color.rgb;
+				ALPHA = vignette_color.a * vig;
+			} else {
+				discard;
+			}
 		} else {
 			discard;
+		}
+	} else {
+		float center_raw_depth = texelFetch(depth_texture, p, 0).r;
+		if (center_raw_depth >= 0.99999) {
+			if (vignette_enabled) {
+				float vig = calculate_vignette(SCREEN_UV, vp_size);
+				if (vig > 0.005) {
+					ALBEDO = vignette_color.rgb;
+					ALPHA = vignette_color.a * vig;
+				} else {
+					discard;
+				}
+			} else {
+				discard;
+			}
+		} else {
+			int r = max(int(round(outline_thickness)), 1);
+
+			// Integer pixel offsets clamped strictly within viewport bounds to guarantee symmetric arms
+			ivec2 p_up    = clamp(p + ivec2(0, r), ivec2(0), vp_size - ivec2(1));
+			ivec2 p_down  = clamp(p - ivec2(0, r), ivec2(0), vp_size - ivec2(1));
+			ivec2 p_right = clamp(p + ivec2(r, 0), ivec2(0), vp_size - ivec2(1));
+			ivec2 p_left  = clamp(p - ivec2(r, 0), ivec2(0), vp_size - ivec2(1));
+
+			ivec2 p_up2    = clamp(p + ivec2(0, 2 * r), ivec2(0), vp_size - ivec2(1));
+			ivec2 p_down2  = clamp(p - ivec2(0, 2 * r), ivec2(0), vp_size - ivec2(1));
+			ivec2 p_right2 = clamp(p + ivec2(2 * r, 0), ivec2(0), vp_size - ivec2(1));
+			ivec2 p_left2  = clamp(p - ivec2(2 * r, 0), ivec2(0), vp_size - ivec2(1));
+
+			float raw_up    = texelFetch(depth_texture, p_up, 0).r;
+			float raw_down  = texelFetch(depth_texture, p_down, 0).r;
+			float raw_right = texelFetch(depth_texture, p_right, 0).r;
+			float raw_left  = texelFetch(depth_texture, p_left, 0).r;
+
+			float raw_up2    = texelFetch(depth_texture, p_up2, 0).r;
+			float raw_down2  = texelFetch(depth_texture, p_down2, 0).r;
+			float raw_right2 = texelFetch(depth_texture, p_right2, 0).r;
+			float raw_left2  = texelFetch(depth_texture, p_left2, 0).r;
+
+			// Check if neighboring taps are sky, requiring 2-pixel depth to reject single-pixel rasterization gaps
+			bool sky_up    = (raw_up >= 0.99999)    && (raw_up2 >= 0.99999);
+			bool sky_down  = (raw_down >= 0.99999)  && (raw_down2 >= 0.99999);
+			bool sky_right = (raw_right >= 0.99999) && (raw_right2 >= 0.99999);
+			bool sky_left  = (raw_left >= 0.99999)  && (raw_left2 >= 0.99999);
+
+			bool is_sky_silhouette = (sky_up || sky_down || sky_right || sky_left);
+
+			if (is_sky_silhouette) {
+				ALBEDO = outline_color.rgb;
+				ALPHA = outline_color.a;
+			} else {
+				float center_depth = get_linear_depth(p, INV_PROJECTION_MATRIX);
+				vec3 n_c = texelFetch(normal_roughness_texture, p, 0).rgb * 2.0 - 1.0;
+
+				// Sanitize sub-pixel rasterization gaps
+				float d_up    = (raw_up >= 0.99999)    ? center_depth : get_linear_depth(p_up, INV_PROJECTION_MATRIX);
+				float d_down  = (raw_down >= 0.99999)  ? center_depth : get_linear_depth(p_down, INV_PROJECTION_MATRIX);
+				float d_right = (raw_right >= 0.99999) ? center_depth : get_linear_depth(p_right, INV_PROJECTION_MATRIX);
+				float d_left  = (raw_left >= 0.99999)  ? center_depth : get_linear_depth(p_left, INV_PROJECTION_MATRIX);
+
+				// Suppress isolated pinholes at center: if center depth is strictly deeper than all 4 neighbors by >0.5m
+				if ((center_depth > max(d_up, d_down) + 0.5) && (center_depth > max(d_right, d_left) + 0.5)) {
+					if (vignette_enabled) {
+						float vig = calculate_vignette(SCREEN_UV, vp_size);
+						if (vig > 0.005) {
+							ALBEDO = vignette_color.rgb;
+							ALPHA = vignette_color.a * vig;
+						} else {
+							discard;
+						}
+					} else {
+						discard;
+					}
+				} else {
+					float d_up2    = (raw_up2 >= 0.99999)    ? d_up : get_linear_depth(p_up2, INV_PROJECTION_MATRIX);
+					float d_down2  = (raw_down2 >= 0.99999)  ? d_down : get_linear_depth(p_down2, INV_PROJECTION_MATRIX);
+					float d_right2 = (raw_right2 >= 0.99999) ? d_right : get_linear_depth(p_right2, INV_PROJECTION_MATRIX);
+					float d_left2  = (raw_left2 >= 0.99999)  ? d_left : get_linear_depth(p_left2, INV_PROJECTION_MATRIX);
+
+					// Suppress 1-pixel depth pinhole spikes on taps that immediately revert at 2r
+					if (abs(d_up - center_depth) > 0.6 && abs(d_up2 - center_depth) < 0.3) d_up = center_depth;
+					if (abs(d_down - center_depth) > 0.6 && abs(d_down2 - center_depth) < 0.3) d_down = center_depth;
+					if (abs(d_right - center_depth) > 0.6 && abs(d_right2 - center_depth) < 0.3) d_right = center_depth;
+					if (abs(d_left - center_depth) > 0.6 && abs(d_left2 - center_depth) < 0.3) d_left = center_depth;
+
+					// 2nd-order Laplacian evaluates curvature/step across perfectly symmetric integer taps
+					float lap_v = evaluate_depth_edge(center_depth, d_up, d_down);
+					float lap_h = evaluate_depth_edge(center_depth, d_right, d_left);
+					float depth_edge = max(lap_v, lap_h);
+
+					// Opposing normal divergence, sanitizing sub-pixel gaps with center normal
+					vec3 n_up    = (raw_up >= 0.99999)    ? n_c : (texelFetch(normal_roughness_texture, p_up, 0).rgb * 2.0 - 1.0);
+					vec3 n_down  = (raw_down >= 0.99999)  ? n_c : (texelFetch(normal_roughness_texture, p_down, 0).rgb * 2.0 - 1.0);
+					vec3 n_right = (raw_right >= 0.99999) ? n_c : (texelFetch(normal_roughness_texture, p_right, 0).rgb * 2.0 - 1.0);
+					vec3 n_left  = (raw_left >= 0.99999)  ? n_c : (texelFetch(normal_roughness_texture, p_left, 0).rgb * 2.0 - 1.0);
+
+					// Suppress 1-pixel normal spikes on taps that immediately revert at 2r
+					vec3 n_up2    = (raw_up2 >= 0.99999)    ? n_up : (texelFetch(normal_roughness_texture, p_up2, 0).rgb * 2.0 - 1.0);
+					vec3 n_down2  = (raw_down2 >= 0.99999)  ? n_down : (texelFetch(normal_roughness_texture, p_down2, 0).rgb * 2.0 - 1.0);
+					vec3 n_right2 = (raw_right2 >= 0.99999) ? n_right : (texelFetch(normal_roughness_texture, p_right2, 0).rgb * 2.0 - 1.0);
+					vec3 n_left2  = (raw_left2 >= 0.99999)  ? n_left : (texelFetch(normal_roughness_texture, p_left2, 0).rgb * 2.0 - 1.0);
+
+					if (length(n_up - n_c) > 0.4 && length(n_up2 - n_c) < 0.2) n_up = n_c;
+					if (length(n_down - n_c) > 0.4 && length(n_down2 - n_c) < 0.2) n_down = n_c;
+					if (length(n_right - n_c) > 0.4 && length(n_right2 - n_c) < 0.2) n_right = n_c;
+					if (length(n_left - n_c) > 0.4 && length(n_left2 - n_c) < 0.2) n_left = n_c;
+
+					float norm_v = evaluate_normal_edge(n_up, n_down);
+					float norm_h = evaluate_normal_edge(n_right, n_left);
+					float normal_edge = max(norm_v, norm_h);
+
+					// Distance attenuation: soften interior block creases at long range
+					float dist_fade = clamp(1.0 - (center_depth - outline_fade_start) / max(max_outline_distance - outline_fade_start, 1.0), 0.0, 1.0);
+
+					bool is_normal_edge = (normal_edge > normal_threshold) && (dist_fade > 0.0);
+					bool is_depth_edge = (depth_edge > depth_threshold) && (dist_fade > 0.0) && (normal_edge > 0.35 || depth_edge > (depth_threshold * 2.5));
+
+					if (is_normal_edge || is_depth_edge) {
+						float alpha_weight = (is_depth_edge) ? 1.0 : dist_fade;
+						ALBEDO = outline_color.rgb;
+						ALPHA = outline_color.a * alpha_weight;
+					} else if (vignette_enabled) {
+						float vig = calculate_vignette(SCREEN_UV, vp_size);
+						if (vig > 0.005) {
+							ALBEDO = vignette_color.rgb;
+							ALPHA = vignette_color.a * vig;
+						} else {
+							discard;
+						}
+					} else {
+						discard;
+					}
+				}
+			}
 		}
 	}
 }

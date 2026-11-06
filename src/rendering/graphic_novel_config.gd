@@ -30,6 +30,13 @@ extends Resource
 @export_range(10.0, 200.0) var outline_fade_start: float = 45.0
 @export_range(20.0, 500.0) var max_outline_distance: float = 150.0
 
+@export_group("Vignette Settings")
+@export var vignette_enabled: bool = true
+@export var vignette_color: Color = Color(0.02, 0.02, 0.03, 1.0)
+@export_range(0.0, 1.0) var vignette_intensity: float = 0.45
+@export_range(0.0, 1.0) var vignette_radius: float = 0.28
+@export_range(0.05, 1.0) var vignette_softness: float = 0.42
+
 @export_group("Cel-Shading & Halftone Terrain")
 @export var halftone_texture: Texture2D = null
 @export_range(0.01, 1.0) var halftone_scale: float = 0.15

@@ -261,6 +261,13 @@ func _ready() -> void:
 				world_config.extreme_lod_terrace_step,
 				world_config.extreme_lod_depth_step_distance
 			)
+		if extreme_distance_terrain.has_method("set_pixel_art_palette"):
+			extreme_distance_terrain.set_pixel_art_palette(
+				world_config.extreme_lod_mono_blue_low,
+				world_config.extreme_lod_mono_blue_mid,
+				world_config.extreme_lod_mono_blue_high,
+				Color(0.98, 0.84, 0.72, 1.0)
+			)
 		_update_extreme_lod_clip()
 
 	# Synchronously pre-load spawn chunk and 3x3 neighborhood so collision exists before frame 0 physics

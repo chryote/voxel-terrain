@@ -18,7 +18,7 @@ uniform float deep_threshold : hint_range(1.0, 20.0) = 5.0;
 
 group_uniforms Atmospheric_Perspective;
 uniform bool atmosphere_enabled = true;
-uniform vec4 haze_color : source_color = vec4(0.42, 0.50, 0.62, 1.0);
+uniform vec4 haze_color : source_color = vec4(0.92, 0.54, 0.45, 1.0);
 uniform float haze_start_distance : hint_range(50.0, 2000.0) = 300.0;
 uniform float haze_max_distance : hint_range(500.0, 8000.0) = 3000.0;
 uniform float haze_intensity : hint_range(0.0, 1.0) = 0.65;

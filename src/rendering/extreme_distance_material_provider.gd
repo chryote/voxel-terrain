@@ -67,6 +67,14 @@ static func apply_uniforms(mat: ShaderMaterial, theme: Resource) -> void:
 		mat.set_shader_parameter("terrace_step", float(theme.get("terrace_step")))
 	if theme.get("depth_step_distance") != null:
 		mat.set_shader_parameter("depth_step_distance", float(theme.get("depth_step_distance")))
+	if theme.get("palette_shadow") != null:
+		mat.set_shader_parameter("palette_shadow", theme.get("palette_shadow"))
+	if theme.get("palette_base") != null:
+		mat.set_shader_parameter("palette_base", theme.get("palette_base"))
+	if theme.get("palette_lit") != null:
+		mat.set_shader_parameter("palette_lit", theme.get("palette_lit"))
+	if theme.get("palette_highlight") != null:
+		mat.set_shader_parameter("palette_highlight", theme.get("palette_highlight"))
 
 	StrataPaletteRegistryClass.apply_to_material(mat, theme)
 

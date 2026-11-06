@@ -35,15 +35,15 @@ var cave_water_table_enabled: bool:
 @export_range(16, 512, 16) var extreme_lod_resolution: int = 128 ## Subdivisions of continent macro mesh
 @export var extreme_lod_clip_margin: float = 16.0 ## Transition and overlap margin in meters
 @export var extreme_lod_haze_enabled: bool = true ## Subtle atmospheric distance haze
-@export var extreme_lod_haze_color: Color = Color(0.42, 0.50, 0.62, 1.0) ## Subtle muted atmospheric blue
+@export var extreme_lod_haze_color: Color = Color(0.92, 0.54, 0.45, 1.0) ## Warm peach/amber atmospheric horizon haze
 @export_range(0.0, 1.0, 0.05) var extreme_lod_haze_intensity: float = 0.55 ## Peak atmospheric haze blend amount
 @export_range(50.0, 2000.0, 50.0) var extreme_lod_haze_start: float = 300.0 ## Start distance in meters
 @export_range(500.0, 8000.0, 100.0) var extreme_lod_haze_max_distance: float = 3500.0 ## Full haze distance in meters
-@export var extreme_lod_mono_enabled: bool = true ## Unify distant patchwork patterns into monochromatic blue hue family
+@export var extreme_lod_mono_enabled: bool = true ## Unify distant patchwork patterns into monochromatic horizon hue family
 @export_range(0.0, 1.0, 0.05) var extreme_lod_mono_blend: float = 0.95 ## Monochromatic blend strength
-@export var extreme_lod_mono_blue_low: Color = Color(0.42, 0.50, 0.62, 1.0) ## Low elevation / shadow grey-blue hue
-@export var extreme_lod_mono_blue_mid: Color = Color(0.42, 0.50, 0.62, 1.0) ## Mid elevation / plateau grey-blue hue
-@export var extreme_lod_mono_blue_high: Color = Color(0.42, 0.50, 0.62, 1.0) ## High elevation / peaks grey-blue hue
+@export var extreme_lod_mono_blue_low: Color = Color(0.68, 0.52, 0.52, 1.0) ## Low elevation / shadow soft warm mauve hue
+@export var extreme_lod_mono_blue_mid: Color = Color(0.82, 0.62, 0.56, 1.0) ## Mid elevation / plateau light warm peach hue
+@export var extreme_lod_mono_blue_high: Color = Color(0.92, 0.72, 0.60, 1.0) ## High elevation / peaks luminous warm golden hue
 
 @export_group("Extreme Distance Pixel Art")
 @export var extreme_lod_pixel_art_enabled: bool = true ## Render distant macro terrain as stylized retro pixel art landscape

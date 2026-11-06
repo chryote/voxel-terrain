@@ -19,20 +19,11 @@ static var _cached_cave_material: ShaderMaterial = null
 static var _cached_ascii_surface_material: ShaderMaterial = null
 static var _cached_ascii_cave_material: ShaderMaterial = null
 
-static func get_grass_material(config: Resource = null) -> ShaderMaterial:
-	return FoliageProviderClass.get_grass_material(config)
-
-static func get_bush_material(config: Resource = null) -> ShaderMaterial:
-	return FoliageProviderClass.get_bush_material(config)
-
-static func get_water_material(config: Resource = null) -> ShaderMaterial:
-	return ToonWaterProviderClass.get_water_material(config)
-
-static func get_ocean_material(config: Resource = null) -> ShaderMaterial:
-	return ToonWaterProviderClass.get_ocean_material(config)
-
-static func get_subterranean_water_material(config: Resource = null) -> ShaderMaterial:
-	return ToonWaterProviderClass.get_subterranean_water_material(config)
+static func get_grass_material(config: Resource = null) -> ShaderMaterial: return FoliageProviderClass.get_grass_material(config)
+static func get_bush_material(config: Resource = null) -> ShaderMaterial: return FoliageProviderClass.get_bush_material(config)
+static func get_water_material(config: Resource = null) -> ShaderMaterial: return ToonWaterProviderClass.get_water_material(config)
+static func get_ocean_material(config: Resource = null) -> ShaderMaterial: return ToonWaterProviderClass.get_ocean_material(config)
+static func get_subterranean_water_material(config: Resource = null) -> ShaderMaterial: return ToonWaterProviderClass.get_subterranean_water_material(config)
 
 ## Retrieves or creates the shared surface terrain material (Halftone or ASCII based on config).
 static func get_surface_material(config: Resource = null) -> ShaderMaterial:
@@ -150,6 +141,18 @@ static func _apply_ascii_uniforms(mat: ShaderMaterial, config: Resource, is_cave
 	mat.set_shader_parameter("lit_threshold", float(config.get("lit_threshold")))
 	_apply_shadow_tint(mat, config.get("shadow_tint") as Color, is_cave)
 	StrataPaletteRegistryClass.apply_to_material(mat, config)
+	var s_en = config.get("stains_enabled")
+	mat.set_shader_parameter("stains_enabled", bool(s_en) if s_en != null else true)
+	var s_sc = config.get("stain_scale")
+	mat.set_shader_parameter("stain_scale", float(s_sc) if s_sc != null else 0.08)
+	var s_th = config.get("stain_threshold")
+	mat.set_shader_parameter("stain_threshold", float(s_th) if s_th != null else 0.45)
+	var s_in = config.get("stain_intensity")
+	mat.set_shader_parameter("stain_intensity", float(s_in) if s_in != null else 0.70)
+	var c_dk = config.get("stain_color_dark")
+	mat.set_shader_parameter("stain_color_dark", c_dk if c_dk != null else Color(0.08, 0.06, 0.05, 0.85))
+	var c_gr = config.get("stain_color_green")
+	mat.set_shader_parameter("stain_color_green", c_gr if c_gr != null else Color(0.48, 0.28, 0.12, 0.85))
 
 static func _resolve_texture(tex: Texture2D, path: String, fallback: Callable) -> Texture2D:
 	if tex != null:

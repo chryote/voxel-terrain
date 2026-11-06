@@ -14,14 +14,14 @@ side_color = Color(0, 0, 0, 0)
 script = ExtResource("1_mat")
 id = 1
 name = "grass"
-top_color = Color(0.239, 0.259, 0.204, 1.0)
+top_color = Color(0.212, 0.220, 0.212, 1.0)
 side_color = Color(0.212, 0.165, 0.137, 1.0)
 
 [sub_resource type="Resource" id="mat_dirt"]
 script = ExtResource("1_mat")
 id = 2
 name = "dirt"
-top_color = Color(0.231, 0.176, 0.149, 1.0)
+top_color = Color(0.188, 0.180, 0.173, 1.0)
 side_color = Color(0.180, 0.133, 0.110, 1.0)
 
 [sub_resource type="Resource" id="mat_stone"]

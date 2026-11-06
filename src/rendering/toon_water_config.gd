@@ -6,13 +6,13 @@ extends Resource
 
 @export_group("Foam Line")
 @export var foam_enabled: bool = true
-@export var foam_color: Color = Color(0.52, 0.49, 0.44, 1.0)
+@export var foam_color: Color = Color(0.56, 0.50, 0.42, 1.0)
 @export_range(0.02, 2.0, 0.01) var foam_thickness: float = 0.35
 
 @export_group("Stepped Depth Colors")
-@export var shallow_color: Color = Color(0.24, 0.27, 0.25, 0.88)
-@export var mid_color: Color = Color(0.16, 0.19, 0.20, 0.92)
-@export var deep_color: Color = Color(0.08, 0.10, 0.12, 0.96)
+@export var shallow_color: Color = Color(0.36, 0.28, 0.20, 0.88)
+@export var mid_color: Color = Color(0.25, 0.18, 0.13, 0.93)
+@export var deep_color: Color = Color(0.14, 0.09, 0.06, 0.97)
 @export_range(0.2, 5.0, 0.1) var shallow_threshold: float = 1.5
 @export_range(1.0, 20.0, 0.5) var deep_threshold: float = 5.0
 
@@ -23,7 +23,7 @@ extends Resource
 @export_range(0.1, 1.2, 0.01) var ripple_radius: float = 0.65
 @export_range(0.01, 1.0, 0.01) var ripple_speed: float = 0.08
 @export_range(0.01, 0.25, 0.005) var ripple_threshold: float = 0.05
-@export var ripple_color: Color = Color(0.38, 0.39, 0.36, 0.45)
+@export var ripple_color: Color = Color(0.46, 0.39, 0.30, 0.45)
 
 @export_group("Side Face Fluid")
 @export_range(0.5, 5.0, 0.1) var side_fluid_speed: float = 2.2
@@ -58,6 +58,8 @@ static func create_subterranean_config() -> Resource:
 
 static func create_preset(name: String) -> Resource:
 	match name:
+		"muddy_river", "muddy", "river":
+			return create_default_config()
 		"ocean", "sea":
 			return create_ocean_config()
 		"subterranean", "cave":

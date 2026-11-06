@@ -1,14 +1,18 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://src/player/player_motor.gd" id="1_motor"]
 [ext_resource type="Script" path="res://src/player/player_input.gd" id="2_input"]
 [ext_resource type="Script" path="res://src/player/third_person_camera.gd" id="3_camera"]
 [ext_resource type="Script" path="res://src/player/player_hud.gd" id="4_hud"]
 [ext_resource type="Script" path="res://src/map/continent_map_ui.gd" id="5_map"]
+[ext_resource type="Shader" path="res://shaders/character/weathered_capsule.gdshader" id="6_capsule_shader"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.4
 height = 1.8
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_player"]
+shader = ExtResource("6_capsule_shader")
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_player"]
 radius = 0.4
@@ -27,6 +31,7 @@ shape = SubResource("CapsuleShape3D_player")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+material_override = SubResource("ShaderMaterial_player")
 mesh = SubResource("CapsuleMesh_player")
 
 [node name="PlayerInput" type="Node" parent="."]

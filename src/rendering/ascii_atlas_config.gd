@@ -32,6 +32,14 @@ extends Resource
 @export_range(0.05, 1.0, 0.05) var strata_frequency: float = 0.35
 @export_range(0.0, 1.0, 0.05) var strata_warp_strength: float = 0.50
 
+@export_group("Procedural Stains")
+@export var stains_enabled: bool = true
+@export_range(0.01, 0.5, 0.01) var stain_scale: float = 0.08
+@export_range(0.2, 0.8, 0.01) var stain_threshold: float = 0.45
+@export_range(0.0, 1.0, 0.05) var stain_intensity: float = 0.70
+@export var stain_color_dark: Color = Color(0.08, 0.06, 0.05, 0.85)
+@export var stain_color_green: Color = Color(0.48, 0.28, 0.12, 0.85)
+
 static func create_default_config() -> Resource:
 	var cfg = new()
 	return cfg

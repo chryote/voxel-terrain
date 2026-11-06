@@ -29,17 +29,25 @@ func get_material(id: int) -> MaterialDef:
 
 func get_top_color(id: int) -> Color:
 	var mat = get_material(id)
-	return mat.top_color if mat != null else Color.WHITE
+	if mat == null:
+		return Color.WHITE
+	var c = mat.top_color
+	c.a = float(id) / 255.0
+	return c
 
 func get_side_color(id: int) -> Color:
 	var mat = get_material(id)
-	return mat.side_color if mat != null else Color.WHITE
+	if mat == null:
+		return Color.WHITE
+	var c = mat.side_color
+	c.a = float(id) / 255.0
+	return c
 
 static func create_default_registry() -> MaterialRegistry:
 	var reg = MaterialRegistry.new()
 	reg.register_material(MaterialDef.new(MaterialDef.ID_AIR, "air", Color(0, 0, 0, 0), Color(0, 0, 0, 0)))
-	reg.register_material(MaterialDef.new(MaterialDef.ID_GRASS, "grass", Color("#3d4234"), Color("#362a23")))
-	reg.register_material(MaterialDef.new(MaterialDef.ID_DIRT, "dirt", Color("#3b2d26"), Color("#2e221c")))
+	reg.register_material(MaterialDef.new(MaterialDef.ID_GRASS, "grass", Color("#363836"), Color("#362a23")))
+	reg.register_material(MaterialDef.new(MaterialDef.ID_DIRT, "dirt", Color("#302e2c"), Color("#2e221c")))
 	reg.register_material(MaterialDef.new(MaterialDef.ID_STONE, "stone", Color("#454442"), Color("#363533")))
 	reg.register_material(MaterialDef.new(MaterialDef.ID_SAND, "sand", Color("#665b49"), Color("#544a3b")))
 	reg.register_material(MaterialDef.new(MaterialDef.ID_SNOW, "snow", Color("#87827a"), Color("#6e6962")))

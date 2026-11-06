@@ -6,13 +6,13 @@ uniform sampler2D depth_texture : hint_depth_texture, repeat_disable, filter_nea
 
 group_uniforms Foam_Settings;
 uniform bool foam_enabled = true;
-uniform vec4 foam_color : source_color = vec4(0.52, 0.49, 0.44, 1.0);
+uniform vec4 foam_color : source_color = vec4(0.56, 0.50, 0.42, 1.0);
 uniform float foam_thickness : hint_range(0.02, 2.0) = 0.35;
 
 group_uniforms Stepped_Depth_Colors;
-uniform vec4 shallow_color : source_color = vec4(0.24, 0.27, 0.25, 0.88);
-uniform vec4 mid_color : source_color = vec4(0.16, 0.19, 0.20, 0.92);
-uniform vec4 deep_color : source_color = vec4(0.08, 0.10, 0.12, 0.96);
+uniform vec4 shallow_color : source_color = vec4(0.36, 0.28, 0.20, 0.88);
+uniform vec4 mid_color : source_color = vec4(0.25, 0.18, 0.13, 0.93);
+uniform vec4 deep_color : source_color = vec4(0.14, 0.09, 0.06, 0.97);
 uniform float shallow_threshold : hint_range(0.2, 5.0) = 1.5;
 uniform float deep_threshold : hint_range(1.0, 20.0) = 5.0;
 
@@ -30,7 +30,7 @@ uniform float ripple_scale : hint_range(0.01, 1.0) = 0.08;
 uniform float ripple_radius : hint_range(0.1, 1.2) = 0.65;
 uniform float ripple_speed : hint_range(0.01, 1.0) = 0.08;
 uniform float ripple_threshold : hint_range(0.01, 0.25) = 0.05;
-uniform vec4 ripple_color : source_color = vec4(0.38, 0.39, 0.36, 0.45);
+uniform vec4 ripple_color : source_color = vec4(0.46, 0.39, 0.30, 0.45);
 
 group_uniforms Side_Face_Fluid;
 uniform float side_fluid_speed : hint_range(0.5, 5.0) = 2.2;

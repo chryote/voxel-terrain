@@ -9,12 +9,12 @@ extends RefCounted
 # Material Colors
 var color_deep_ocean: Color = Color("#12181f")
 var color_shallow_ocean: Color = Color("#1d262e")
-var color_water_body: Color = Color("#202b33")
+var color_water_body: Color = Color("#3d2c1e")
 var color_beach_sand: Color = Color("#665b49")
 var color_alpine_snow: Color = Color("#87827a")
 var color_mountain_stone: Color = Color("#454442")
-var color_slope_dirt: Color = Color("#3b2d26")
-var color_plains_grass: Color = Color("#3d4234")
+var color_slope_dirt: Color = Color("#302e2c")
+var color_plains_grass: Color = Color("#363836")
 var color_gravel_bed: Color = Color("#33302c")
 
 # Subterranean & Arena Material Colors

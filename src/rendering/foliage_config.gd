@@ -9,12 +9,12 @@ const DEFAULT_BUSH_TEXTURE_PATH = "res://assets/textures/bush.png"
 
 @export_group("Texture & Cutout")
 @export var albedo_texture: Texture2D = null
-@export var albedo_tint: Color = Color(1.0, 1.0, 1.0, 1.0)
+@export var albedo_tint: Color = Color(0.58, 0.27, 0.22, 1.0)
 @export_range(0.05, 0.95, 0.05) var alpha_scissor_threshold: float = 0.5
 
 @export_group("Bush Settings")
 @export var bush_albedo_texture: Texture2D = null
-@export var bush_albedo_tint: Color = Color(1.0, 1.0, 1.0, 1.0)
+@export var bush_albedo_tint: Color = Color(0.52, 0.22, 0.19, 1.0)
 
 @export_group("Wind Sway")
 @export var wind_enabled: bool = true
@@ -29,7 +29,7 @@ const DEFAULT_BUSH_TEXTURE_PATH = "res://assets/textures/bush.png"
 
 @export_group("Cel Lighting")
 @export_range(0.0, 1.0, 0.05) var lit_threshold: float = 0.35
-@export var shadow_tint: Color = Color(0.22, 0.24, 0.32, 1.0)
+@export var shadow_tint: Color = Color(0.20, 0.13, 0.14, 1.0)
 
 static func create_default_config() -> Resource:
 	var cfg = new()

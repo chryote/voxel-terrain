@@ -6,13 +6,13 @@ extends Resource
 
 @export_group("Foam Line")
 @export var foam_enabled: bool = true
-@export var foam_color: Color = Color(1.0, 1.0, 1.0, 1.0)
+@export var foam_color: Color = Color(0.52, 0.49, 0.44, 1.0)
 @export_range(0.02, 2.0, 0.01) var foam_thickness: float = 0.35
 
 @export_group("Stepped Depth Colors")
-@export var shallow_color: Color = Color(0.34, 0.72, 0.73, 0.85)
-@export var mid_color: Color = Color(0.18, 0.48, 0.68, 0.90)
-@export var deep_color: Color = Color(0.08, 0.18, 0.32, 0.95)
+@export var shallow_color: Color = Color(0.24, 0.27, 0.25, 0.88)
+@export var mid_color: Color = Color(0.16, 0.19, 0.20, 0.92)
+@export var deep_color: Color = Color(0.08, 0.10, 0.12, 0.96)
 @export_range(0.2, 5.0, 0.1) var shallow_threshold: float = 1.5
 @export_range(1.0, 20.0, 0.5) var deep_threshold: float = 5.0
 
@@ -23,7 +23,7 @@ extends Resource
 @export_range(0.1, 1.2, 0.01) var ripple_radius: float = 0.65
 @export_range(0.01, 1.0, 0.01) var ripple_speed: float = 0.08
 @export_range(0.01, 0.25, 0.005) var ripple_threshold: float = 0.05
-@export var ripple_color: Color = Color(0.42, 0.68, 0.85, 0.55)
+@export var ripple_color: Color = Color(0.38, 0.39, 0.36, 0.45)
 
 @export_group("Side Face Fluid")
 @export_range(0.5, 5.0, 0.1) var side_fluid_speed: float = 2.2
@@ -36,20 +36,20 @@ static func create_ocean_config() -> Resource:
 	cfg.foam_enabled = false
 	cfg.ripples_enabled = false
 	cfg.foam_thickness = 0.0
-	cfg.shallow_color = Color(0.28, 0.58, 0.74, 0.85)
-	cfg.mid_color = Color(0.24, 0.46, 0.62, 0.90)
-	cfg.deep_color = Color(0.20, 0.35, 0.50, 0.95)
+	cfg.shallow_color = Color(0.22, 0.25, 0.24, 0.90)
+	cfg.mid_color = Color(0.15, 0.18, 0.19, 0.94)
+	cfg.deep_color = Color(0.09, 0.11, 0.13, 0.98)
 	cfg.shallow_threshold = 2.0
 	cfg.deep_threshold = 12.0
 	return cfg
 
 static func create_subterranean_config() -> Resource:
 	var cfg = new()
-	cfg.foam_color = Color(0.83, 0.91, 0.95, 1.0)
+	cfg.foam_color = Color(0.42, 0.44, 0.43, 1.0)
 	cfg.foam_thickness = 0.25
-	cfg.shallow_color = Color(0.15, 0.42, 0.54, 0.90)
-	cfg.mid_color = Color(0.08, 0.24, 0.33, 0.95)
-	cfg.deep_color = Color(0.03, 0.08, 0.11, 0.98)
+	cfg.shallow_color = Color(0.12, 0.18, 0.20, 0.92)
+	cfg.mid_color = Color(0.07, 0.11, 0.13, 0.96)
+	cfg.deep_color = Color(0.03, 0.05, 0.06, 0.99)
 	cfg.shallow_threshold = 1.0
 	cfg.deep_threshold = 3.5
 	cfg.ripple_speed = 0.02

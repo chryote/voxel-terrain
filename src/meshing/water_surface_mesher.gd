@@ -4,7 +4,7 @@ extends RefCounted
 ## Pure component responsible for greedy merging and buffer generation
 ## of elevated water surfaces and 3D vertical cascading waterfall drops.
 
-var water_color: Color = Color(0.12, 0.38, 0.65, 0.75)
+var water_color: Color = Color(0.16, 0.19, 0.20, 0.88)
 
 func build_water_mesh(data: SurfaceChunkData, sea_level: int = 24) -> MeshData:
 	var n = data.chunk_size

@@ -16,16 +16,16 @@ uniform float parallax_strength : hint_range(0.0, 0.05) = 0.015;
 
 group_uniforms Cel_Lighting;
 uniform float lit_threshold : hint_range(0.0, 1.0) = 0.30;
-uniform vec4 shadow_tint : source_color = vec4(0.22, 0.24, 0.32, 1.0);
+uniform vec4 shadow_tint : source_color = vec4(0.18, 0.16, 0.17, 1.0);
 
 group_uniforms Sedimentary_Strata;
 uniform bool strata_enabled = true;
 uniform float strata_frequency : hint_range(0.05, 1.0) = 0.35;
 uniform float strata_warp_strength : hint_range(0.0, 1.0) = 0.50;
-uniform vec4 strata_color_0 : source_color = vec4(0.23, 0.15, 0.10, 1.0);
-uniform vec4 strata_color_1 : source_color = vec4(0.35, 0.24, 0.17, 1.0);
-uniform vec4 strata_color_2 : source_color = vec4(0.42, 0.31, 0.22, 1.0);
-uniform vec4 strata_color_3 : source_color = vec4(0.27, 0.18, 0.13, 1.0);
+uniform vec4 strata_color_0 : source_color = vec4(0.12, 0.10, 0.09, 1.0);
+uniform vec4 strata_color_1 : source_color = vec4(0.24, 0.15, 0.13, 1.0);
+uniform vec4 strata_color_2 : source_color = vec4(0.29, 0.25, 0.22, 1.0);
+uniform vec4 strata_color_3 : source_color = vec4(0.16, 0.14, 0.15, 1.0);
 
 varying vec3 v_world_pos;
 varying vec3 v_world_normal;
@@ -52,12 +52,12 @@ vec2 evaluate_parallax(vec2 cell_uv, vec3 view_dir_tangent, float height, float 
 
 int decode_material_id(vec4 col) {
 	if (col.a < 0.98 && col.a > 0.002) return clamp(int(round(col.a * 255.0)), 1, 10);
-	if (col.r > 0.85 && col.g > 0.85) return 5; // Snow
-	if (col.r > 0.75 && col.g > 0.65 && col.b < 0.60) return 4; // Sand
-	if (col.b > 0.60 && col.g > 0.60 && col.r < 0.40) return 10; // Crystal
+	if (col.r > 0.48 && col.g > 0.46 && col.b > 0.42) return 5; // Snow
+	if (col.r > 0.32 && col.g > 0.28 && (col.r - col.b) > 0.08) return 4; // Sand
+	if (col.b > 0.30 && col.g > 0.30 && col.r < 0.30) return 10; // Crystal
 	if (col.g > col.r && col.g > col.b) return 1; // Grass
-	if (col.r < 0.20 && col.g < 0.20 && col.b < 0.20) return 9; // Basalt
-	if (abs(col.r - col.g) < 0.04 && abs(col.g - col.b) < 0.04) return 3; // Stone
+	if (col.r < 0.12 && col.g < 0.12 && col.b < 0.12) return 9; // Basalt
+	if (abs(col.r - col.g) < 0.025 && abs(col.g - col.b) < 0.025) return 3; // Stone
 	return (col.r > col.b) ? 2 : 8; // Dirt / Cave Wall
 }
 
@@ -105,11 +105,11 @@ int select_procedural_glyph(int mat_id, vec2 cell_id, vec3 pos, float slope, out
 
 vec3 evaluate_subtle_color(vec3 base_col, int mat_id, int band, float stroke_mask, float cavity_ao, float emboss, float fade) {
 	vec3 ground_col = base_col;
-	if (mat_id == 2 && abs(v_world_normal.y) < 0.5 && strata_enabled) {
+	if (abs(v_world_normal.y) < 0.5 && strata_enabled) {
 		float strata_y = v_world_pos.y + sin(v_world_pos.x * 0.15 + v_world_pos.z * 0.12) * (strata_warp_strength * 1.5);
 		int layer = int(floor(mod(strata_y * strata_frequency, 4.0)));
 		vec3 s_col = (layer == 0) ? strata_color_0.rgb : ((layer == 1) ? strata_color_1.rgb : ((layer == 2) ? strata_color_2.rgb : strata_color_3.rgb));
-		ground_col = mix(base_col, s_col, 0.85);
+		ground_col = mix(base_col, s_col, (mat_id == 2) ? 0.85 : 0.35);
 	} else {
 		float ground_tone = (sin(floor(v_world_pos.y) * 0.3) * 0.04 + sin(v_world_pos.x * 0.06 + v_world_pos.z * 0.04) * 0.03) * fade;
 		ground_col = clamp(base_col * (1.0 + ground_tone), vec3(0.0), vec3(1.0));
@@ -117,11 +117,11 @@ vec3 evaluate_subtle_color(vec3 base_col, int mat_id, int band, float stroke_mas
 	vec3 cavity_col = ground_col * (1.0 - cavity_shadow_intensity * 0.35 * (1.0 - cavity_ao) * fade);
 	float eff_contrast = glyph_contrast * fade;
 	if (mat_id == 1 && band == 0) {
-		vec3 dirt_top = vec3(0.42, 0.31, 0.22);
+		vec3 dirt_top = vec3(0.24, 0.19, 0.16);
 		return mix(mix(ground_col, dirt_top, 0.16 * fade) * mix(1.0, cavity_ao, 0.12 * fade), mix(ground_col, dirt_top * 1.20, 0.42 * fade) + emboss * 0.06, stroke_mask);
 	}
 	if (band == 0) return mix(ground_col * (1.0 - 0.20 * fade) * cavity_ao, ground_col * (1.0 - eff_contrast * 0.90), stroke_mask);
-	vec3 stroke_col = (band == 2) ? (ground_col * (1.0 + eff_contrast * 0.55) + vec3(0.03, 0.07, 0.01) * fade + emboss * 0.12) :
+	vec3 stroke_col = (band == 2) ? (ground_col * (1.0 + eff_contrast * 0.55) + vec3(0.02, 0.015, 0.01) * fade + emboss * 0.12) :
 		(ground_col * (1.0 - eff_contrast * 0.40) + emboss * 0.08);
 	return mix(cavity_col, stroke_col, stroke_mask);
 }

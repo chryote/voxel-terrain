@@ -11,7 +11,7 @@ render_mode diffuse_toon, specular_disabled, cull_disabled;
  */
 
 uniform sampler2D albedo_texture : source_color, filter_linear_mipmap, repeat_disable;
-uniform vec4 albedo_tint : source_color = vec4(1.0, 1.0, 1.0, 1.0);
+uniform vec4 albedo_tint : source_color = vec4(0.58, 0.27, 0.22, 1.0);
 uniform float alpha_scissor_threshold : hint_range(0.05, 0.95) = 0.5;
 
 group_uniforms Wind_Settings;
@@ -27,7 +27,7 @@ uniform float distance_fade_max : hint_range(20.0, 1200.0, 5.0) = 60.0;
 
 group_uniforms Cel_Lighting;
 uniform float lit_threshold : hint_range(0.0, 1.0) = 0.35;
-uniform vec4 shadow_tint : source_color = vec4(0.22, 0.24, 0.32, 1.0);
+uniform vec4 shadow_tint : source_color = vec4(0.20, 0.13, 0.14, 1.0);
 
 varying vec3 v_world_pos;
 varying float v_camera_dist;
@@ -60,9 +60,9 @@ void vertex() {
 
 void fragment() {
 	vec4 tex_col = texture(albedo_texture, UV);
-	vec4 col = tex_col * COLOR * albedo_tint;
+	float alpha = tex_col.a * COLOR.a * albedo_tint.a;
 
-	if (col.a < alpha_scissor_threshold) {
+	if (alpha < alpha_scissor_threshold) {
 		discard;
 	}
 
@@ -73,7 +73,10 @@ void fragment() {
 		}
 	}
 
-	ALBEDO = col.rgb;
+	float tone = clamp(dot(tex_col.rgb * COLOR.rgb, vec3(0.25, 0.65, 0.10)) * 1.55, 0.0, 1.0);
+	vec3 root_decay = albedo_tint.rgb * vec3(0.52, 0.42, 0.44);
+	vec3 tip_decay = albedo_tint.rgb * vec3(1.18, 0.95, 0.88);
+	ALBEDO = clamp(mix(root_decay, tip_decay, clamp(1.0 - UV.y, 0.0, 1.0)) * tone, 0.0, 1.0);
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 }

@@ -18,7 +18,7 @@ uniform bool use_procedural_pattern = false;
 
 group_uniforms Cel_Lighting;
 uniform float lit_threshold : hint_range(0.0, 1.0) = 0.30;
-uniform vec4 shadow_tint : source_color = vec4(0.22, 0.24, 0.32, 1.0);
+uniform vec4 shadow_tint : source_color = vec4(0.18, 0.16, 0.17, 1.0);
 
 void fragment() {
 	// Preserve baked vertex colors from MeshData (Grass, Dirt, Stone, etc.)

@@ -266,7 +266,7 @@ func _ready() -> void:
 				world_config.extreme_lod_mono_blue_low,
 				world_config.extreme_lod_mono_blue_mid,
 				world_config.extreme_lod_mono_blue_high,
-				Color(0.98, 0.84, 0.72, 1.0)
+				Color(0.50, 0.43, 0.39, 1.0)
 			)
 		_update_extreme_lod_clip()
 

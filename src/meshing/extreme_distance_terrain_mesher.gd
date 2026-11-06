@@ -135,9 +135,9 @@ func build_mesh(generator: TerrainGenerator, bounds: WorldBounds, registry: Mate
 
 func _fallback_color(mat_id: int) -> Color:
 	match mat_id:
-		MaterialDef.ID_SNOW: return Color("#f0f4f8")
-		MaterialDef.ID_STONE: return Color("#787878")
-		MaterialDef.ID_SAND: return Color("#d7c58d")
-		MaterialDef.ID_SEABED: return Color("#3b4e43")
-		MaterialDef.ID_GRAVEL: return Color("#5a574f")
-		_: return Color("#567d46")
+		MaterialDef.ID_SNOW: return Color("#87827a")
+		MaterialDef.ID_STONE: return Color("#454442")
+		MaterialDef.ID_SAND: return Color("#665b49")
+		MaterialDef.ID_SEABED: return Color("#212522")
+		MaterialDef.ID_GRAVEL: return Color("#33302c")
+		_: return Color("#3d4234")

@@ -7,15 +7,15 @@ extends RefCounted
 ## Decoupled from scene nodes and rendering backends for testability.
 
 # Material Colors
-var color_deep_ocean: Color = Color("#132e48")
-var color_shallow_ocean: Color = Color("#2a6894")
-var color_water_body: Color = Color("#2e7ca8")
-var color_beach_sand: Color = Color("#d8c78c")
-var color_alpine_snow: Color = Color("#f4f7fb")
-var color_mountain_stone: Color = Color("#787878")
-var color_slope_dirt: Color = Color("#6b4f38")
-var color_plains_grass: Color = Color("#567d46")
-var color_gravel_bed: Color = Color("#6e6b63")
+var color_deep_ocean: Color = Color("#12181f")
+var color_shallow_ocean: Color = Color("#1d262e")
+var color_water_body: Color = Color("#202b33")
+var color_beach_sand: Color = Color("#665b49")
+var color_alpine_snow: Color = Color("#87827a")
+var color_mountain_stone: Color = Color("#454442")
+var color_slope_dirt: Color = Color("#3b2d26")
+var color_plains_grass: Color = Color("#3d4234")
+var color_gravel_bed: Color = Color("#33302c")
 
 # Subterranean & Arena Material Colors
 var color_underground_rock: Color = Color("#13161c")      ## Solid uncarved bedrock / earth

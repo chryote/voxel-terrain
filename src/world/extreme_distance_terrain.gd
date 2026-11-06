@@ -77,7 +77,7 @@ func set_macro_visible(p_visible: bool) -> void:
 	if visible != p_visible:
 		visible = p_visible
 
-func set_atmospheric_haze(color: Color = Color(0.92, 0.54, 0.45, 1.0), intensity: float = 0.55, start_dist: float = 300.0, max_dist: float = 3500.0, enabled: bool = true) -> void:
+func set_atmospheric_haze(color: Color = Color(0.38, 0.29, 0.28, 1.0), intensity: float = 0.68, start_dist: float = 300.0, max_dist: float = 3500.0, enabled: bool = true) -> void:
 	if macro_material == null:
 		return
 	macro_material.set_shader_parameter("atmosphere_enabled", enabled)
@@ -87,9 +87,9 @@ func set_atmospheric_haze(color: Color = Color(0.92, 0.54, 0.45, 1.0), intensity
 	macro_material.set_shader_parameter("haze_max_distance", max_dist)
 
 func set_monochromatic_palette(
-	low: Color = Color(0.68, 0.52, 0.52, 1.0),
-	mid: Color = Color(0.82, 0.62, 0.56, 1.0),
-	high: Color = Color(0.92, 0.72, 0.60, 1.0),
+	low: Color = Color(0.22, 0.19, 0.19, 1.0),
+	mid: Color = Color(0.32, 0.27, 0.26, 1.0),
+	high: Color = Color(0.42, 0.36, 0.33, 1.0),
 	blend: float = 0.95,
 	start_dist: float = -1.0,
 	full_dist: float = 360.0,
@@ -114,10 +114,10 @@ func set_pixel_art_style(enabled: bool = true, size: float = 4.0, terrace: float
 	macro_material.set_shader_parameter("depth_step_distance", depth_step)
 
 func set_pixel_art_palette(
-	shadow: Color = Color(0.68, 0.52, 0.52, 1.0),
-	base: Color = Color(0.82, 0.62, 0.56, 1.0),
-	lit: Color = Color(0.92, 0.72, 0.60, 1.0),
-	highlight: Color = Color(0.98, 0.84, 0.72, 1.0)
+	shadow: Color = Color(0.22, 0.19, 0.19, 1.0),
+	base: Color = Color(0.32, 0.27, 0.26, 1.0),
+	lit: Color = Color(0.42, 0.36, 0.33, 1.0),
+	highlight: Color = Color(0.50, 0.43, 0.39, 1.0)
 ) -> void:
 	if macro_material == null:
 		return

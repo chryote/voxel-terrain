@@ -23,7 +23,7 @@ extends Resource
 
 @export_group("Cel-Lighting Integration")
 @export_range(0.0, 1.0, 0.05) var lit_threshold: float = 0.30
-@export var shadow_tint: Color = Color(0.22, 0.24, 0.32, 1.0)
+@export var shadow_tint: Color = Color(0.18, 0.16, 0.17, 1.0)
 
 @export_group("Sedimentary Strata")
 @export var strata_enabled: bool = true

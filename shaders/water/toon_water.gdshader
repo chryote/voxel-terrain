@@ -1,27 +1,27 @@
 shader_type spatial;
 render_mode unshaded, cull_back, depth_draw_always;
 
-/** Stylized NPR Toon Water Spatial Shader (Moebius / Graphic Novel Aesthetic) */
+/** Stylized NPR Toon Water Spatial Shader (Dying World / Bleak Graphic Novel Aesthetic) */
 uniform sampler2D depth_texture : hint_depth_texture, repeat_disable, filter_nearest;
 
 group_uniforms Foam_Settings;
 uniform bool foam_enabled = true;
-uniform vec4 foam_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
+uniform vec4 foam_color : source_color = vec4(0.52, 0.49, 0.44, 1.0);
 uniform float foam_thickness : hint_range(0.02, 2.0) = 0.35;
 
 group_uniforms Stepped_Depth_Colors;
-uniform vec4 shallow_color : source_color = vec4(0.34, 0.72, 0.73, 0.85);
-uniform vec4 mid_color : source_color = vec4(0.18, 0.48, 0.68, 0.90);
-uniform vec4 deep_color : source_color = vec4(0.08, 0.18, 0.32, 0.95);
+uniform vec4 shallow_color : source_color = vec4(0.24, 0.27, 0.25, 0.88);
+uniform vec4 mid_color : source_color = vec4(0.16, 0.19, 0.20, 0.92);
+uniform vec4 deep_color : source_color = vec4(0.08, 0.10, 0.12, 0.96);
 uniform float shallow_threshold : hint_range(0.2, 5.0) = 1.5;
 uniform float deep_threshold : hint_range(1.0, 20.0) = 5.0;
 
 group_uniforms Atmospheric_Perspective;
 uniform bool atmosphere_enabled = true;
-uniform vec4 haze_color : source_color = vec4(0.92, 0.54, 0.45, 1.0);
+uniform vec4 haze_color : source_color = vec4(0.38, 0.29, 0.28, 1.0);
 uniform float haze_start_distance : hint_range(50.0, 2000.0) = 300.0;
 uniform float haze_max_distance : hint_range(500.0, 8000.0) = 3000.0;
-uniform float haze_intensity : hint_range(0.0, 1.0) = 0.65;
+uniform float haze_intensity : hint_range(0.0, 1.0) = 0.68;
 
 group_uniforms Graphic_Ripples;
 uniform bool ripples_enabled = true;
@@ -30,7 +30,7 @@ uniform float ripple_scale : hint_range(0.01, 1.0) = 0.08;
 uniform float ripple_radius : hint_range(0.1, 1.2) = 0.65;
 uniform float ripple_speed : hint_range(0.01, 1.0) = 0.08;
 uniform float ripple_threshold : hint_range(0.01, 0.25) = 0.05;
-uniform vec4 ripple_color : source_color = vec4(0.42, 0.68, 0.85, 0.55);
+uniform vec4 ripple_color : source_color = vec4(0.38, 0.39, 0.36, 0.45);
 
 group_uniforms Side_Face_Fluid;
 uniform float side_fluid_speed : hint_range(0.5, 5.0) = 2.2;
@@ -45,48 +45,39 @@ void vertex() {
 	v_world_normal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
 }
 
-// Pseudo-random 2D hash for cellular noise
 vec2 hash2(vec2 p) {
 	p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
 	return fract(sin(p) * 43758.5453123);
 }
 
-// Organic cellular edge distance with smooth Euclidean metric
 float cellular_distance(vec2 p) {
 	vec2 i_pos = floor(p), f_pos = fract(p);
 	float d1 = 8.0, d2 = 8.0;
 	for (int y = -1; y <= 1; y++) {
 		for (int x = -1; x <= 1; x++) {
 			vec2 n = vec2(float(x), float(y));
-			vec2 diff = n + hash2(i_pos + n) - f_pos;
-			float d = length(diff);
-			if (d < d1) { d2 = d1; d1 = d; }
-			else if (d < d2) { d2 = d; }
+			float d = length(n + hash2(i_pos + n) - f_pos);
+			if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) { d2 = d; }
 		}
 	}
 	return (d2 - d1);
 }
 
-// Reconstructs linear metric depth in camera view space
 float get_linear_scene_depth(vec2 screen_uv, mat4 inv_proj) {
 	float raw_depth = textureLod(depth_texture, screen_uv, 0.0).r;
 	if (raw_depth >= 0.99999) return 10000.0;
-	vec4 ndc = vec4(screen_uv * 2.0 - 1.0, raw_depth, 1.0);
-	vec4 view_pos = inv_proj * ndc;
+	vec4 view_pos = inv_proj * vec4(screen_uv * 2.0 - 1.0, raw_depth, 1.0);
 	return -view_pos.z / max(abs(view_pos.w), 0.00001);
 }
 
-// Stepped discrete color horizons based on depth behind water surface with smooth watercolor transition
 vec4 evaluate_stepped_depth(float depth_diff) {
 	if (depth_diff < shallow_threshold) {
-		float t = depth_diff / max(shallow_threshold, 0.001);
-		return mix(shallow_color, mid_color, t * 0.5);
+		return mix(shallow_color, mid_color, (depth_diff / max(shallow_threshold, 0.001)) * 0.5);
 	}
 	float t = clamp((depth_diff - shallow_threshold) / max(deep_threshold - shallow_threshold, 0.001), 0.0, 1.0);
 	return mix(mid_color, deep_color, smoothstep(0.0, 1.0, t));
 }
 
-// Procedural anime water caustics with pixelized grid & optical shadow
 vec2 evaluate_graphic_ripples(vec2 world_xz, float time, float view_depth) {
 	vec2 p = floor(world_xz * pixel_density) / pixel_density;
 	vec2 w1 = vec2(sin(p.y * ripple_scale * 3.5 + time * 0.8), cos(p.x * ripple_scale * 3.5 + time * 0.6)) * (0.22 * ripple_radius);
@@ -102,18 +93,14 @@ vec2 evaluate_graphic_ripples(vec2 world_xz, float time, float view_depth) {
 	return vec2(hi, sh);
 }
 
-// Animated downward fluid streams with 35% bottom splash foam
 float evaluate_side_fluid_flow(vec3 pos, vec3 norm, float time, float v_t, float v_h) {
 	float horiz = (abs(norm.x) > abs(norm.z)) ? pos.z : pos.x;
 	vec2 pix = floor(vec2(horiz, pos.y) * pixel_density) / pixel_density;
 	float col_id = floor(pix.x * 0.75);
 	float col_rnd = sin(col_id * 12.345 + 1.5) * 0.28;
-	float wave = sin(pix.x * 3.2 + sin(pix.x * 1.6 + pix.y * 0.4) * 1.1 + col_rnd) * 0.34
-	           + sin(pix.x * 6.8 + pix.y * 0.6 + col_id * 0.5) * 0.12;
-	float phase = fract((pix.y + time * side_fluid_speed) * 0.85 + wave + col_rnd * 0.3);
-	float stream = step(phase, 0.32);
-	float frame = floor(time * 10.0);
-	float p_rnd = fract(sin(dot(pix * 3.0 + frame * 0.15, vec2(12.9898, 78.233))) * 43758.5453);
+	float wave = sin(pix.x * 3.2 + sin(pix.x * 1.6 + pix.y * 0.4) * 1.1 + col_rnd) * 0.34 + sin(pix.x * 6.8 + pix.y * 0.6 + col_id * 0.5) * 0.12;
+	float stream = step(fract((pix.y + time * side_fluid_speed) * 0.85 + wave + col_rnd * 0.3), 0.32);
+	float p_rnd = fract(sin(dot(pix * 3.0 + floor(time * 10.0) * 0.15, vec2(12.9898, 78.233))) * 43758.5453);
 	float norm_h = clamp(v_t, 0.0, 1.0);
 	float splash = step(norm_h, 0.35) * (step(norm_h, 0.08) + step(p_rnd, (1.0 - norm_h / 0.35) * 0.85));
 	return max(stream, min(splash, 1.0));
@@ -124,31 +111,22 @@ void fragment() {
 	float water_depth = -VERTEX.z;
 	float depth_diff = max(scene_depth - water_depth, 0.0);
 	bool is_side = abs(v_world_normal.y) < 0.5;
-
 	vec4 col = evaluate_stepped_depth(depth_diff);
-
 	if (ripples_enabled) {
 		if (is_side) {
 			col = mix(col, shallow_color, 0.35);
-			float fluid = evaluate_side_fluid_flow(v_world_pos, v_world_normal, TIME, v_vertex_color.r, v_vertex_color.g);
-			if (fluid > 0.5) col = mix(col, vec4(1.0, 1.0, 1.0, 1.0), 0.92);
+			if (evaluate_side_fluid_flow(v_world_pos, v_world_normal, TIME, v_vertex_color.r, v_vertex_color.g) > 0.5) col = mix(col, foam_color, 0.88);
 		} else {
 			vec2 rip = evaluate_graphic_ripples(v_world_pos.xz, TIME, water_depth);
 			if (rip.y > 0.5) col.rgb = mix(col.rgb, deep_color.rgb * 0.75, 0.35);
 			if (rip.x > 0.5) col = mix(col, ripple_color, ripple_color.a);
 		}
 	}
-
-	if (foam_enabled && !is_side && depth_diff < foam_thickness) {
-		col = foam_color;
-	}
-
+	if (foam_enabled && !is_side && depth_diff < foam_thickness) col = foam_color;
 	if (atmosphere_enabled) {
-		float dist = length(VERTEX);
-		float t = clamp((dist - haze_start_distance) / max(1.0, haze_max_distance - haze_start_distance), 0.0, 1.0);
+		float t = clamp((length(VERTEX) - haze_start_distance) / max(1.0, haze_max_distance - haze_start_distance), 0.0, 1.0);
 		col.rgb = mix(col.rgb, haze_color.rgb, smoothstep(0.0, 1.0, t) * haze_intensity);
 	}
-
 	ALBEDO = col.rgb;
 	ALPHA = col.a;
 }

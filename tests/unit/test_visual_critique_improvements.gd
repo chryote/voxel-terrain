@@ -103,6 +103,13 @@ func test_rim_lighting_and_silhouette_highlights() -> void:
 	var halftone_code = halftone_shader.code
 	assert_false(halftone_code.contains("is_sky_rim"), "Halftone shader must not inject white pattern into shadows")
 
+	# 4. Extreme distance LOD terrain shader: clean cel lighting, no dither artifacts on mountain slopes
+	var macro_shader = load("res://shaders/terrain/distant_macro_terrain.gdshader") as Shader
+	assert_not_null(macro_shader, "Distant macro terrain shader must load")
+	var macro_code = macro_shader.code
+	assert_false(macro_code.contains("is_lit = (clamp"), "Extreme LOD shader must not use dither penumbra in is_lit")
+	assert_false(macro_code.contains("is_rim = (rim > (0.6 + dither"), "Extreme LOD shader must not use dither in is_rim")
+
 func test_camera_space_vignetting_and_color_grading() -> void:
 	# 1. Post-process shader vignetting
 	var outline_shader = load("res://shaders/postprocess/outline_postprocess.gdshader") as Shader

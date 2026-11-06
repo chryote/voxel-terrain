@@ -104,19 +104,13 @@ vec3 apply_atmospheric_perspective(vec3 color, float dist) {
 void fragment() {
 	float dist = distance(v_world_pos.xz, u_clip_center.xz);
 	if (dist < u_clip_radius) discard;
-	if (dist < u_clip_radius + u_clip_feather) {
-		float alpha_fade = clamp((dist - u_clip_radius) / max(0.001, u_clip_feather), 0.0, 1.0);
-		if (!evaluate_bayer_dither(alpha_fade, FRAGCOORD.xy)) discard;
-	}
 
-	vec2 pixel_coord = pixel_art_enabled ? floor(FRAGCOORD.xy / max(pixel_size, 1.0)) : FRAGCOORD.xy;
-	float dither = get_bayer_4x4(pixel_coord);
 	vec3 col = palette_base.rgb;
 
-	// 1. Terraced contour shelves
+	// 1. Terraced contour shelves (clean stepped shelves without dither stipple)
 	if (pixel_art_enabled && terrace_step > 0.5) {
 		float step_val = v_world_pos.y / terrace_step;
-		float is_shelf = (fract(step_val) < dither * terrace_dither_strength) ? -0.06 : 0.0;
+		float is_shelf = (fract(step_val) < 0.15 * terrace_dither_strength) ? -0.06 : 0.0;
 		float alt_band = (mod(floor(step_val), 2.0) == 0.0) ? 0.03 : -0.03;
 		col = clamp(col + vec3(is_shelf + alt_band), vec3(0.0), vec3(1.0));
 	}
@@ -124,12 +118,14 @@ void fragment() {
 	// 2. Multi-tier depth planes
 	if (pixel_art_enabled && depth_layers_enabled) {
 		float depth_val = (dist - u_clip_radius) / max(depth_step_distance, 1.0);
-		float dithered_tier = floor(depth_val) + (fract(depth_val) > dither ? 1.0 : 0.0);
+		float dithered_tier = floor(depth_val);
 		col = mix(col, haze_color.rgb, clamp(dithered_tier * 0.05, 0.0, 0.20));
 	}
 
 	// 3. Blend with near chunk color at seam, strata, & atmospheric perspective
-	col = apply_monochrome_blue(mix(COLOR.rgb, col, mono_color_blend), dist);
+	float seam_t = clamp((dist - u_clip_radius) / max(0.001, u_clip_feather), 0.0, 1.0);
+	vec3 base_seam_col = mix(COLOR.rgb, col, seam_t);
+	col = apply_monochrome_blue(mix(base_seam_col, col, mono_color_blend), dist);
 	int mat_id = int(round(COLOR.a * 255.0));
 	if (mat_id == 3 || mat_id == 2 || abs(v_world_normal.y) < 0.65) {
 		col = apply_strata_tonal(col, v_world_pos.y, v_world_pos.x, v_world_pos.z);
@@ -140,14 +136,12 @@ void fragment() {
 }
 
 void light() {
-	vec2 pixel_coord = pixel_art_enabled ? floor(FRAGCOORD.xy / max(pixel_size, 1.0)) : FRAGCOORD.xy;
-	float dither = get_bayer_4x4(pixel_coord);
 	float n_dot_l = max(dot(NORMAL, LIGHT), 0.0) * ATTENUATION;
-	float is_lit = (clamp((n_dot_l - (lit_threshold - 0.12)) / 0.24, 0.0, 1.0) > dither) ? 1.0 : 0.0;
+	float is_lit = step(lit_threshold, n_dot_l);
 
-	// Pixel art rim highlight on mountain crests
+	// Clean cel rim highlight on mountain crests
 	float rim = pow(1.0 - max(dot(NORMAL, VIEW), 0.0), 3.0) * step(0.5, n_dot_l);
-	float is_rim = (rim > (0.6 + dither * 0.3)) ? 1.0 : 0.0;
+	float is_rim = step(0.70, rim);
 
 	vec3 lit_color = mix(ALBEDO * LIGHT_COLOR, palette_highlight.rgb * LIGHT_COLOR, is_rim * 0.6);
 	DIFFUSE_LIGHT += mix(ALBEDO * shadow_tint.rgb, lit_color, is_lit);

@@ -142,8 +142,7 @@ void fragment() {
 }
 
 void light() {
-	vec2 p = floor(FRAGCOORD.xy / max(pixel_size, 1.0));
 	float n_dot_l = max(dot(NORMAL, LIGHT), 0.0) * ATTENUATION;
-	float is_lit = (clamp((n_dot_l - (lit_threshold - 0.12)) / 0.24, 0.0, 1.0) > get_bayer_4x4(p)) ? 1.0 : 0.0;
+	float is_lit = step(lit_threshold, n_dot_l);
 	DIFFUSE_LIGHT += mix(ALBEDO * shadow_tint.rgb, ALBEDO * LIGHT_COLOR, is_lit);
 }

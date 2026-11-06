@@ -7,13 +7,13 @@ shader_type sky;
  */
 
 group_uniforms Sky_Palette;
-uniform vec4 sky_top_color : source_color = vec4(0.18, 0.19, 0.18, 1.0);
-uniform vec4 sky_high_color : source_color = vec4(0.29, 0.28, 0.24, 1.0);
-uniform vec4 sky_mid_color : source_color = vec4(0.48, 0.39, 0.26, 1.0);
-uniform vec4 sky_low_color : source_color = vec4(0.49, 0.31, 0.28, 1.0);
-uniform vec4 sky_horizon_color : source_color = vec4(0.38, 0.29, 0.28, 1.0);
-uniform vec4 ground_horizon_color : source_color = vec4(0.26, 0.20, 0.20, 1.0);
-uniform vec4 ground_bottom_color : source_color = vec4(0.10, 0.09, 0.09, 1.0);
+uniform vec4 sky_top_color : source_color = vec4(0.11, 0.13, 0.16, 1.0);
+uniform vec4 sky_high_color : source_color = vec4(0.20, 0.23, 0.28, 1.0);
+uniform vec4 sky_mid_color : source_color = vec4(0.29, 0.35, 0.41, 1.0);
+uniform vec4 sky_low_color : source_color = vec4(0.25, 0.29, 0.34, 1.0);
+uniform vec4 sky_horizon_color : source_color = vec4(0.19, 0.21, 0.25, 1.0);
+uniform vec4 ground_horizon_color : source_color = vec4(0.13, 0.14, 0.17, 1.0);
+uniform vec4 ground_bottom_color : source_color = vec4(0.06, 0.07, 0.08, 1.0);
 
 group_uniforms Band_Thresholds;
 uniform float high_band_threshold : hint_range(0.0, 1.0) = 0.38;
@@ -24,7 +24,7 @@ uniform float band_smoothness : hint_range(0.0, 0.1) = 0.012;
 
 group_uniforms Sun_Disk;
 uniform bool sun_enabled = true;
-uniform vec4 sun_color : source_color = vec4(0.72, 0.62, 0.48, 1.0);
+uniform vec4 sun_color : source_color = vec4(0.78, 0.83, 0.90, 1.0);
 uniform float sun_disk_size : hint_range(0.001, 0.1) = 0.025;
 
 // Pure single-responsibility helper: calculates stepped background color by vertical angle

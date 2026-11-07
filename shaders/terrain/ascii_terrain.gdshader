@@ -76,9 +76,9 @@ float evaluate_procedural_stain(vec3 pos, vec3 norm, out float out_taint) {
 	float drip = pow(clamp(sin(h * 12.0 + sin(h * 28.0) * 0.6) * 0.5 + 0.5, 0.0, 1.0), 2.6);
 	float side_w = max(smoothstep(0.65, 0.98, fract(pos.y)) * 0.85, drip * (0.3 + 0.7 * fract(pos.y)));
 	float macro = sin(p.x + sin(p.z * 1.5)) * cos(p.z + sin(p.y * 1.2)) * 0.5 + 0.5;
-	float edge = max(abs(fract(pos.x) - 0.5), abs(fract(pos.z) - 0.5)) * 2.0;
-	float grunge = fract(sin(dot(floor(pos.xz * 14.0), vec2(12.9898, 78.233))) * 43758.5453) * 0.30;
-	float top_w = macro * 0.65 + smoothstep(0.45, 0.95, edge) * 0.45 + grunge * macro;
+	float medium = sin(p.x * 2.6 + sin(p.z * 2.1)) * cos(p.z * 2.4 + sin(p.x * 1.8)) * 0.5 + 0.5;
+	float micro = sin(p.x * 6.2 - p.z * 4.8) * cos(p.z * 5.7 + p.x * 3.4) * 0.5 + 0.5;
+	float top_w = macro * 0.50 + medium * 0.35 + micro * 0.15;
 	float s = clamp(mix(top_w, macro * 0.35 + side_w * 0.75, is_side), 0.0, 1.0);
 	out_taint = clamp(1.0 - smoothstep(stain_threshold + 0.06, stain_threshold + 0.26, s), 0.0, 1.0);
 	return s;
@@ -107,7 +107,7 @@ vec3 evaluate_subtle_color(vec3 base_col, int mat_id, int band, float stroke_mas
 	}
 	if (stains_enabled) {
 		float taint_kind, s_val = evaluate_procedural_stain(v_world_pos, v_world_normal, taint_kind);
-		if (s_val > stain_threshold) ground_col = mix(ground_col, mix(stain_color_dark.rgb, stain_color_green.rgb, taint_kind), smoothstep(stain_threshold, stain_threshold + 0.12, s_val) * stain_intensity);
+		if (s_val > stain_threshold) ground_col = mix(ground_col, mix(stain_color_dark.rgb, stain_color_green.rgb, taint_kind), smoothstep(stain_threshold, stain_threshold + 0.25, s_val) * stain_intensity);
 	}
 	vec3 cavity_col = ground_col * (1.0 - cavity_shadow_intensity * 0.35 * (1.0 - cavity_ao) * fade);
 	float eff_contrast = glyph_contrast * fade;

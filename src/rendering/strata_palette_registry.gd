@@ -83,7 +83,8 @@ static func _init_themes() -> void:
 		},
 		GROUP_VOLCANIC: {
 			"basaltic_tephra": PackedColorArray([Color("#18171a"), Color("#2e2923"), Color("#3b2820"), Color("#26211f")]),
-			"calcite_shale": PackedColorArray([Color("#1c1b1e"), Color("#383533"), Color("#33261f"), Color("#4d4945")])
+			"calcite_shale": PackedColorArray([Color("#1c1b1e"), Color("#383533"), Color("#33261f"), Color("#4d4945")]),
+			"irradiated_tephra": PackedColorArray([Color("#121413"), Color("#1e241f"), Color("#2b3728"), Color("#181d19")])
 		},
 		GROUP_ALIEN: {
 			"toxic_bioluminescence": PackedColorArray([Color("#140d18"), Color("#381533"), Color("#2b4a28"), Color("#576622")]),

@@ -2,12 +2,13 @@ class_name AshFallEmitter
 extends GPUParticles3D
 
 ## Lightweight GPU particle system emitting drifting industrial ash flakes
-## and faint embers around the player/camera to amplify the hostile, desolate atmosphere.
+## and black embers/soot around the player/camera to amplify the hostile, desolate atmosphere.
 ## Kept economical (< 150 particles, 1 draw call, unshaded) for high performance.
 
 @export var box_extents: Vector3 = Vector3(24.0, 10.0, 24.0)
 @export var wind_direction: Vector3 = Vector3(0.7, -0.45, 0.3)
 @export var fall_speed: float = 1.0
+@export var ember_color: Color = Color(0.0, 0.0, 0.0, 0.85)
 
 func _ready() -> void:
 	amount = 120
@@ -26,7 +27,7 @@ func _ready() -> void:
 		material_override = create_ash_material()
 
 	if process_material == null:
-		process_material = create_process_material(box_extents, wind_direction, fall_speed)
+		process_material = create_process_material(box_extents, wind_direction, fall_speed, ember_color)
 
 static func create_ash_material() -> StandardMaterial3D:
 	var mat = StandardMaterial3D.new()
@@ -56,7 +57,7 @@ static func create_speckle_texture() -> GradientTexture2D:
 	tex.fill_to = Vector2(1.0, 0.5)
 	return tex
 
-static func create_process_material(extents: Vector3, wind_dir: Vector3, speed: float) -> ParticleProcessMaterial:
+static func create_process_material(extents: Vector3, wind_dir: Vector3, speed: float, p_ember_color: Color = Color(0.0, 0.0, 0.0, 0.85)) -> ParticleProcessMaterial:
 	var mat = ParticleProcessMaterial.new()
 	mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
 	mat.emission_box_extents = extents
@@ -74,7 +75,7 @@ static func create_process_material(extents: Vector3, wind_dir: Vector3, speed: 
 	grad.set_color(0, Color(0.18, 0.17, 0.18, 0.0))
 	grad.set_offset(0, 0.0)
 	grad.add_point(0.2, Color(0.18, 0.17, 0.18, 0.7))
-	grad.add_point(0.5, Color(0.75, 0.32, 0.14, 0.8)) # Glowing ember warmth
+	grad.add_point(0.5, p_ember_color) # Black ember / soot
 	grad.set_color(3, Color(0.12, 0.11, 0.12, 0.0))
 	grad.set_offset(3, 1.0)
 

@@ -5,20 +5,20 @@ extends Resource
 ## Provides centralized, data-driven tuning for sky banding, ink outlines, and cel-shaded halftones.
 
 @export_group("Banded Sky Palette")
-@export var sky_top_color: Color = Color(0.11, 0.13, 0.16, 1.0)
-@export var sky_high_color: Color = Color(0.20, 0.23, 0.28, 1.0)
-@export var sky_mid_color: Color = Color(0.29, 0.35, 0.41, 1.0)
-@export var sky_low_color: Color = Color(0.25, 0.29, 0.34, 1.0)
-@export var sky_horizon_color: Color = Color(0.19, 0.21, 0.25, 1.0)
-@export var ground_horizon_color: Color = Color(0.13, 0.14, 0.17, 1.0)
-@export var ground_bottom_color: Color = Color(0.06, 0.07, 0.08, 1.0)
+@export var sky_top_color: Color = Color(0.10, 0.14, 0.11, 1.0)
+@export var sky_high_color: Color = Color(0.18, 0.25, 0.19, 1.0)
+@export var sky_mid_color: Color = Color(0.27, 0.38, 0.28, 1.0)
+@export var sky_low_color: Color = Color(0.23, 0.32, 0.24, 1.0)
+@export var sky_horizon_color: Color = Color(0.18, 0.24, 0.19, 1.0)
+@export var ground_horizon_color: Color = Color(0.12, 0.16, 0.13, 1.0)
+@export var ground_bottom_color: Color = Color(0.06, 0.08, 0.06, 1.0)
 @export_range(0.0, 1.0) var high_band_threshold: float = 0.38
 @export_range(0.0, 1.0) var mid_band_threshold: float = 0.20
 @export_range(0.0, 1.0) var low_band_threshold: float = 0.08
 @export_range(-0.2, 0.2) var horizon_band_threshold: float = 0.02
 @export_range(0.0, 0.1) var band_smoothness: float = 0.012
 @export var sun_enabled: bool = true
-@export var sun_color: Color = Color(0.78, 0.83, 0.90, 1.0)
+@export var sun_color: Color = Color(0.80, 0.86, 0.78, 1.0)
 @export_range(0.001, 0.1) var sun_disk_size: float = 0.025
 
 @export_group("Post-Process Outlines")

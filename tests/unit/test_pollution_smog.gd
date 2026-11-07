@@ -57,15 +57,14 @@ func test_main_scene_environmental_fog() -> void:
 
 	main_node.free()
 
-func test_player_scene_contains_smog_emitter() -> void:
+func test_player_scene_does_not_contain_floating_circle_smog() -> void:
 	var player_packed = load("res://scenes/player.tscn") as PackedScene
 	assert_not_null(player_packed, "Player scene must load")
 	var player_node = player_packed.instantiate()
 	assert_not_null(player_node, "Player scene must instantiate")
 
 	var emitter = player_node.get_node_or_null("PollutionSmogEmitter")
-	assert_not_null(emitter, "Player scene must contain PollutionSmogEmitter")
-	assert_true(emitter is EmitterClass, "PollutionSmogEmitter must be an instance of PollutionSmogEmitter")
+	assert_null(emitter, "Player scene should not contain floating circle PollutionSmogEmitter")
 
 	player_node.free()
 

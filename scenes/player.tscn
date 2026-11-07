@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://src/player/player_motor.gd" id="1_motor"]
 [ext_resource type="Script" path="res://src/player/player_input.gd" id="2_input"]
@@ -6,7 +6,6 @@
 [ext_resource type="Script" path="res://src/player/player_hud.gd" id="4_hud"]
 [ext_resource type="Script" path="res://src/map/continent_map_ui.gd" id="5_map"]
 [ext_resource type="Shader" path="res://shaders/character/weathered_capsule.gdshader" id="6_capsule_shader"]
-[ext_resource type="Script" path="res://src/rendering/pollution_smog_emitter.gd" id="7_smog"]
 [ext_resource type="Script" path="res://src/player/contact_shadow_projector.gd" id="8_contact_shadow"]
 [ext_resource type="Script" path="res://src/rendering/ash_fall_emitter.gd" id="9_ash_emitter"]
 
@@ -71,10 +70,6 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("5_map")
 player_motor = NodePath("../..")
-
-[node name="PollutionSmogEmitter" type="GPUParticles3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
-script = ExtResource("7_smog")
 
 [node name="AshFallEmitter" type="GPUParticles3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.5, 0)

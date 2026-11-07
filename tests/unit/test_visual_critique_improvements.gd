@@ -156,6 +156,7 @@ func test_ash_fall_particle_system() -> void:
 	assert_false(emitter.local_coords, "local_coords should be false so ash drifts in world space")
 	assert_not_null(emitter.material_override, "Material override must be assigned")
 	assert_not_null(emitter.process_material, "Process material must be assigned")
+	assert_true(emitter.ember_color.r <= 0.05 and emitter.ember_color.g <= 0.05 and emitter.ember_color.b <= 0.05, "Ember color must be black")
 	emitter.free()
 
 	# Check player scene contains AshFallEmitter

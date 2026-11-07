@@ -22,6 +22,8 @@ func test_graphic_novel_config_defaults() -> void:
 	assert_almost_eq(cfg.max_outline_distance, 150.0, 0.01, "Max outline distance should be 150.0")
 	assert_true(cfg.sky_top_color.a > 0.9, "Sky top color should be opaque")
 	assert_true(cfg.outline_color.a > 0.9, "Outline color should be opaque")
+	assert_true(cfg.sky_mid_color.g > cfg.sky_mid_color.r and cfg.sky_mid_color.g > cfg.sky_mid_color.b, "Sky mid color should have a sickly green dominant tint for irradiated atmosphere")
+	assert_true(cfg.sky_high_color.g > cfg.sky_high_color.r and cfg.sky_high_color.g > cfg.sky_high_color.b, "Sky high color should have a sickly green tint")
 
 func test_sky_shader_compilation_and_code() -> void:
 	var shader = load("res://shaders/sky/banded_sky.gdshader") as Shader

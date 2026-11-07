@@ -45,15 +45,16 @@ static func create_ocean_config() -> Resource:
 
 static func create_subterranean_config() -> Resource:
 	var cfg = new()
-	cfg.foam_color = Color(0.42, 0.44, 0.43, 1.0)
+	cfg.foam_color = Color(0.92, 0.58, 0.62, 1.0)
 	cfg.foam_thickness = 0.25
-	cfg.shallow_color = Color(0.12, 0.18, 0.20, 0.92)
-	cfg.mid_color = Color(0.07, 0.11, 0.13, 0.96)
-	cfg.deep_color = Color(0.03, 0.05, 0.06, 0.99)
+	cfg.shallow_color = Color(0.78, 0.14, 0.22, 0.92)
+	cfg.mid_color = Color(0.50, 0.07, 0.14, 0.96)
+	cfg.deep_color = Color(0.12, 0.01, 0.03, 0.99)
 	cfg.shallow_threshold = 1.0
 	cfg.deep_threshold = 3.5
-	cfg.ripple_speed = 0.02
+	cfg.ripple_speed = 0.04
 	cfg.ripple_threshold = 0.03
+	cfg.ripple_color = Color(0.96, 0.32, 0.40, 0.70)
 	return cfg
 
 static func create_preset(name: String) -> Resource:

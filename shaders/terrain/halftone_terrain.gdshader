@@ -19,6 +19,11 @@ uniform bool use_procedural_pattern = false;
 group_uniforms Cel_Lighting;
 uniform float lit_threshold : hint_range(0.0, 1.0) = 0.30;
 uniform vec4 shadow_tint : source_color = vec4(0.18, 0.16, 0.17, 1.0);
+uniform vec4 mist_color : source_color = vec4(0.13, 0.17, 0.14, 1.0);
+uniform float valley_mist_strength : hint_range(0.0, 1.0) = 0.75;
+group_uniforms Ink_Scratches;
+uniform bool scratches_enabled = false;
+uniform float scratch_intensity : hint_range(0.0, 1.0) = 0.0;
 
 varying vec3 v_world_pos;
 varying vec3 v_world_normal;
@@ -28,11 +33,24 @@ void vertex() {
 	v_world_normal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
 }
 
+float evaluate_ink_scratches(vec3 pos, vec3 norm) {
+	vec2 p = (abs(norm.y) > 0.5) ? pos.xz : ((abs(norm.x) > 0.5) ? pos.zy : pos.xy);
+	float u1 = p.x * 0.7 + p.y * 0.7, v1 = -p.x * 0.7 + p.y * 0.7, c1 = sin(v1 * 0.4) * 1.5;
+	float s1 = pow(clamp(1.0 - abs(sin(u1 * 0.85 + c1)) * 1.35, 0.0, 1.0), 1.5);
+	float u2 = p.x * 0.85 - p.y * 0.5, v2 = p.x * 0.5 + p.y * 0.85, c2 = cos(v2 * 0.5) * 1.4;
+	float s2 = pow(clamp(1.0 - abs(sin(u2 * 1.1 + c2)) * 1.4, 0.0, 1.0), 1.5);
+	float s3 = pow(clamp(1.0 - abs(sin((p.x - p.y) * 2.2 + sin(p.y * 0.8) * 2.0)) * 1.5, 0.0, 1.0), 2.0);
+	return smoothstep(0.12, 0.45, max(max(s1, s2 * 0.85), s3 * 0.75));
+}
+
 void fragment() {
 	// Atmospheric aerial perspective fade and deep valley height mist
 	float dist_fade = clamp((length(VERTEX) - 35.0) / 185.0, 0.0, 1.0) * 0.65;
-	float valley_mist = clamp((26.0 - v_world_pos.y) / 20.0, 0.0, 1.0) * 0.75;
-	vec3 ground_col = mix(COLOR.rgb, vec3(0.13, 0.17, 0.14), clamp(max(dist_fade, valley_mist), 0.0, 0.88));
+	float valley_mist = clamp((26.0 - v_world_pos.y) / 20.0, 0.0, 1.0) * valley_mist_strength;
+	vec3 ground_col = mix(COLOR.rgb, mist_color.rgb, clamp(max(dist_fade, valley_mist), 0.0, 0.88));
+	if (scratches_enabled && scratch_intensity > 0.001) {
+		ground_col = mix(ground_col, vec3(0.0), evaluate_ink_scratches(v_world_pos, v_world_normal) * scratch_intensity);
+	}
 
 	ALBEDO = ground_col;
 	ROUGHNESS = 1.0;

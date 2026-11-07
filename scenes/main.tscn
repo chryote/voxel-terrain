@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://src/world/main_scene.gd" id="1_main"]
 [ext_resource type="Script" path="res://src/world/voxel_world.gd" id="2_world"]
@@ -8,6 +8,7 @@
 [ext_resource type="Resource" path="res://config/graphic_novel_theme.tres" id="6_theme"]
 [ext_resource type="Resource" path="res://config/ascii_terrain_theme.tres" id="7_ascii_theme"]
 [ext_resource type="Resource" path="res://config/default_world.tres" id="8_world_config"]
+[ext_resource type="Script" path="res://src/rendering/subterranean_atmosphere_controller.gd" id="9_atmosphere"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
 shader = ExtResource("4_sky_shader")
@@ -99,6 +100,13 @@ directional_shadow_blend_splits = true
 [node name="GraphicNovelPostProcess" type="Node3D" parent="."]
 script = ExtResource("5_postprocess")
 config = ExtResource("6_theme")
+
+[node name="SubterraneanAtmosphereController" type="Node3D" parent="." node_paths=PackedStringArray("world_environment", "directional_light", "post_process", "voxel_world")]
+script = ExtResource("9_atmosphere")
+world_environment = NodePath("../WorldEnvironment")
+directional_light = NodePath("../DirectionalLight3D")
+post_process = NodePath("../GraphicNovelPostProcess")
+voxel_world = NodePath("../VoxelWorld")
 
 [node name="VoxelWorld" type="Node3D" parent="." node_paths=PackedStringArray("focus_target")]
 script = ExtResource("2_world")

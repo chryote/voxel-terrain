@@ -17,14 +17,14 @@ var color_slope_dirt: Color = Color("#302e2c")
 var color_plains_grass: Color = Color("#363836")
 var color_gravel_bed: Color = Color("#33302c")
 
-# Subterranean & Arena Material Colors
-var color_underground_rock: Color = Color("#13161c")      ## Solid uncarved bedrock / earth
-var color_chasm_floor: Color = Color("#383d47")           ## Abyssal chasm cavern stone
-var color_arena_floor: Color = Color("#d9822b")           ## Subterranean combat arena pit (amber/gold)
-var color_arena_ledge: Color = Color("#7a4f2b")           ## Stepped spectator terrace (bronze)
-var color_pillar: Color = Color("#222329")                ## Cavern stone support pillar
-var color_basalt_column: Color = Color("#2c2b33")         ## Perimeter basalt colonnade
-var color_subterranean_water: Color = Color("#14424d")    ## Cavern groundwater pool
+# Subterranean & Arena Material Colors (Crimson Rot Palette)
+var color_underground_rock: Color = Color("#1c0609")      ## Solid uncarved necrotic bedrock / earth
+var color_chasm_floor: Color = Color("#380f16")           ## Abyssal rot chasm cavern stone
+var color_arena_floor: Color = Color("#a82338")           ## Subterranean rot combat arena pit (scarlet)
+var color_arena_ledge: Color = Color("#591320")           ## Stepped spectator terrace (crimson)
+var color_pillar: Color = Color("#1e060a")                ## Rot-encrusted cavern support pillar
+var color_basalt_column: Color = Color("#29080e")         ## Perimeter necrotic colonnade
+var color_subterranean_water: Color = Color("#94192d")    ## Lake of Rot pool
 
 # Cartographic standard NW light direction (315° azimuth, ~45° altitude)
 var light_direction: Vector3 = Vector3(-0.6, 1.2, -0.6).normalized()

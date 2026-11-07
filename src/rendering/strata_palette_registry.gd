@@ -87,6 +87,7 @@ static func _init_themes() -> void:
 			"irradiated_tephra": PackedColorArray([Color("#121413"), Color("#1e241f"), Color("#2b3728"), Color("#181d19")])
 		},
 		GROUP_ALIEN: {
+			"crimson_rot": PackedColorArray([Color("#260205"), Color("#7a0c18"), Color("#c21427"), Color("#45050d")]),
 			"toxic_bioluminescence": PackedColorArray([Color("#140d18"), Color("#381533"), Color("#2b4a28"), Color("#576622")]),
 			"necrotic_biomass": PackedColorArray([Color("#241117"), Color("#4d1e2b"), Color("#66454d"), Color("#241c28")]),
 			"irradiated_xenolith": PackedColorArray([Color("#0d1217"), Color("#162e3d"), Color("#285956"), Color("#591c34")]),

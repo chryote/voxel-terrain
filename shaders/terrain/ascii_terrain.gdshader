@@ -16,6 +16,11 @@ group_uniforms Cel_Lighting;
 uniform float lit_threshold : hint_range(0.0, 1.0) = 0.30;
 uniform vec4 shadow_tint : source_color = vec4(0.18, 0.16, 0.17, 1.0);
 uniform float pixel_size : hint_range(1.0, 16.0, 1.0) = 4.0;
+uniform vec4 mist_color : source_color = vec4(0.13, 0.15, 0.16, 1.0);
+uniform float valley_mist_strength : hint_range(0.0, 1.0) = 0.75;
+group_uniforms Ink_Scratches;
+uniform bool scratches_enabled = false;
+uniform float scratch_intensity : hint_range(0.0, 1.0) = 0.0;
 group_uniforms Sedimentary_Strata;
 uniform bool strata_enabled = true;
 uniform float strata_frequency : hint_range(0.05, 1.0) = 0.35;
@@ -84,6 +89,16 @@ float evaluate_procedural_stain(vec3 pos, vec3 norm, out float out_taint) {
 	return s;
 }
 
+float evaluate_ink_scratches(vec3 pos, vec3 norm) {
+	vec2 p = (abs(norm.y) > 0.5) ? pos.xz : ((abs(norm.x) > 0.5) ? pos.zy : pos.xy);
+	float u1 = p.x * 0.7 + p.y * 0.7, v1 = -p.x * 0.7 + p.y * 0.7, c1 = sin(v1 * 0.4) * 1.5;
+	float s1 = pow(clamp(1.0 - abs(sin(u1 * 0.85 + c1)) * 1.35, 0.0, 1.0), 1.5);
+	float u2 = p.x * 0.85 - p.y * 0.5, v2 = p.x * 0.5 + p.y * 0.85, c2 = cos(v2 * 0.5) * 1.4;
+	float s2 = pow(clamp(1.0 - abs(sin(u2 * 1.1 + c2)) * 1.4, 0.0, 1.0), 1.5);
+	float s3 = pow(clamp(1.0 - abs(sin((p.x - p.y) * 2.2 + sin(p.y * 0.8) * 2.0)) * 1.5, 0.0, 1.0), 2.0);
+	return smoothstep(0.12, 0.45, max(max(s1, s2 * 0.85), s3 * 0.75));
+}
+
 int select_procedural_glyph(int mat_id, vec2 cell_id, vec3 pos, float slope, out int out_band) {
 	float jitter = hash_cell(cell_id);
 	vec2 m_coord = (abs(v_world_normal.y) < 0.5) ? vec2((abs(v_world_normal.x) > 0.5) ? pos.z : pos.x, pos.y) : pos.xz;
@@ -100,10 +115,11 @@ vec3 evaluate_subtle_color(vec3 base_col, int mat_id, int band, float stroke_mas
 		float strata_y = v_world_pos.y + sin(v_world_pos.x * 0.15 + v_world_pos.z * 0.12) * (strata_warp_strength * 1.5);
 		int layer = int(floor(mod(strata_y * strata_frequency, 4.0)));
 		vec3 s_col = (layer == 0) ? strata_color_0.rgb : ((layer == 1) ? strata_color_1.rgb : ((layer == 2) ? strata_color_2.rgb : strata_color_3.rgb));
-		ground_col = mix(base_col, s_col, (mat_id == 2) ? 0.85 : 0.35);
+		ground_col = mix(base_col, s_col, (mat_id == 2) ? 0.85 : 0.75);
 	} else {
 		float ground_tone = (sin(floor(v_world_pos.y) * 0.3) * 0.04 + sin(v_world_pos.x * 0.06 + v_world_pos.z * 0.04) * 0.03) * fade;
 		ground_col = clamp(base_col * (1.0 + ground_tone), vec3(0.0), vec3(1.0));
+		if (strata_enabled && scratches_enabled) ground_col = mix(ground_col, mix(strata_color_1.rgb, strata_color_2.rgb, 0.5), 0.90);
 	}
 	if (stains_enabled) {
 		float taint_kind, s_val = evaluate_procedural_stain(v_world_pos, v_world_normal, taint_kind);
@@ -115,12 +131,6 @@ vec3 evaluate_subtle_color(vec3 base_col, int mat_id, int band, float stroke_mas
 	if (band == 0) return mix(ground_col * (1.0 - 0.20 * fade) * cavity_ao, ground_col * (1.0 - eff_contrast * 0.90), stroke_mask);
 	vec3 stroke_col = (band == 2) ? (ground_col * (1.0 + eff_contrast * 0.55) + vec3(0.015) * fade + emboss * 0.12) : (ground_col * (1.0 - eff_contrast * 0.40) + emboss * 0.08);
 	return mix(cavity_col, stroke_col, stroke_mask);
-}
-
-float get_bayer_4x4(vec2 p) {
-	int x = (int(p.x) % 4 + 4) % 4, y = (int(p.y) % 4 + 4) % 4;
-	const float b[16] = float[](0.0/16.0, 8.0/16.0, 2.0/16.0, 10.0/16.0, 12.0/16.0, 4.0/16.0, 14.0/16.0, 6.0/16.0, 3.0/16.0, 11.0/16.0, 1.0/16.0, 9.0/16.0, 15.0/16.0, 7.0/16.0, 13.0/16.0, 5.0/16.0);
-	return b[x + y * 4];
 }
 
 void fragment() {
@@ -135,8 +145,9 @@ void fragment() {
 	float emboss = clamp(dot(vec2(h_dx - h_c, h_dy - h_c), vec2(0.707, 0.707)) * 4.0 * depth_relief_strength, -0.4, 0.4);
 	vec3 ground_col = evaluate_subtle_color(COLOR.rgb, decode_material_id(COLOR), band, stroke_mask, glyph_data.b, emboss, detail_fade);
 	float dist_fade = clamp((length(VERTEX) - 35.0) / 185.0, 0.0, 1.0) * 0.65;
-	float valley_mist = clamp((26.0 - v_world_pos.y) / 20.0, 0.0, 1.0) * 0.75;
-	ALBEDO = mix(ground_col, vec3(0.13, 0.15, 0.16), clamp(max(dist_fade, valley_mist), 0.0, 0.88));
+	float valley_mist = clamp((26.0 - v_world_pos.y) / 20.0, 0.0, 1.0) * valley_mist_strength;
+	ALBEDO = mix(ground_col, mist_color.rgb, clamp(max(dist_fade, valley_mist), 0.0, 0.88));
+	if (scratches_enabled && scratch_intensity > 0.001) ALBEDO = mix(ALBEDO, vec3(0.0), evaluate_ink_scratches(v_world_pos, v_world_normal) * scratch_intensity);
 	NORMAL = perturb_normal_micro_relief(NORMAL, face_uv, glyph_idx, depth_relief_strength * 0.20 * detail_fade, mat3(VIEW_MATRIX));
 	ROUGHNESS = 1.0; SPECULAR = 0.0;
 }

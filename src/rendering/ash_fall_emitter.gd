@@ -29,6 +29,10 @@ func _ready() -> void:
 	if process_material == null:
 		process_material = create_process_material(box_extents, wind_direction, fall_speed, ember_color)
 
+func set_emitter_enabled(p_enabled: bool) -> void:
+	emitting = p_enabled
+	visible = p_enabled
+
 static func create_ash_material() -> StandardMaterial3D:
 	var mat = StandardMaterial3D.new()
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA

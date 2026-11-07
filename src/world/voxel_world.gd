@@ -7,6 +7,9 @@ signal chunk_loaded(coord: ChunkCoord)
 signal chunk_unloaded(coord: ChunkCoord)
 signal initial_area_ready()
 signal spawn_mode_changed(is_underground: bool, spawn_position: Vector3)
+signal subterranean_transition_changed(is_subterranean: bool)
+
+var _is_subterranean_active: bool = false
 
 @export var world_config: WorldConfig
 @export var generator_config: ContinentGeneratorConfig
@@ -623,11 +626,14 @@ func _update_layer_visibility(force: bool = false) -> void:
 		in_chasm
 	)
 
+	var is_subterranean = (current_state == LayerVisibilityCoordinator.PlayerLayerState.SUBTERRANEAN) or in_chasm
+	if is_subterranean != _is_subterranean_active:
+		_is_subterranean_active = is_subterranean
+		subterranean_transition_changed.emit(_is_subterranean_active)
+
 	if water_plane != null:
-		var is_subterranean = (current_state == LayerVisibilityCoordinator.PlayerLayerState.SUBTERRANEAN) or in_chasm
 		water_plane.set_ocean_visible(not is_subterranean)
 	if extreme_distance_terrain != null:
-		var is_subterranean = (current_state == LayerVisibilityCoordinator.PlayerLayerState.SUBTERRANEAN) or in_chasm
 		extreme_distance_terrain.set_macro_visible((not is_subterranean) and (world_config.extreme_lod_enabled if world_config != null else true))
 
 
@@ -767,8 +773,13 @@ func toggle_spawn_location() -> Vector3:
 		caves_enabled = true
 	var target_pos = get_spawn_point()
 	teleport_focus_to(target_pos)
+	_is_subterranean_active = spawn_on_underground_arena
 	spawn_mode_changed.emit(spawn_on_underground_arena, target_pos)
+	subterranean_transition_changed.emit(_is_subterranean_active)
 	return target_pos
+
+func is_subterranean_active() -> bool:
+	return _is_subterranean_active
 
 func teleport_focus_to(target_pos: Vector3) -> void:
 	_spawn_point = target_pos

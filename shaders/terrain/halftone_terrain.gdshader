@@ -32,7 +32,7 @@ void fragment() {
 	// Atmospheric aerial perspective fade and deep valley height mist
 	float dist_fade = clamp((length(VERTEX) - 35.0) / 185.0, 0.0, 1.0) * 0.65;
 	float valley_mist = clamp((26.0 - v_world_pos.y) / 20.0, 0.0, 1.0) * 0.75;
-	vec3 ground_col = mix(COLOR.rgb, vec3(0.13, 0.15, 0.16), clamp(max(dist_fade, valley_mist), 0.0, 0.88));
+	vec3 ground_col = mix(COLOR.rgb, vec3(0.13, 0.17, 0.14), clamp(max(dist_fade, valley_mist), 0.0, 0.88));
 
 	ALBEDO = ground_col;
 	ROUGHNESS = 1.0;

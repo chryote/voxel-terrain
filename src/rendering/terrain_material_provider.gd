@@ -150,9 +150,9 @@ static func _apply_ascii_uniforms(mat: ShaderMaterial, config: Resource, is_cave
 	var s_in = config.get("stain_intensity")
 	mat.set_shader_parameter("stain_intensity", float(s_in) if s_in != null else 0.70)
 	var c_dk = config.get("stain_color_dark")
-	mat.set_shader_parameter("stain_color_dark", c_dk if c_dk != null else Color(0.08, 0.06, 0.05, 0.85))
+	mat.set_shader_parameter("stain_color_dark", c_dk if c_dk != null else Color(0.06, 0.07, 0.05, 0.90))
 	var c_gr = config.get("stain_color_green")
-	mat.set_shader_parameter("stain_color_green", c_gr if c_gr != null else Color(0.48, 0.28, 0.12, 0.85))
+	mat.set_shader_parameter("stain_color_green", c_gr if c_gr != null else Color(0.24, 0.38, 0.20, 0.90))
 
 static func _resolve_texture(tex: Texture2D, path: String, fallback: Callable) -> Texture2D:
 	if tex != null:

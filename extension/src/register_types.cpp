@@ -5,6 +5,11 @@
 #include "meshing/surface_shell_mesher.h"
 #include "meshing/chasm_shell_mesher.h"
 #include "meshing/voxel_mesher.h"
+#include "generation/caves/chasm_column_result.h"
+#include "generation/caves/underground_chasm_sampler.h"
+#include "generation/caves/subterranean_tunnel_sampler.h"
+#include "generation/macro_topography.h"
+#include "generation/fluvial_carver.h"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/class_db.hpp>
@@ -24,6 +29,11 @@ void initialize_terrain_module(ModuleInitializationLevel p_level) {
     GDREGISTER_CLASS(SurfaceShellMesherNative);
     GDREGISTER_CLASS(ChasmShellMesherNative);
     GDREGISTER_CLASS(VoxelMesherNative);
+    GDREGISTER_CLASS(ChasmColumnResultNative);
+    GDREGISTER_CLASS(UndergroundChasmSamplerNative);
+    GDREGISTER_CLASS(SubterraneanTunnelSamplerNative);
+    GDREGISTER_CLASS(MacroTopographyNative);
+    GDREGISTER_CLASS(FluvialCarverNative);
 }
 
 void uninitialize_terrain_module(ModuleInitializationLevel p_level) {

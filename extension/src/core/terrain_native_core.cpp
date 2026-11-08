@@ -22,9 +22,9 @@ String TerrainNativeCore::get_version() const {
 }
 
 float TerrainNativeCore::sample_test_noise(float x, float y, int seed) const {
-    ::FastNoiseLite noise;
+    auburn::FastNoiseLite noise;
     noise.SetSeed(seed);
-    noise.SetNoiseType(::FastNoiseLite::NoiseType_OpenSimplex2);
+    noise.SetNoiseType(auburn::FastNoiseLite::NoiseType_OpenSimplex2);
     return noise.GetNoise(x, y);
 }
 

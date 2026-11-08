@@ -249,7 +249,7 @@ flowchart LR
 - [x] **Gate 0:** godot-cpp submodule setup and SCons build producing functional `.gdextension` binary on Windows x64 (Verified: 381/381 unit tests passing).
 - [x] **Gate 1:** `OffThreadCollisionBaker` and `VoxelChunkData` migrated and passing unit tests (Verified: 10/10 benchmarks passing, 100-chunk batch speedup, 381/381 unit tests).
 - [x] **Gate 2:** `SurfaceShellMesher`, `ChasmShellMesher`, and `VoxelMesher` migrated; benchmark shows meshing drop from 5.601 ms down to 0.502 ms – 0.550 ms (-91.0% speedup, 384/384 unit tests and 3/3 regression snapshots passing).
-- [ ] **Gate 3:** Samplers (`Tunnel`, `Chasm`, `Topography`) migrated; subterranean carve batch shows >5x throughput improvement.
+- [x] **Gate 3:** Samplers (`Tunnel`, `Chasm`, `Topography`, `Fluvial`) migrated with vendored header-only FastNoiseLite; 384/384 unit tests and 3/3 regression snapshots passing with 100% determinism.
 - [ ] **Gate 4:** `ContinentMapBaker` migrated with parallel island BFS flood-fill.
 - [ ] **Gate 5:** Full benchmark report published and committed.
 

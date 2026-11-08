@@ -24,6 +24,7 @@ uniform float valley_mist_strength : hint_range(0.0, 1.0) = 0.75;
 group_uniforms Ink_Scratches;
 uniform bool scratches_enabled = false;
 uniform float scratch_intensity : hint_range(0.0, 1.0) = 0.0;
+uniform vec4 scratch_color : source_color = vec4(0.52, 0.08, 0.13, 1.0);
 
 varying vec3 v_world_pos;
 varying vec3 v_world_normal;
@@ -34,6 +35,10 @@ void vertex() {
 }
 
 float evaluate_ink_scratches(vec3 pos, vec3 norm) {
+	// Turn off ink scratch streaks on upward-facing floor and downward-facing ceiling rock
+	if (norm.y > 0.4 || norm.y < -0.4) {
+		return 0.0;
+	}
 	vec2 p = (abs(norm.y) > 0.5) ? pos.xz : ((abs(norm.x) > 0.5) ? pos.zy : pos.xy);
 	float u1 = p.x * 0.7 + p.y * 0.7, v1 = -p.x * 0.7 + p.y * 0.7, c1 = sin(v1 * 0.4) * 1.5;
 	float s1 = pow(clamp(1.0 - abs(sin(u1 * 0.85 + c1)) * 1.35, 0.0, 1.0), 1.5);
@@ -48,8 +53,13 @@ void fragment() {
 	float dist_fade = clamp((length(VERTEX) - 35.0) / 185.0, 0.0, 1.0) * 0.65;
 	float valley_mist = clamp((26.0 - v_world_pos.y) / 20.0, 0.0, 1.0) * valley_mist_strength;
 	vec3 ground_col = mix(COLOR.rgb, mist_color.rgb, clamp(max(dist_fade, valley_mist), 0.0, 0.88));
+	if (scratches_enabled && (v_world_normal.y > 0.4 || v_world_normal.y < -0.4)) {
+		// Subterranean floor and ceiling rock: crimson red tone with highlight
+		vec3 crimson_red = vec3(0.60, 0.06, 0.12);
+		ground_col = crimson_red;
+	}
 	if (scratches_enabled && scratch_intensity > 0.001) {
-		ground_col = mix(ground_col, vec3(0.0), evaluate_ink_scratches(v_world_pos, v_world_normal) * scratch_intensity);
+		ground_col = mix(ground_col, scratch_color.rgb, evaluate_ink_scratches(v_world_pos, v_world_normal) * scratch_intensity);
 	}
 
 	ALBEDO = ground_col;

@@ -107,7 +107,7 @@ static func _apply_halftone_uniforms(mat: ShaderMaterial, config: Resource, is_c
 	_apply_shadow_tint(mat, config.get("shadow_tint") as Color, is_cave)
 	mat.set_shader_parameter("mist_color", Color(0.32, 0.05, 0.09, 1.0) if is_cave else Color(0.13, 0.17, 0.14, 1.0))
 	mat.set_shader_parameter("valley_mist_strength", 0.0 if is_cave else 0.75)
-	mat.set_shader_parameter("scratches_enabled", is_cave); mat.set_shader_parameter("scratch_intensity", 0.94 if is_cave else 0.0)
+	mat.set_shader_parameter("scratches_enabled", is_cave); mat.set_shader_parameter("scratch_intensity", 0.85 if is_cave else 0.0); mat.set_shader_parameter("scratch_color", Color(0.52, 0.08, 0.13, 1.0) if is_cave else Color(0.0, 0.0, 0.0, 1.0))
 
 static func _apply_ascii_uniforms(mat: ShaderMaterial, config: Resource, is_cave: bool) -> void:
 	if mat == null or config == null: return
@@ -149,12 +149,12 @@ static func _apply_cave_crimson_rot_theme(mat: ShaderMaterial) -> void:
 	mat.set_shader_parameter("stain_scale", 0.09)
 	mat.set_shader_parameter("stain_threshold", 0.38)
 	mat.set_shader_parameter("stain_intensity", 0.85)
-	mat.set_shader_parameter("stain_color_dark", Color(0.01, 0.00, 0.01, 0.98))
+	mat.set_shader_parameter("stain_color_dark", Color(0.38, 0.05, 0.09, 0.95))
 	mat.set_shader_parameter("stain_color_green", Color(0.85, 0.08, 0.14, 0.95))
 	mat.set_shader_parameter("mist_color", Color(0.45, 0.04, 0.08, 1.0))
 	mat.set_shader_parameter("cavity_shadow_intensity", 0.55)
 	mat.set_shader_parameter("glyph_contrast", 0.45)
-	mat.set_shader_parameter("scratches_enabled", true); mat.set_shader_parameter("scratch_intensity", 0.94); mat.set_shader_parameter("valley_mist_strength", 0.0); mat.set_shader_parameter("shadow_tint", Color(0.75, 0.10, 0.16, 1.0))
+	mat.set_shader_parameter("scratches_enabled", true); mat.set_shader_parameter("scratch_intensity", 0.85); mat.set_shader_parameter("scratch_color", Color(0.52, 0.08, 0.13, 1.0)); mat.set_shader_parameter("valley_mist_strength", 0.0); mat.set_shader_parameter("shadow_tint", Color(0.75, 0.10, 0.16, 1.0))
 
 static func _resolve_texture(tex: Texture2D, path: String, fallback: Callable) -> Texture2D:
 	if tex != null: return tex

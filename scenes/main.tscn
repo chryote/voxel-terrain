@@ -101,12 +101,13 @@ directional_shadow_blend_splits = true
 script = ExtResource("5_postprocess")
 config = ExtResource("6_theme")
 
-[node name="SubterraneanAtmosphereController" type="Node3D" parent="." node_paths=PackedStringArray("world_environment", "directional_light", "post_process", "voxel_world")]
+[node name="SubterraneanAtmosphereController" type="Node3D" parent="." node_paths=PackedStringArray("world_environment", "directional_light", "post_process", "voxel_world", "rot_fog_volume")]
 script = ExtResource("9_atmosphere")
 world_environment = NodePath("../WorldEnvironment")
 directional_light = NodePath("../DirectionalLight3D")
 post_process = NodePath("../GraphicNovelPostProcess")
 voxel_world = NodePath("../VoxelWorld")
+rot_fog_volume = NodePath("../Player/RotFogVolume")
 
 [node name="VoxelWorld" type="Node3D" parent="." node_paths=PackedStringArray("focus_target")]
 script = ExtResource("2_world")

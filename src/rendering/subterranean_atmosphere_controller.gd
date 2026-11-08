@@ -11,6 +11,7 @@ extends Node3D
 @export var post_process: Node3D
 @export var ash_emitter: GPUParticles3D
 @export var voxel_world: Node3D
+@export var rot_fog_volume: FogVolume
 
 # Active transition state
 var is_underground: bool = false
@@ -50,7 +51,7 @@ var _surface_adjustment_contrast: float = 1.08
 
 # Underground Crimson Rot / Lake of Rot / High-Contrast Graphic Horror target values:
 const ROT_AMBIENT_COLOR: Color = Color(0.55, 0.04, 0.07, 1.0)
-const ROT_AMBIENT_ENERGY: float = 0.42
+const ROT_AMBIENT_ENERGY: float = 1
 const ROT_FOG_COLOR: Color = Color(0.48, 0.04, 0.07, 1.0)
 const ROT_FOG_DENSITY: float = 0.0006
 const ROT_FOG_AERIAL: float = 0.35
@@ -58,9 +59,16 @@ const ROT_FOG_HEIGHT_DENSITY: float = 0.0
 const ROT_FOG_DEPTH_BEGIN: float = 35.0
 const ROT_FOG_DEPTH_END: float = 150.0
 const ROT_VOL_FOG_ALBEDO: Color = Color(0.85, 0.08, 0.14, 1.0)
-const ROT_VOL_FOG_EMISSION: Color = Color(0.01, 0.001, 0.002, 1.0)
-const ROT_VOL_FOG_EMISSION_ENERGY: float = 0.05
+const ROT_VOL_FOG_EMISSION: Color = Color(0.04, 0.003, 0.006, 1.0)
+const ROT_VOL_FOG_EMISSION_ENERGY: float = 0.50
+# Global volumetric fog underground is 0.0 so distant cavern structures remain clear
 const ROT_VOL_FOG_DENSITY: float = 0.0
+
+# Option A: Local player-centered rot fog volume exclusively on underground level
+const ROT_LOCAL_FOG_DENSITY: float = 0.18
+const ROT_LOCAL_FOG_ALBEDO: Color = Color(0.85, 0.08, 0.14, 1.0)
+const ROT_LOCAL_FOG_EMISSION: Color = Color(0.05, 0.003, 0.006, 1.0)
+const ROT_LOCAL_FOG_EDGE_FADE: float = 0.40
 const ROT_LIGHT_COLOR: Color = Color(1.0, 0.35, 0.40, 1.0)
 const ROT_LIGHT_ENERGY: float = 0.85
 const ROT_VIGNETTE_COLOR: Color = Color(0.25, 0.00, 0.03, 1.0)
@@ -79,6 +87,7 @@ const ROT_ADJUSTMENT_CONTRAST: float = 1.32
 
 func _ready() -> void:
 	_capture_surface_baseline()
+	_ensure_rot_fog_volume()
 	if voxel_world != null:
 		if not voxel_world.spawn_mode_changed.is_connected(_on_spawn_mode_changed):
 			voxel_world.spawn_mode_changed.connect(_on_spawn_mode_changed)
@@ -86,6 +95,18 @@ func _ready() -> void:
 			voxel_world.subterranean_transition_changed.connect(_on_subterranean_transition_changed)
 		var start_ug = voxel_world.spawn_on_underground_arena and voxel_world.caves_enabled
 		set_underground_mode(start_ug, true)
+
+func _ensure_rot_fog_volume() -> void:
+	if rot_fog_volume != null and is_instance_valid(rot_fog_volume):
+		return
+	if voxel_world != null and voxel_world.get("focus_target") != null:
+		var ft = voxel_world.focus_target
+		if ft != null:
+			rot_fog_volume = ft.get_node_or_null("RotFogVolume") as FogVolume
+	if rot_fog_volume == null:
+		var p = get_node_or_null("../Player")
+		if p != null:
+			rot_fog_volume = p.get_node_or_null("RotFogVolume") as FogVolume
 
 func _process(delta: float) -> void:
 	var target_t = 1.0 if is_underground else 0.0
@@ -200,4 +221,16 @@ func _apply_atmosphere(t: float) -> void:
 			pm.set_shader_parameter("vignette_intensity", lerpf(_surface_vignette_intensity, ROT_VIGNETTE_INTENSITY, t))
 			pm.set_shader_parameter("outline_color", _surface_outline_color.lerp(ROT_OUTLINE_COLOR, t))
 			pm.set_shader_parameter("outline_thickness", lerpf(_surface_outline_thickness, ROT_OUTLINE_THICKNESS, t))
+
+	if rot_fog_volume == null:
+		_ensure_rot_fog_volume()
+
+	if rot_fog_volume != null and is_instance_valid(rot_fog_volume):
+		rot_fog_volume.visible = (t > 0.001)
+		if rot_fog_volume.material is FogMaterial:
+			var fm = rot_fog_volume.material as FogMaterial
+			fm.density = lerpf(0.0, ROT_LOCAL_FOG_DENSITY, t)
+			fm.albedo = ROT_LOCAL_FOG_ALBEDO
+			fm.emission = ROT_LOCAL_FOG_EMISSION
+			fm.edge_fade = ROT_LOCAL_FOG_EDGE_FADE
 

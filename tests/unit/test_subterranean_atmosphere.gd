@@ -45,6 +45,7 @@ func test_cave_material_crimson_rot_theme() -> void:
 	var dark_stain = cave_mat.get_shader_parameter("stain_color_dark") as Color
 	var rot_stain = cave_mat.get_shader_parameter("stain_color_green") as Color
 	assert_true(rot_stain.r > rot_stain.g and rot_stain.r > rot_stain.b, "Cave rot stain must be scarlet red")
+	assert_true(dark_stain.r > dark_stain.g and dark_stain.r > dark_stain.b, "Cave dark stain must be crimson tinted")
 
 	# Cave mist color must be dark crimson rot
 	var cave_mist = cave_mat.get_shader_parameter("mist_color") as Color
@@ -59,10 +60,24 @@ func test_cave_material_crimson_rot_theme() -> void:
 	# Cave ink scratches enabled and valley mist disabled exclusively for cave
 	assert_true(bool(cave_mat.get_shader_parameter("scratches_enabled")), "Cave scratches must be enabled")
 	assert_true(float(cave_mat.get_shader_parameter("scratch_intensity")) >= 0.8, "Cave scratch intensity must be >= 0.8")
+	var scratch_col = cave_mat.get_shader_parameter("scratch_color") as Color
+	assert_not_null(scratch_col, "Cave scratch_color must be set")
+	assert_true(scratch_col.r > scratch_col.g and scratch_col.r > scratch_col.b, "Cave scratch_color must be predominantly red")
+	assert_true(scratch_col.r >= 0.45 and scratch_col.r <= 0.65, "Cave scratch_color must be milder crimson red (0.45 <= r <= 0.65)")
 	assert_almost_eq(float(cave_mat.get_shader_parameter("valley_mist_strength")), 0.0, 0.01, "Cave valley mist must be disabled (0.0)")
 
 	assert_false(bool(surf_mat.get_shader_parameter("scratches_enabled")), "Surface scratches must be disabled")
 	assert_almost_eq(float(surf_mat.get_shader_parameter("valley_mist_strength")), 0.75, 0.01, "Surface valley mist must be 0.75")
+
+	# Floor and ceiling rock ink streaks and stains suppressed (norm.y > 0.4 || norm.y < -0.4) and crimson red styling with sparse ASCII highlight
+	assert_true(cave_mat.shader.code.contains("norm.y > 0.4"), "Cave shader must suppress ink scratches on upward floor faces (norm.y > 0.4)")
+	assert_true(cave_mat.shader.code.contains("norm.y < -0.4"), "Cave shader must suppress ink scratches and streaks on bottom-facing ceiling (norm.y < -0.4)")
+	assert_true(cave_mat.shader.code.contains("scratches_enabled && (norm.y > 0.4 || norm.y < -0.4)"), "Cave shader must suppress stains on horizontal faces")
+	assert_true(cave_mat.shader.code.contains("mix(strata_color_1.rgb, strata_color_2.rgb, 0.45)"), "Cave shader must compute crimson red for top-facing floor rock")
+	assert_true(cave_mat.shader.code.contains("ground_col * (1.0 + eff_contrast * 0.75)"), "Cave shader must apply ASCII texture highlight to floor rock")
+	assert_true(cave_mat.shader.code.contains("jitter < 0.75"), "Cave shader must sparsely distribute floor ASCII characters")
+	assert_true(cave_mat.shader.code.contains("glyphs_per_voxel * 0.5"), "Cave shader must widen floor ASCII cell spacing for sparse readability")
+	assert_true(cave_mat.shader.code.contains("mix(strata_color_0.rgb, strata_color_1.rgb, 0.55)"), "Cave shader must compute subterranean strata mix")
 
 func test_lake_of_rot_subterranean_water() -> void:
 	var cfg = ToonWaterConfigClass.create_subterranean_config()
@@ -99,12 +114,15 @@ func test_subterranean_atmosphere_controller_transitions() -> void:
 	var controller = main_node.get_node_or_null("SubterraneanAtmosphereController")
 	var player_node = main_node.get_node_or_null("Player")
 	var emitter = player_node.get_node_or_null("AshFallEmitter")
+	var rot_fog = player_node.get_node_or_null("RotFogVolume") as FogVolume
 
 	assert_not_null(controller, "SubterraneanAtmosphereController must exist in main scene")
 	assert_not_null(emitter, "AshFallEmitter must exist on player")
+	assert_not_null(rot_fog, "RotFogVolume must exist on player")
 
 	controller._capture_surface_baseline()
 	controller.ash_emitter = emitter
+	controller.rot_fog_volume = rot_fog
 
 	# 1. Switch to UNDERGROUND mode
 	controller.set_underground_mode(true, true)
@@ -125,8 +143,19 @@ func test_subterranean_atmosphere_controller_transitions() -> void:
 		"Underground height fog density must be 0.0 to prevent obscuring cavern surfaces")
 	assert_true(env.fog_depth_begin >= 30.0,
 		"Underground fog depth begin must be >= 30.0m to keep local cavern clear")
+	# Option A: Global volumetric fog density underground is 0.0 so distant structures are clear
 	assert_almost_eq(env.volumetric_fog_density, 0.0, 0.001,
-		"Underground volumetric fog must be 0.0 to prevent air glow haze")
+		"Underground global volumetric fog density must be 0.0 so distant cavern structures remain clear")
+
+	# Option A: Local RotFogVolume attached to player exclusively active underground
+	assert_true(rot_fog.visible, "RotFogVolume must be visible underground")
+	assert_eq(rot_fog.shape, RenderingServer.FOG_VOLUME_SHAPE_ELLIPSOID, "RotFogVolume shape must be Ellipsoid")
+	var fm = rot_fog.material as FogMaterial
+	assert_not_null(fm, "RotFogVolume must use FogMaterial")
+	assert_true(fm.density >= 0.15, "RotFogVolume density must be rich local crimson mist (>= 0.15)")
+	assert_true(fm.albedo.r > fm.albedo.g and fm.albedo.r > fm.albedo.b, "RotFogVolume albedo must be crimson red")
+	assert_true(fm.emission.r > fm.emission.g, "RotFogVolume emission must have crimson organic glow")
+	assert_almost_eq(fm.edge_fade, 0.40, 0.05, "RotFogVolume edge_fade must be soft feathering (~0.40)")
 
 	# Sky in underground mode:
 	var sm = env.sky.sky_material as ShaderMaterial
@@ -169,6 +198,12 @@ func test_subterranean_atmosphere_controller_transitions() -> void:
 	# AshFallEmitter ember particles: MUST BE RE-ENABLED on surface
 	assert_true(emitter.emitting, "Ember particles must be re-enabled on surface")
 	assert_true(emitter.visible, "Ash fall emitter must be visible on surface")
+
+	# RotFogVolume local fog: MUST BE INACTIVE on surface
+	assert_false(rot_fog.visible, "RotFogVolume must NOT be visible on surface")
+	assert_almost_eq(fm.density, 0.0, 0.001, "RotFogVolume density must be 0.0 on surface")
+	assert_almost_eq(env.volumetric_fog_density, controller._surface_vol_fog_density, 0.005,
+		"Surface global volumetric fog must be restored")
 
 	main_node.free()
 

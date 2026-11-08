@@ -23,6 +23,9 @@ func _ready() -> void:
 		var ash_emitter = player.get_node_or_null("AshFallEmitter") as GPUParticles3D
 		if ash_emitter != null:
 			atmosphere_controller.ash_emitter = ash_emitter
+		var rot_fog = player.get_node_or_null("RotFogVolume") as FogVolume
+		if rot_fog != null:
+			atmosphere_controller.rot_fog_volume = rot_fog
 		var start_ug = voxel_world.spawn_on_underground_arena and voxel_world.caves_enabled
 		atmosphere_controller.set_underground_mode(start_ug, true)
 

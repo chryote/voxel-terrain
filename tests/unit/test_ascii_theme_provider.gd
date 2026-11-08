@@ -36,7 +36,8 @@ func test_provider_creates_distinct_cave_material() -> void:
 
 	var surf_tint = surf_mat.get_shader_parameter("shadow_tint") as Color
 	var cave_tint = cave_mat.get_shader_parameter("shadow_tint") as Color
-	assert_true(cave_tint.v < surf_tint.v, "Cave shadow tint must be darker than surface tint")
+	assert_ne(surf_tint, cave_tint, "Cave shadow tint must differ from surface tint")
+	assert_true(cave_tint.r > cave_tint.g, "Cave shadow tint must have crimson tint")
 
 func test_provider_polymorphic_dispatch() -> void:
 	var ascii_cfg = AsciiConfigClass.create_default_config()

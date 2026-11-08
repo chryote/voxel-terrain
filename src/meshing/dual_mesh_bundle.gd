@@ -45,3 +45,4 @@ func clear_all() -> void:
 		cave_mesh_data.clear()
 	if water_mesh_data != null:
 		water_mesh_data.clear()
+

@@ -97,3 +97,32 @@ func test_vendored_fast_noise_lite() -> void:
 	assert_eq(sample_a, sample_b, "Noise sampling with same coordinates and seed must be deterministic")
 	assert_true(sample_a != sample_c, "Noise sampling different coordinates should produce different values")
 
+func test_mesher_native_pipeline() -> void:
+	assert_true(ClassDB.class_exists("SurfaceShellMesherNative"), "SurfaceShellMesherNative in ClassDB")
+	assert_true(ClassDB.class_exists("ChasmShellMesherNative"), "ChasmShellMesherNative in ClassDB")
+	assert_true(ClassDB.class_exists("VoxelMesherNative"), "VoxelMesherNative in ClassDB")
+
+	var s_mesher = SurfaceShellMesher.new()
+	assert_not_null(s_mesher, "SurfaceShellMesher instantiates")
+	var c_mesher = ChasmShellMesher.new()
+	assert_not_null(c_mesher, "ChasmShellMesher instantiates")
+	var v_mesher = VoxelMesher.new()
+	assert_not_null(v_mesher, "VoxelMesher instantiates")
+
+	var reg = MaterialRegistry.new()
+
+	# Test VoxelMesher on a solid 4x4x4 cube
+	var v_data = VoxelChunkData.new(16, 32)
+	for ly in range(4):
+		for lz in range(4):
+			for lx in range(4):
+				v_data.set_voxel(lx, ly, lz, MaterialDef.ID_STONE)
+	v_data.compute_section_status()
+
+	var bundle = v_mesher.build_mesh(v_data, reg)
+	assert_not_null(bundle, "VoxelMesher should return a mesh bundle")
+	assert_true(bundle is DualMeshBundle, "Returned bundle must be a DualMeshBundle")
+	assert_false(bundle.is_empty(), "Mesh data must have vertices/indices for 4x4x4 block")
+	assert_true(bundle.get_surface_triangle_count() > 0, "Cube surface must have triangles")
+
+

@@ -2,6 +2,9 @@
 #include "core/terrain_native_core.h"
 #include "core/voxel_chunk_data.h"
 #include "streaming/off_thread_collision_baker.h"
+#include "meshing/surface_shell_mesher.h"
+#include "meshing/chasm_shell_mesher.h"
+#include "meshing/voxel_mesher.h"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/class_db.hpp>
@@ -18,6 +21,9 @@ void initialize_terrain_module(ModuleInitializationLevel p_level) {
     GDREGISTER_CLASS(TerrainNativeCore);
     GDREGISTER_CLASS(OffThreadCollisionBakerNative);
     GDREGISTER_CLASS(VoxelChunkDataNative);
+    GDREGISTER_CLASS(SurfaceShellMesherNative);
+    GDREGISTER_CLASS(ChasmShellMesherNative);
+    GDREGISTER_CLASS(VoxelMesherNative);
 }
 
 void uninitialize_terrain_module(ModuleInitializationLevel p_level) {

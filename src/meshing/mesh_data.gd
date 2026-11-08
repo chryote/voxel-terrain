@@ -45,3 +45,4 @@ func get_triangle_count() -> int:
 
 func get_vertex_count() -> int:
 	return vertices.size()
+

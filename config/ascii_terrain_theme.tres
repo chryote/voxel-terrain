@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="AsciiAtlasConfig" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/rendering/ascii_atlas_config.gd" id="1_config"]
+[ext_resource type="Texture2D" path="res://assets/textures/ascii_atlas.png" id="2_atlas"]
+[ext_resource type="Texture2D" path="res://assets/textures/ascii_material_lut.png" id="3_lut"]
+
+[resource]
+script = ExtResource("1_config")
+atlas_texture = ExtResource("2_atlas")
+material_glyph_lut = ExtResource("3_lut")
+grid_columns = 16
+grid_rows = 16
+cell_size_px = 16
+glyphs_per_voxel = 10.0
+glyph_contrast = 0.30
+depth_relief_strength = 0.15
+cavity_shadow_intensity = 0.35
+macro_variation_scale = 0.08
+parallax_strength = 0.015
+lit_threshold = 0.3
+shadow_tint = Color(0.18, 0.16, 0.17, 1)
+strata_enabled = true
+strata_group = "alien"
+strata_preset = "toxic_bioluminescence"
+strata_frequency = 0.35
+strata_warp_strength = 0.5
+stains_enabled = true
+stain_scale = 0.08
+stain_threshold = 0.5
+stain_intensity = 0.6
+stain_color_dark = Color(0.08, 0.06, 0.05, 0.85)
+stain_color_green = Color(0.48, 0.28, 0.12, 0.85)

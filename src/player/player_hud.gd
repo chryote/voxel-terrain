@@ -20,7 +20,28 @@ var _status_timer: float = 0.0
 var _debug_label: Label
 var _status_banner: Label
 
+const FPS_CAP_PRESETS: Array[int] = [120, 165, 0, 60]
+var _fps_cap_index: int = 0
+
+func cycle_fps_cap() -> int:
+	_fps_cap_index = (_fps_cap_index + 1) % FPS_CAP_PRESETS.size()
+	var cap = FPS_CAP_PRESETS[_fps_cap_index]
+	Engine.max_fps = cap
+	if _status_banner != null:
+		var cap_label = "Uncapped" if cap <= 0 else ("%d FPS" % cap)
+		_status_banner.text = "[F6] Target FPS Cap: %s" % cap_label
+		_status_banner.visible = true
+		_status_timer = 2.0
+	return cap
+
+func set_fps_cap(cap: int) -> void:
+	Engine.max_fps = cap
+	var found_idx = FPS_CAP_PRESETS.find(cap)
+	if found_idx != -1:
+		_fps_cap_index = found_idx
+
 func _ready() -> void:
+	Engine.max_fps = 120
 	mouse_filter = MOUSE_FILTER_IGNORE
 	set_anchors_preset(PRESET_FULL_RECT)
 
@@ -74,6 +95,14 @@ func _process(delta: float) -> void:
 
 	queue_redraw()
 
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.physical_keycode == KEY_F6 or event.keycode == KEY_F6 or event.is_action_pressed("toggle_fps_cap"):
+			cycle_fps_cap()
+			var vp = get_viewport()
+			if vp != null:
+				vp.set_input_as_handled()
+
 func _on_player_fired(hit: Dictionary) -> void:
 	if hit.get("hit", false):
 		_hit_marker_time = 0.14
@@ -119,8 +148,11 @@ func _update_debug_text() -> void:
 	if prims <= 0:
 		prims = int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME))
 
+	var cur_cap = Engine.max_fps
+	var cap_tag = " [Cap: %d]" % cur_cap if cur_cap > 0 else " [Uncapped]"
+
 	_debug_label.text = """[Voxel Continent Framework]
-FPS: %d | Frame (Proc): %.2f ms | Draw Calls: %d
+FPS: %d%s | Frame (Proc): %.2f ms | Draw Calls: %d
 Primitives: %d | Loaded Chunks: %d
 Pos: %s | Chunk: %s
 Aiming: %s | Shoulder: %s
@@ -129,8 +161,8 @@ Spawn: %s [F4 to toggle]
 Controls:
 WASD: Move | Shift: Sprint | Space: Jump
 RMB: Aim Zoom | LMB: Fire (Hitscan)
-V: Swap Shoulder | Tab/Esc: Toggle Mouse | F3: Toggle Info | F4: Toggle Spawn | M: Map""" % [
-		fps, proc_ms, dc, prims, loaded_count, pos_str, chunk_str, str(is_aim), shoulder, spawn_str
+V: Swap Shoulder | Tab/Esc: Toggle Mouse | F3: Toggle Info | F4: Toggle Spawn | F6: Cap FPS | M: Map""" % [
+		fps, cap_tag, proc_ms, dc, prims, loaded_count, pos_str, chunk_str, str(is_aim), shoulder, spawn_str
 	]
 
 func _draw() -> void:

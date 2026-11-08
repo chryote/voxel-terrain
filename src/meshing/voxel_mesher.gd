@@ -440,7 +440,7 @@ func _build_dual_water_mesh(v_data: VoxelChunkData, bundle: DualMeshBundle, has_
 	var c_w_cols = PackedColorArray()
 	var c_w_inds = PackedInt32Array()
 
-	var water_color = Color(0.12, 0.38, 0.65, 0.75)
+	var water_color = Color(0.16, 0.19, 0.20, 0.88)
 	var norm = Vector3(0.0, 1.0, 0.0)
 
 	var s_mask = PackedByteArray()

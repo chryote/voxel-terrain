@@ -29,23 +29,31 @@ func get_material(id: int) -> MaterialDef:
 
 func get_top_color(id: int) -> Color:
 	var mat = get_material(id)
-	return mat.top_color if mat != null else Color.WHITE
+	if mat == null:
+		return Color.WHITE
+	var c = mat.top_color
+	c.a = float(id) / 255.0
+	return c
 
 func get_side_color(id: int) -> Color:
 	var mat = get_material(id)
-	return mat.side_color if mat != null else Color.WHITE
+	if mat == null:
+		return Color.WHITE
+	var c = mat.side_color
+	c.a = float(id) / 255.0
+	return c
 
 static func create_default_registry() -> MaterialRegistry:
 	var reg = MaterialRegistry.new()
 	reg.register_material(MaterialDef.new(MaterialDef.ID_AIR, "air", Color(0, 0, 0, 0), Color(0, 0, 0, 0)))
-	reg.register_material(MaterialDef.new(MaterialDef.ID_GRASS, "grass", Color("#567d46"), Color("#6b4f38")))
-	reg.register_material(MaterialDef.new(MaterialDef.ID_DIRT, "dirt", Color("#6b4f38"), Color("#593e2b")))
-	reg.register_material(MaterialDef.new(MaterialDef.ID_STONE, "stone", Color("#787878"), Color("#646464")))
-	reg.register_material(MaterialDef.new(MaterialDef.ID_SAND, "sand", Color("#d7c58d"), Color("#c4b179")))
-	reg.register_material(MaterialDef.new(MaterialDef.ID_SNOW, "snow", Color("#f0f4f8"), Color("#d8e2ec")))
-	reg.register_material(MaterialDef.new(MaterialDef.ID_SEABED, "seabed", Color("#3b4e43"), Color("#2e3d34")))
-	reg.register_material(MaterialDef.new(MaterialDef.ID_GRAVEL, "gravel", Color("#5a574f"), Color("#4b4841")))
-	reg.register_material(MaterialDef.new(MaterialDef.ID_CAVE_WALL, "cave_wall", Color("#504e4c"), Color("#42403e")))
-	reg.register_material(MaterialDef.new(MaterialDef.ID_CHASM_BASALT, "chasm_basalt", Color("#26282a"), Color("#1e2022")))
-	reg.register_material(MaterialDef.new(MaterialDef.ID_CAVE_CRYSTAL, "cave_crystal", Color("#42c8d2"), Color("#2ca5af")))
+	reg.register_material(MaterialDef.new(MaterialDef.ID_GRASS, "grass", Color("#363836"), Color("#362a23")))
+	reg.register_material(MaterialDef.new(MaterialDef.ID_DIRT, "dirt", Color("#302e2c"), Color("#2e221c")))
+	reg.register_material(MaterialDef.new(MaterialDef.ID_STONE, "stone", Color("#454442"), Color("#363533")))
+	reg.register_material(MaterialDef.new(MaterialDef.ID_SAND, "sand", Color("#665b49"), Color("#544a3b")))
+	reg.register_material(MaterialDef.new(MaterialDef.ID_SNOW, "snow", Color("#87827a"), Color("#6e6962")))
+	reg.register_material(MaterialDef.new(MaterialDef.ID_SEABED, "seabed", Color("#212522"), Color("#181b19")))
+	reg.register_material(MaterialDef.new(MaterialDef.ID_GRAVEL, "gravel", Color("#33302c"), Color("#282522")))
+	reg.register_material(MaterialDef.new(MaterialDef.ID_CAVE_WALL, "cave_wall", Color("#2e2b2f"), Color("#232024")))
+	reg.register_material(MaterialDef.new(MaterialDef.ID_CHASM_BASALT, "chasm_basalt", Color("#19181a"), Color("#121113")))
+	reg.register_material(MaterialDef.new(MaterialDef.ID_CAVE_CRYSTAL, "cave_crystal", Color("#3d6b68"), Color("#2b4f4d")))
 	return reg

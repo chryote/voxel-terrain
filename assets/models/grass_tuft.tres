@@ -1,0 +1,14 @@
+[gd_resource type="ArrayMesh" format=4]
+
+[resource]
+_surfaces = [{
+"aabb": AABB(-0.43125, 0, -0.373473, 0.8625, 0.85, 0.746947),
+"attribute_data": PackedByteArray("P3Iz/wAAAAAAAIA/P3Iz/wAAgD8AAIA/peBZ/wAAgD8AAAAApeBZ/wAAAAAAAAAAP3Iz/wAAAAAAAIA/P3Iz/wAAgD8AAIA/peBZ/wAAgD8AAAAApeBZ/wAAAAAAAAAAP3Iz/wAAAAAAAIA/P3Iz/wAAgD8AAIA/peBZ/wAAgD8AAAAApeBZ/wAAAAAAAAAA"),
+"format": 34359742495,
+"index_count": 18,
+"index_data": PackedByteArray("AAABAAIAAAACAAMABAAFAAYABAAGAAcACAAJAAoACAAKAAsA"),
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 12,
+"vertex_data": PackedByteArray("AADAvgAAAIAAAACAAADAPgAAAAAAAAAAzczcPpqZWT8AAAAAzczcvpqZWT8AAAAAAABAvgAAAIDhRqa+AABAPgAAAADhRqY+zcxcPpqZWT/qN78+zcxcvpqZWT/qN7++AABAPgAAAIDhRqa+AABAvgAAAADhRqY+zcxcvpqZWT/qN78+zcxcPpqZWT/qN7++N3A38LERPbjHjzfwsRHAxySe2uHCJAzO2mHa4cIk8bFfa3L4AAlRtYyHXuuWE/rC340W2skhvsMWWh7yGBMkrJ+UcvgaBnnJcnhe64kWd7sfchbawiw5tuilHvJBCDvQ")
+}]

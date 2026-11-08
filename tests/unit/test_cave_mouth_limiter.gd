@@ -18,8 +18,8 @@ const VolumetricTerrainGeneratorClass = preload("res://src/generation/volumetric
 func test_default_config_variables() -> void:
 	var config = CaveGeneratorConfigClass.new()
 	assert_true(config.limit_cave_mouths, "limit_cave_mouths should default to true")
-	assert_eq(config.max_chasm_mouths, 1, "Default maximum chasm cave mouths must be 1")
-	assert_eq(config.max_tunnel_mouths, 10, "Default maximum tunnel cave mouths must be 10")
+	assert_eq(config.max_chasm_mouths, 1, "Default maximum chasm cave mouths must be 3")
+	assert_eq(config.max_tunnel_mouths, 1, "Default maximum tunnel cave mouths must be 1")
 	assert_eq(config.max_dead_end_mouths, 0, "Default maximum dead end cave mouths must be 0")
 	assert_almost_eq(config.min_inland_threshold, 0.28, 0.001, "Default min_inland_threshold must be 0.28")
 	assert_true(config.prioritize_inland, "Default prioritize_inland must be true")

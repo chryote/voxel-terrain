@@ -3,6 +3,8 @@ extends MeshInstance3D
 
 ## Visual ocean water plane covering the continent at sea level.
 
+const MaterialProviderClass = preload("res://src/rendering/terrain_material_provider.gd")
+
 var sea_level_height: float = 9.0
 
 func setup(bounds: WorldBounds, p_sea_level_height: float) -> void:
@@ -20,12 +22,7 @@ func setup(bounds: WorldBounds, p_sea_level_height: float) -> void:
 		(bounds.min_world_z + bounds.max_world_z) * 0.5
 	)
 
-	var mat = StandardMaterial3D.new()
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.albedo_color = Color(0.12, 0.38, 0.65, 0.75)
-	mat.roughness = 0.1
-	mat.metallic = 0.15
-	material_override = mat
+	material_override = MaterialProviderClass.get_ocean_material()
 
 func set_ocean_visible(p_visible: bool) -> void:
 	if visible != p_visible:

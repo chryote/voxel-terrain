@@ -9,6 +9,7 @@ var normals: PackedVector3Array
 var colors: PackedColorArray
 var indices: PackedInt32Array
 var water_mesh_data: MeshData = null
+var foliage_data: RefCounted = null
 var has_cave_mouth: bool = false
 
 func is_empty() -> bool:
@@ -19,6 +20,7 @@ func clear() -> void:
 	normals.clear()
 	colors.clear()
 	indices.clear()
+	foliage_data = null
 	has_cave_mouth = false
 
 func create_array_mesh() -> ArrayMesh:

@@ -12,6 +12,7 @@ const WormCorridorSegmentClass = preload("res://src/generation/caves/worm_corrid
 var config: CaveGeneratorConfig
 var chasm_sampler: UndergroundChasmSampler = null
 var worm_registry: WormChunkRegistry = null
+var corridors_configured: bool = false
 
 var tunnel_noise_a: FastNoiseLite
 var tunnel_noise_b: FastNoiseLite
@@ -74,8 +75,20 @@ func get_arena_suppression(wx: float, wz: float) -> float:
 	var blend = (raw_rift - fade_start) / 0.04
 	return 1.0 - (blend * blend * (3.0 - 2.0 * blend))
 
+func _are_tunnels_disabled() -> bool:
+	return config != null and config.limit_cave_mouths and config.max_tunnel_mouths == 0
+
 func sample_tunnel(wx: float, wy: float, wz: float) -> Dictionary:
 	var arena_supp = get_arena_suppression(wx, wz)
+
+	if _are_tunnels_disabled():
+		return {
+			"is_tunnel": false,
+			"density": 0.0,
+			"effective_radius": 0.0,
+			"is_dead_end": false,
+			"centerline_dist": INF
+		}
 
 	if (config == null or config.use_directed_worm_corridors) and worm_registry != null and worm_registry.get_registered_chunk_count() > 0:
 		var c = worm_registry.world_to_chunk(Vector3(wx, wy, wz))
@@ -189,6 +202,9 @@ func sample_tunnel(wx: float, wy: float, wz: float) -> Dictionary:
 
 func can_tunnel_intersect_chunk(coord: ChunkCoord, min_p: Vector3 = Vector3.ZERO, max_p: Vector3 = Vector3.ZERO) -> bool:
 	## O(1) query checking if a chunk column or specific vertical range intersects any registered worm tunnel.
+	if _are_tunnels_disabled():
+		return false
+
 	if (config == null or config.use_directed_worm_corridors) and worm_registry != null and worm_registry.get_registered_chunk_count() > 0:
 		if coord == null or not worm_registry.has_chunk(coord):
 			return false
@@ -210,6 +226,9 @@ func can_tunnel_intersect_cell(min_p: Vector3, max_p: Vector3) -> bool:
 	## Coarse culling: evaluates center and corners using calibrated Lipschitz bounds.
 	## Returns false if it is mathematically impossible for a worm tunnel to carve inside this cell.
 	if max_p.y <= min_p.y or max_p.x <= min_p.x or max_p.z <= min_p.z:
+		return false
+
+	if _are_tunnels_disabled():
 		return false
 
 	if (config == null or config.use_directed_worm_corridors) and worm_registry != null and worm_registry.get_registered_chunk_count() > 0:
@@ -366,6 +385,9 @@ func can_tunnel_intersect_cell(min_p: Vector3, max_p: Vector3) -> bool:
 func get_tunnel_carve(wx: float, wy: float, wz: float) -> float:
 	var arena_supp = get_arena_suppression(wx, wz)
 	if arena_supp <= 0.0:
+		return 0.0
+
+	if _are_tunnels_disabled():
 		return 0.0
 
 	if (config == null or config.use_directed_worm_corridors) and worm_registry != null and worm_registry.get_registered_chunk_count() > 0:

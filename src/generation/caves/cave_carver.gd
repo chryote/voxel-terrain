@@ -48,6 +48,8 @@ func _build_worm_trajectories_for_mouths(mouths: Array) -> void:
 		tunnel_sampler.set_worm_registry(worm_registry)
 	worm_registry.clear()
 	if not config.use_directed_worm_corridors or worm_generator == null:
+		if tunnel_sampler != null:
+			tunnel_sampler.corridors_configured = false
 		return
 
 	var mouth_id = 0
@@ -59,6 +61,8 @@ func _build_worm_trajectories_for_mouths(mouths: Array) -> void:
 			if traj != null and traj.get_segment_count() > 0:
 				worm_registry.register_trajectory(traj)
 		mouth_id += 1
+	if tunnel_sampler != null:
+		tunnel_sampler.corridors_configured = true
 
 func get_allowed_mouths() -> Array:
 	return mouth_sampler.allowed_mouths
@@ -67,6 +71,8 @@ func clear_allowed_mouths() -> void:
 	mouth_sampler.clear_allowed_mouths()
 	if worm_registry != null:
 		worm_registry.clear()
+	if tunnel_sampler != null:
+		tunnel_sampler.corridors_configured = false
 
 func set_continent_mask(p_mask, p_bounds: WorldBounds) -> void:
 	chasm_sampler.set_continent_mask(p_mask, p_bounds)

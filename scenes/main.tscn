@@ -1,25 +1,83 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://src/world/main_scene.gd" id="1_main"]
 [ext_resource type="Script" path="res://src/world/voxel_world.gd" id="2_world"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="3_player"]
+[ext_resource type="Shader" path="res://shaders/sky/banded_sky.gdshader" id="4_sky_shader"]
+[ext_resource type="Script" path="res://src/rendering/graphic_novel_post_process.gd" id="5_postprocess"]
+[ext_resource type="Resource" path="res://config/graphic_novel_theme.tres" id="6_theme"]
+[ext_resource type="Resource" path="res://config/ascii_terrain_theme.tres" id="7_ascii_theme"]
+[ext_resource type="Resource" path="res://config/default_world.tres" id="8_world_config"]
+[ext_resource type="Script" path="res://src/rendering/subterranean_atmosphere_controller.gd" id="9_atmosphere"]
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
-sky_top_color = Color(0.384, 0.549, 0.776, 1.0)
-sky_horizon_color = Color(0.686, 0.776, 0.863, 1.0)
-ground_bottom_color = Color(0.180, 0.239, 0.204, 1.0)
-ground_horizon_color = Color(0.686, 0.776, 0.863, 1.0)
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
+shader = ExtResource("4_sky_shader")
+shader_parameter/sky_top_color = Color(0.10, 0.14, 0.11, 1)
+shader_parameter/sky_high_color = Color(0.18, 0.25, 0.19, 1)
+shader_parameter/sky_mid_color = Color(0.27, 0.38, 0.28, 1)
+shader_parameter/sky_low_color = Color(0.23, 0.32, 0.24, 1)
+shader_parameter/sky_horizon_color = Color(0.20, 0.26, 0.22, 1)
+shader_parameter/ground_horizon_color = Color(0.12, 0.16, 0.13, 1)
+shader_parameter/ground_bottom_color = Color(0.06, 0.08, 0.06, 1)
+shader_parameter/high_band_threshold = 0.38
+shader_parameter/mid_band_threshold = 0.2
+shader_parameter/low_band_threshold = 0.08
+shader_parameter/horizon_band_threshold = 0.02
+shader_parameter/band_smoothness = 0.045
+shader_parameter/sun_enabled = true
+shader_parameter/sun_color = Color(0.80, 0.86, 0.78, 1)
+shader_parameter/sun_disk_size = 0.025
 
 [sub_resource type="Sky" id="Sky_env"]
-sky_material = SubResource("ProceduralSkyMaterial_sky")
+sky_material = SubResource("ShaderMaterial_sky")
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 2
 sky = SubResource("Sky_env")
 ambient_light_source = 3
-ambient_light_color = Color(0.65, 0.7, 0.75, 1.0)
-ambient_light_energy = 0.6
+ambient_light_color = Color(0.24, 0.29, 0.25, 1.0)
+ambient_light_energy = 0.50
 tonemap_mode = 2
+ssao_enabled = true
+ssao_radius = 1.4
+ssao_intensity = 2.5
+ssao_power = 1.5
+ssao_detail = 0.5
+ssao_horizon = 0.06
+ssao_sharpness = 0.98
+fog_enabled = true
+fog_mode = 0
+fog_light_color = Color(0.22, 0.28, 0.24, 1)
+fog_light_energy = 1.0
+fog_density = 0.012
+fog_aerial_perspective = 0.80
+fog_sky_affect = 0.80
+fog_height = 24.0
+fog_height_density = 0.15
+volumetric_fog_enabled = true
+volumetric_fog_density = 0.028
+volumetric_fog_albedo = Color(0.38, 0.44, 0.39, 1)
+volumetric_fog_emission = Color(0.08, 0.10, 0.08, 1)
+volumetric_fog_emission_energy = 0.40
+volumetric_fog_anisotropy = 0.30
+volumetric_fog_length = 80.0
+volumetric_fog_detail_spread = 1.8
+volumetric_fog_ambient_inject = 0.80
+volumetric_fog_sky_affect = 0.70
+glow_enabled = true
+glow_normalized = true
+glow_intensity = 0.75
+glow_bloom = 0.16
+glow_blend_mode = 2
+glow_levels/1 = false
+glow_levels/2 = false
+glow_levels/3 = true
+glow_levels/4 = true
+glow_levels/5 = true
+adjustment_enabled = true
+adjustment_contrast = 1.08
+adjustment_saturation = 0.85
+adjustment_brightness = 0.98
 
 [node name="Main" type="Node3D"]
 script = ExtResource("1_main")
@@ -29,10 +87,33 @@ environment = SubResource("Environment_main")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.819152, -0.40558, 0.40558, 0, 0.707107, 0.707107, -0.573576, -0.579228, 0.579228, 0, 100, 0)
+light_color = Color(0.78, 0.82, 0.76, 1)
+light_energy = 0.85
+light_volumetric_fog_energy = 1.3
 shadow_enabled = true
+directional_shadow_max_distance = 250.0
+directional_shadow_split_1 = 0.1
+directional_shadow_split_2 = 0.25
+directional_shadow_split_3 = 0.55
+directional_shadow_blend_splits = true
+
+[node name="GraphicNovelPostProcess" type="Node3D" parent="."]
+script = ExtResource("5_postprocess")
+config = ExtResource("6_theme")
+
+[node name="SubterraneanAtmosphereController" type="Node3D" parent="." node_paths=PackedStringArray("world_environment", "directional_light", "post_process", "voxel_world", "rot_fog_volume")]
+script = ExtResource("9_atmosphere")
+world_environment = NodePath("../WorldEnvironment")
+directional_light = NodePath("../DirectionalLight3D")
+post_process = NodePath("../GraphicNovelPostProcess")
+voxel_world = NodePath("../VoxelWorld")
+rot_fog_volume = NodePath("../Player/RotFogVolume")
 
 [node name="VoxelWorld" type="Node3D" parent="." node_paths=PackedStringArray("focus_target")]
 script = ExtResource("2_world")
+world_config = ExtResource("8_world_config")
+terrain_theme = ExtResource("7_ascii_theme")
+foliage_max_distance_chunks = 16
 focus_target = NodePath("../Player")
 
 [node name="Player" parent="." instance=ExtResource("3_player")]

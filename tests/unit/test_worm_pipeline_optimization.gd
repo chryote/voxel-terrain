@@ -184,3 +184,54 @@ func test_coordinator_fallback_when_worm_registry_null() -> void:
 	var tiers = coord.get_tiered_chunks_to_promote(Vector3(0, 50, 0), focus_chunk, 50.0, mouth_cache)
 	assert_true(tiers["tier1"].size() > 0, "Fallback must still promote mouth chunk in Tier 1")
 	assert_eq(tiers["tier1"][0].x, 0, "Tier 1 chunk must be mouth chunk")
+
+func test_zero_tunnel_mouths_with_chasm_mouth_bypasses_3d_voxelization() -> void:
+	## Validates that when max_tunnel_mouths = 0 and max_chasm_mouths = 1:
+	## 1. Zero worm corridor trajectories are registered.
+	## 2. Non-mouth chunks do NOT fall back to 3D simplex noise or 3D voxel arrays.
+	## 3. Non-mouth chunks cleanly bypass 3D voxelization to 2.5D ChasmChunkData.
+	var bounds = WorldBoundsClass.new(Vector2i(16, 16), 16, 1.0)
+	var config = CaveGeneratorConfigClass.new()
+	config.enabled = true
+	config.limit_cave_mouths = true
+	config.max_tunnel_mouths = 0
+	config.max_chasm_mouths = 1
+	config.use_directed_worm_corridors = true
+	config.bypass_chasm_voxelization = true
+
+	var gen = LayeredTerrainGeneratorClass.new(1337, null, config)
+	gen._mouths_initialized = true
+
+	# Only 1 chasm mouth allowed at (48, 48) inside Chunk (3, 3)
+	var chasm_mouth = CaveMouthDataClass.new(
+		Vector3(48.0, 40.0, 48.0),
+		Vector2(48.0, 48.0),
+		CaveMouthDataClass.Type.CHASM,
+		10.0,
+		7.0,
+		40.0
+	)
+	gen.cave_carver.set_allowed_mouths([chasm_mouth])
+
+	# 1. Worm registry must have 0 registered chunks (no tunnel mouths)
+	assert_eq(gen.cave_carver.worm_registry.get_registered_chunk_count(), 0,
+		"Worm registry must contain 0 chunks when max_tunnel_mouths is 0")
+	assert_true(gen.cave_carver.tunnel_sampler.corridors_configured,
+		"corridors_configured must be true after set_allowed_mouths")
+
+	# 2. Non-mouth chunk at (10, 10) must return false for can_tunnel_intersect_chunk
+	var non_mouth_coord = ChunkCoord.new(10, 10)
+	var can_tunnel = gen.cave_carver.tunnel_sampler.can_tunnel_intersect_chunk(non_mouth_coord)
+	assert_false(can_tunnel, "Non-mouth chunk must NOT report tunnel intersection when max_tunnel_mouths is 0")
+
+	# 3. Tunnel carve at any point must be 0.0
+	var carve = gen.cave_carver.tunnel_sampler.get_tunnel_carve(160.0, 20.0, 160.0)
+	assert_almost_eq(carve, 0.0, 0.0001, "Tunnel carve must be 0.0 when 0 tunnel corridors are registered")
+
+	# 4. Generate subterranean chunk: must bypass 3D voxelization to 2.5D ChasmChunkData
+	var s_data = gen.generate_surface(non_mouth_coord, bounds)
+	var sub_data = gen.generate_subterranean(s_data, non_mouth_coord, bounds)
+	assert_not_null(sub_data, "Subterranean data must exist")
+	assert_true(sub_data is ChasmChunkDataClass,
+		"When max_tunnel_mouths is 0, non-mouth chunks must bypass 3D voxelization to 2.5D ChasmChunkData (got %s)" % [sub_data.get_class()])
+

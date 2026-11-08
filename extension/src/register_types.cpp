@@ -10,6 +10,7 @@
 #include "generation/caves/subterranean_tunnel_sampler.h"
 #include "generation/macro_topography.h"
 #include "generation/fluvial_carver.h"
+#include "map/continent_map_baker.h"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/class_db.hpp>
@@ -34,6 +35,7 @@ void initialize_terrain_module(ModuleInitializationLevel p_level) {
     GDREGISTER_CLASS(SubterraneanTunnelSamplerNative);
     GDREGISTER_CLASS(MacroTopographyNative);
     GDREGISTER_CLASS(FluvialCarverNative);
+    GDREGISTER_CLASS(ContinentMapBakerNative);
 }
 
 void uninitialize_terrain_module(ModuleInitializationLevel p_level) {

@@ -301,10 +301,16 @@ func _process(_delta: float) -> void:
 	_update_layer_visibility()
 	_update_extreme_lod_clip()
 
+var _last_clip_update_pos: Vector3 = Vector3(INF, INF, INF)
+
 func _update_extreme_lod_clip() -> void:
 	if extreme_distance_terrain == null or not is_instance_valid(extreme_distance_terrain):
 		return
 	var focus_pos = _get_focus_position()
+	if _last_clip_update_pos.distance_squared_to(focus_pos) < 0.25:
+		return
+	_last_clip_update_pos = focus_pos
+
 	var c_size = float(world_config.chunk_size) if world_config != null else 32.0
 	var v_size = world_config.voxel_size if world_config != null else 1.0
 	var view_dist = float(world_config.view_distance_chunks) if world_config != null else 8.0
@@ -324,6 +330,7 @@ func _notification(what: int) -> void:
 		_last_streaming_chunk = null
 		_last_streaming_position = Vector3(INF, INF, INF)
 		_last_was_subterranean = false
+		_cached_chasm_query_result = null
 
 func _exit_tree() -> void:
 	if scheduler != null:
@@ -335,6 +342,7 @@ func _exit_tree() -> void:
 	_last_streaming_chunk = null
 	_last_streaming_position = Vector3(INF, INF, INF)
 	_last_was_subterranean = false
+	_cached_chasm_query_result = null
 
 var _spawn_point: Vector3 = Vector3.ZERO
 var _spawn_point_cached: bool = false
@@ -430,6 +438,9 @@ func _process_completed_chunks() -> void:
 	var chunks_processed = 0
 
 	while not _pending_completed_chunks.is_empty():
+		# Guarantee at least 1 chunk per frame is processed, but do not start next chunk if budget already exceeded
+		if chunks_processed >= 1 and (Time.get_ticks_usec() - start_time_usec) >= budget_usec:
+			break
 		var item = _pending_completed_chunks.pop_front()
 		chunks_processed += 1
 		var coord: ChunkCoord = item.coord
@@ -543,23 +554,28 @@ func _update_streaming(force: bool = false) -> void:
 		world_config.view_distance_chunks
 	)
 
-	for coord in to_unload:
-		var key = coord.to_key()
-		scheduler.cancel_chunk(coord)
-		subterranean_coordinator.unregister_chunk(coord)
+	if not to_unload.is_empty():
 		if not _pending_completed_chunks.is_empty():
+			var unload_keys: Dictionary = {}
+			for coord in to_unload:
+				unload_keys[coord.to_key()] = true
 			_pending_completed_chunks = _pending_completed_chunks.filter(
 				func(item: Dictionary) -> bool:
 					var c: ChunkCoord = item.get("coord", null)
-					return c == null or not c.equals(coord)
+					return c == null or not unload_keys.has(c.to_key())
 			)
-		if _loaded_chunks.has(key):
-			var node = _loaded_chunks[key]
-			_loaded_chunks.erase(key)
-			_mouth_cache.erase(key)
-			if is_instance_valid(node):
-				_recycle_chunk_node(node)
-			chunk_unloaded.emit(coord)
+
+		for coord in to_unload:
+			var key = coord.to_key()
+			scheduler.cancel_chunk(coord)
+			subterranean_coordinator.unregister_chunk(coord)
+			if _loaded_chunks.has(key):
+				var node = _loaded_chunks[key]
+				_loaded_chunks.erase(key)
+				_mouth_cache.erase(key)
+				if is_instance_valid(node):
+					_recycle_chunk_node(node)
+				chunk_unloaded.emit(coord)
 
 func _get_camera_position() -> Vector3:
 	if is_inside_tree() and get_viewport() != null:
@@ -572,13 +588,20 @@ func _get_camera_position() -> Vector3:
 				return focus_target.camera_rig.camera.global_position
 	return _get_focus_position()
 
+var _cached_chasm_query_result: ChasmColumnResult = null
+
 func is_in_underground_chasm(pos: Vector3) -> bool:
 	if not caves_enabled:
+		return false
+	# Chasms and arenas are strictly subterranean features bounded below Y = 30
+	if pos.y > 30.0:
 		return false
 	if generator == null or not ("cave_carver" in generator) or generator.cave_carver == null:
 		return false
 	var surf_h = get_height_at(pos.x, pos.z)
-	var col = generator.cave_carver.sample_chasm_column(pos.x, pos.z, null, surf_h)
+	if _cached_chasm_query_result == null:
+		_cached_chasm_query_result = ChasmColumnResult.new()
+	var col = generator.cave_carver.sample_chasm_column(pos.x, pos.z, _cached_chasm_query_result, surf_h)
 	if col == null or not col.is_chasm:
 		return false
 	var chasm_floor = float(col.floor_y)

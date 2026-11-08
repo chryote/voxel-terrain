@@ -1,0 +1,28 @@
+#!/usr/bin/env python
+import os
+
+env = SConscript("godot-cpp/SConstruct")
+
+# Include search paths for project headers
+env.Append(CPPPATH=["src/", "./"])
+
+# Collect source files
+sources = Glob("src/*.cpp") + Glob("src/*/*.cpp") + Glob("src/*/*/*.cpp")
+
+# Destination binary
+if env["platform"] == "macos":
+    library = env.SharedLibrary(
+        "../bin/libterrain_extension.{}.{}.framework/libterrain_extension.{}.{}".format(
+            env["platform"], env["target"], env["platform"], env["target"]
+        ),
+        source=sources,
+    )
+else:
+    library = env.SharedLibrary(
+        "../bin/libterrain_extension{}{}".format(env["suffix"], env["SHLIBSUFFIX"]),
+        source=sources,
+    )
+
+env.NoCache(library)
+Default(library)
+

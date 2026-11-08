@@ -1,5 +1,7 @@
 #include "register_types.h"
 #include "core/terrain_native_core.h"
+#include "core/voxel_chunk_data.h"
+#include "streaming/off_thread_collision_baker.h"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/class_db.hpp>
@@ -14,6 +16,8 @@ void initialize_terrain_module(ModuleInitializationLevel p_level) {
     }
 
     GDREGISTER_CLASS(TerrainNativeCore);
+    GDREGISTER_CLASS(OffThreadCollisionBakerNative);
+    GDREGISTER_CLASS(VoxelChunkDataNative);
 }
 
 void uninitialize_terrain_module(ModuleInitializationLevel p_level) {
@@ -37,4 +41,3 @@ GDExtensionBool GDE_EXPORT terrain_extension_init(
     return init_obj.init();
 }
 }
-

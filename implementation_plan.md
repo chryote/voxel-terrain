@@ -247,7 +247,7 @@ flowchart LR
 ## Implementation Checklist & Decision Gates
 
 - [x] **Gate 0:** godot-cpp submodule setup and SCons build producing functional `.gdextension` binary on Windows x64 (Verified: 381/381 unit tests passing).
-- [ ] **Gate 1:** `OffThreadCollisionBaker` and `VoxelChunkData` migrated and passing unit tests.
+- [x] **Gate 1:** `OffThreadCollisionBaker` and `VoxelChunkData` migrated and passing unit tests (Verified: 10/10 benchmarks passing, 100-chunk batch speedup, 381/381 unit tests).
 - [ ] **Gate 2:** `SurfaceShellMesher`, `ChasmShellMesher`, and `VoxelMesher` migrated; benchmark shows meshing under 0.3 ms.
 - [ ] **Gate 3:** Samplers (`Tunnel`, `Chasm`, `Topography`) migrated; subterranean carve batch shows >5x throughput improvement.
 - [ ] **Gate 4:** `ContinentMapBaker` migrated with parallel island BFS flood-fill.

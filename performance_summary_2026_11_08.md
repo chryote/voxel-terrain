@@ -157,3 +157,4 @@ Profiled via [`run_surface_vs_arena.gd`](file:///d:/GODOT/terrain/tests/benchmar
   - Surface chunk generation reduced from **4.052 ms** to **2.183 ms** (**~1.85× faster**).
   - Underground Arena pipeline latency reduced from **24.87 ms** to **19.10 ms** (**23% faster**).
 - **Deployment Status:** All 5 rollout phases are complete, fully validated, and committed to git branch `feat/c++_optimization`.
+

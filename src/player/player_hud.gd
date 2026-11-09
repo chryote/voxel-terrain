@@ -13,7 +13,7 @@ extends Control
 			if not voxel_world.spawn_mode_changed.is_connected(_on_spawn_mode_changed):
 				voxel_world.spawn_mode_changed.connect(_on_spawn_mode_changed)
 
-var show_debug: bool = true
+var show_debug: bool = false
 var _hit_marker_time: float = 0.0
 var _status_timer: float = 0.0
 
@@ -51,6 +51,7 @@ func _ready() -> void:
 	_debug_label.add_theme_color_override("font_shadow_color", Color.BLACK)
 	_debug_label.add_theme_constant_override("shadow_offset_x", 1)
 	_debug_label.add_theme_constant_override("shadow_offset_y", 1)
+	_debug_label.visible = show_debug
 	add_child(_debug_label)
 
 	_status_banner = Label.new()

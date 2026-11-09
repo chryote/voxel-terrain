@@ -45,6 +45,11 @@ Contains zero `Node` dependencies, runs completely thread-safe on `WorkerThreadP
   - `CameraMath`: Pure helper functions for pitch clamping and smoothing.
   - `PlayerMotor`: `CharacterBody3D` with camera-relative movement, sprinting, jumping, standard gravity, and 1-block voxel step-assist.
   - `PlayerHUD`: Dynamic crosshair, hit markers, and debug overlay (FPS, chunk coord, player pos, loaded chunk count).
+  - **`src/player/visuals/`**:
+    - `PawnVisualAssembler`: Data-driven 3D pawn assembler managing modular mounts (Torso, Head, Hair, Apparel layers) with automatic fallback to the weathered pill capsule when custom meshes are absent.
+    - `PawnLocomotionWaddler`: Procedural RimWorld-style waddle, vertical hop, tilt/roll, and squash-and-stretch locomotion animator.
+    - `data/`: `BodyTypeDef`, `HeadTypeDef`, `ApparelDef`, and `PawnAppearanceData` typed resources for character customization and apparel layering.
+    - `fallback/`: `FallbackPillProvider` factory producing the baseline weathered capsule and shader.
 
 ---
 
@@ -63,13 +68,16 @@ res://
 │   ├── streaming/                   # Chunk streamer & WorkerThreadPool scheduler
 │   ├── world/                       # Composition root, chunk nodes, boundary, water
 │   └── player/                      # Motor, TPS camera, HUD, input & intent
+│       └── visuals/                 # Modular pawn visual assembly & procedural waddler
+│           ├── data/                # BodyTypeDef, HeadTypeDef, ApparelDef, PawnAppearanceData
+│           └── fallback/            # FallbackPillProvider
 ├── scenes/
 │   ├── main.tscn                    # Main runnable scene
-│   └── player.tscn                  # Player character prefab
+│   └── player.tscn                  # Player character prefab with PawnVisualAssembler & Waddler
 └── tests/
     ├── run_tests.gd                 # Headless test runner entry point
     ├── framework/                   # TestCase, BenchmarkCase, RegressionCase, TestRunner
-    ├── unit/                        # 28 Unit tests (including architecture linter)
+    ├── unit/                        # Unit tests (including architecture linter & pawn tests)
     ├── regression/                  # Golden snapshot regression tests
     └── benchmark/                   # Automated performance benchmarks
 ```
@@ -124,3 +132,42 @@ godot --headless --path . -s res://tests/run_tests.gd -- --suite=regression
 - `--update-baseline`: Update benchmark performance baselines.
 - `--strict`: Fail the test run if benchmark performance regresses by > 20%.
 - `--json=<path>`: Export machine-readable test execution report.
+
+---
+
+## Modular Pawn Appearance Architecture (RimWorld-Style)
+
+The character appearance pipeline is modeled after RimWorld's modular, layered visual composition system (Head + Torso + Layered Apparel) with a fully decoupled procedural locomotion controller.
+
+### 1. Fallback & Compatibility First
+In the current iteration, no custom 3D pawn meshes are bundled. The `PawnVisualAssembler` automatically deploys the **`FallbackPillProvider`**, rendering the existing weathered capsule (`CapsuleMesh` $0.4\,\text{m}$ radius, $1.8\,\text{m}$ height with `weathered_capsule.gdshader`). All collisions, camera pivots, shadow projectors, and particle emitters remain 100% identical.
+
+### 2. Sockets & Mount Hierarchy
+When custom definitions are assigned, the assembler builds and coordinates modular mount points:
+- `VisualsRoot` (Root transform driven by `PawnLocomotionWaddler`)
+  - `FallbackMeshInstance` (Active only in fallback mode)
+  - `TorsoMount` (`MeshInstance3D`)
+  - `HeadMount` (`Node3D` at `neck_mount_offset`)
+    - `HeadMeshInstance` (`MeshInstance3D`)
+    - `HairMount` (`MeshInstance3D`)
+    - `HeadgearMount` (`MeshInstance3D`)
+  - `ApparelMounts` (`Node3D`)
+    - `OnSkinMount` (`MeshInstance3D`)
+    - `MiddleMount` (`MeshInstance3D`)
+    - `ShellMount` (`MeshInstance3D`)
+
+### 3. Part Culling & Clipping Elimination
+Apparel definitions (`ApparelDef`) define a `hides_body_parts: PackedStringArray` property. When a pawn equips heavy armor or full-coverage suits (e.g. `["Torso"]`), the assembler automatically hides the underlying `TorsoMount` to completely eliminate 3D mesh penetration and z-fighting.
+
+### 4. Procedural Waddler Locomotion
+`PawnLocomotionWaddler` simulates RimWorld's iconic walking hop and side-to-side waddle without skeletal keyframes:
+- **Vertical Hop**: Sinusoidal bounce based on velocity and grounded state.
+- **Roll / Tilt**: Alternating lateral tilt $\pm 4.5^\circ$ per step cycle.
+- **Pitch Lean**: Speed-proportional forward tilt.
+- **Squash & Stretch**: Dynamic compression on step impact, relaxing into subtle breathing cycles when stationary.
+
+### 5. Dropping In 3D Pawn Assets (Future Iterations)
+To introduce 3D meshes in subsequent iterations:
+1. Place `.glb` or `.res` meshes into `assets/characters/pawn/` (`bodies/`, `heads/`, `apparel/`, `hair/`).
+2. Create `BodyTypeDef` and `HeadTypeDef` `.tres` resources referencing the meshes and mount offsets.
+3. Assign the resulting `PawnAppearanceData` resource to `PlayerMotor.visual_assembler.appearance_data` or swap it at runtime. The fallback pill will automatically deactivate.

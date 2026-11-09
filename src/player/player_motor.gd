@@ -12,6 +12,7 @@ extends CharacterBody3D
 
 @export var player_input: PlayerInput
 @export var camera_rig: ThirdPersonCamera
+@export var visual_assembler: PawnVisualAssembler
 
 signal fired(raycast_hit: Dictionary)
 

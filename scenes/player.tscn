@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://src/player/player_motor.gd" id="1_motor"]
 [ext_resource type="Script" path="res://src/player/player_input.gd" id="2_input"]
@@ -8,6 +8,8 @@
 [ext_resource type="Shader" path="res://shaders/character/weathered_capsule.gdshader" id="6_capsule_shader"]
 [ext_resource type="Script" path="res://src/player/contact_shadow_projector.gd" id="8_contact_shadow"]
 [ext_resource type="Script" path="res://src/rendering/ash_fall_emitter.gd" id="9_ash_emitter"]
+[ext_resource type="Script" path="res://src/player/visuals/pawn_visual_assembler.gd" id="10_assembler"]
+[ext_resource type="Script" path="res://src/player/visuals/pawn_locomotion_waddler.gd" id="11_waddler"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.4
@@ -26,21 +28,25 @@ albedo = Color(0.85, 0.08, 0.14, 1)
 emission = Color(0.05, 0.003, 0.006, 1)
 edge_fade = 0.4
 
-[node name="Player" type="CharacterBody3D" node_paths=PackedStringArray("player_input", "camera_rig")]
+[node name="Player" type="CharacterBody3D" node_paths=PackedStringArray("player_input", "camera_rig", "visual_assembler")]
 collision_layer = 2
 collision_mask = 1
 script = ExtResource("1_motor")
 player_input = NodePath("PlayerInput")
 camera_rig = NodePath("ThirdPersonCamera")
+visual_assembler = NodePath("PawnVisualAssembler")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("CapsuleShape3D_player")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
-material_override = SubResource("ShaderMaterial_player")
-mesh = SubResource("CapsuleMesh_player")
+[node name="PawnVisualAssembler" type="Node3D" parent="."]
+script = ExtResource("10_assembler")
+
+[node name="PawnLocomotionWaddler" type="Node" parent="." node_paths=PackedStringArray("character_body", "visual_target")]
+script = ExtResource("11_waddler")
+character_body = NodePath("..")
+visual_target = NodePath("../PawnVisualAssembler")
 
 [node name="ContactShadowProjector" type="Decal" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)

@@ -4,6 +4,29 @@ extends RefCounted
 ## Pure logic for calculating chunk load and unload sets with distance sorting and hysteresis.
 
 var hysteresis_margin: int = 1
+static var _sorted_offsets_cache: Dictionary = {} # int (view_distance) -> Array[Vector2i]
+
+static func _get_sorted_offsets(view_distance: int) -> Array[Vector2i]:
+	if _sorted_offsets_cache.has(view_distance):
+		return _sorted_offsets_cache[view_distance]
+
+	var offsets: Array[Vector2i] = []
+	var vd_sq = view_distance * view_distance
+	for dz in range(-view_distance, view_distance + 1):
+		for dx in range(-view_distance, view_distance + 1):
+			var dist_sq = dx * dx + dz * dz
+			if dist_sq <= vd_sq:
+				offsets.append(Vector2i(dx, dz))
+
+	# Sort by squared distance ascending (pre-computed once)
+	offsets.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		var d_a = a.x * a.x + a.y * a.y
+		var d_b = b.x * b.x + b.y * b.y
+		return d_a < d_b
+	)
+
+	_sorted_offsets_cache[view_distance] = offsets
+	return offsets
 
 func get_chunks_to_load(
 	focus_chunk: ChunkCoord,
@@ -13,28 +36,16 @@ func get_chunks_to_load(
 ) -> Array[ChunkCoord]:
 	var to_load: Array[ChunkCoord] = []
 	var focus_pos = focus_chunk.to_vector2i()
+	var sorted_offsets = _get_sorted_offsets(view_distance)
 
-	for dz in range(-view_distance, view_distance + 1):
-		for dx in range(-view_distance, view_distance + 1):
-			# Use Euclidean radius for circular view horizon
-			var dist_sq = dx * dx + dz * dz
-			if dist_sq > (view_distance * view_distance):
-				continue
+	for offset in sorted_offsets:
+		var target_coord = ChunkCoord.new(focus_pos.x + offset.x, focus_pos.y + offset.y)
+		if not bounds.contains_chunk(target_coord):
+			continue
 
-			var target_coord = ChunkCoord.new(focus_pos.x + dx, focus_pos.y + dz)
-			if not bounds.contains_chunk(target_coord):
-				continue
-
-			var key = target_coord.to_key()
-			if not loaded_chunks.has(key):
-				to_load.append(target_coord)
-
-	# Sort by distance from center ascending (closest chunks generate first)
-	to_load.sort_custom(func(a: ChunkCoord, b: ChunkCoord) -> bool:
-		var d_a = focus_chunk.euclidean_distance_to(a)
-		var d_b = focus_chunk.euclidean_distance_to(b)
-		return d_a < d_b
-	)
+		var key = target_coord.to_key()
+		if not loaded_chunks.has(key):
+			to_load.append(target_coord)
 
 	return to_load
 

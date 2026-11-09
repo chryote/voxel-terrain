@@ -13,3 +13,18 @@ mono_crash.*.json
 Thumbs.db
 *.swp
 *.bak
+
+# GDExtension / SCons build artifacts
+.sconsign.dblite
+*.obj
+*.exp
+*.lib
+*.pdb
+*.ilk
+extension/godot-cpp/bin/
+extension/godot-cpp/gen/
+bin/*.dll
+bin/*.so
+bin/*.dylib
+!bin/terrain_extension.gdextension
+

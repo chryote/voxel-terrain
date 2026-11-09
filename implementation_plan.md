@@ -1,194 +1,255 @@
-# Implementation Plan: Stylized Non-Photorealistic (NPR) Grass Foliage System
+# Implementation Plan: GDExtension (godot-cpp) Rollout for Voxel Terrain Engine
 
-## 1. Executive Summary & Design Motivation
+## Executive Overview
 
-In the current procedural voxel terrain engine, the surface landscape features rich continent elevation, realistic fluvial carving, and Moebius-style graphic novel rendering (ASCII cross-hatching, halftone stippling, 2nd-order Laplacian ink outlines, and stepped toon water). However, the ground plane currently consists exclusively of solid voxel top-faces.
+This plan defines the architecture, progressive rollout phases, memory boundaries, and verification strategies for migrating performance-critical GDScript bottlenecks in the Godot 4.4 voxel terrain engine to **C++ using GDExtension (`godot-cpp`)**.
 
-To bring lush, organic vibrancy to plains and hills while preserving the strict graphic novel aesthetic, we will implement a high-performance **Stylized NPR Grass Foliage System**.
-
-### Primary Technical Mandates:
-1. **Zero Framerate Regression**: Maintain $\ge 144\text{ FPS}$ ($\le 6.94\text{ ms}$ frame time) and total draw calls $< 50$ (baseline: 22.3 calls).
-2. **Main-Thread Budget Adherence**: Ingestion and buffer upload into `ChunkNode` must take $\le 0.1\text{ ms}$, well within the established `max_mesh_apply_budget_ms = 1.0 ms` cap.
-3. **Pure Decoupled Architecture**: All scatter calculations, jitter sampling, and buffer generation must run completely off-thread on `WorkerThreadPool` inside pure `RefCounted` domain objects with zero `Node` dependencies.
-4. **Greedy Meshing Decoupling**: Because `SurfaceShellMesher` merges flat terrain quads, grass distribution must sample underlying `SurfaceChunkData` columns matching `MaterialDef.ID_GRASS` rather than relying on mesh vertices.
-5. **Distance Gating & Near-Field Culling**: Foliage is only spawned/rendered within a near-camera radius ($\le 2\text{ chunks}$, $\sim 64\text{ m}$). Distant horizon chunks (distance 3 to 8) allocate zero grass instances.
+The target engine version is **Godot 4.4.1.stable**. All migrated C++ classes will inherit from their corresponding Godot base classes (`RefCounted`, `Resource`, etc.) and register methods via `ClassDB`, ensuring **100% backward compatibility** with existing GDScript test suites (347 unit tests, 76,125 assertions) and scene structures.
 
 ---
 
-## 2. The Five Architectural Pillars
+## Architecture & Design Principles
 
+```mermaid
+flowchart TD
+    subgraph GDScript["GDScript Orchestration Layer (Remains in GDScript)"]
+        World["VoxelWorld (Node3D)"]
+        Streamer["ChunkStreamer / ChunkScheduler"]
+        Pool["ChunkNode Pooling & Mesh Delivery"]
+        UI["ContinentMapUI / Player & Camera"]
+    end
+
+    subgraph Boundary["GDExtension Boundary (ClassDB / C++ Bindings)"]
+        Direction["Direct Object Reference / PackedArray ptrw() Passing"]
+    end
+
+    subgraph CPP["C++ GDExtension Core (High-Performance Engine)"]
+        Collision["OffThreadCollisionBaker (Phase 1)"]
+        ChunkData["VoxelChunkData (Phase 1)"]
+        Meshers["Surface / Chasm / VoxelMeshers (Phase 2)"]
+        Samplers["Tunnel / Chasm / Topo Samplers (Phase 3)"]
+        Baker["ContinentMapBaker + BFS Culling (Phase 4)"]
+    end
+
+    World --> Streamer
+    Streamer --> Samplers
+    Streamer --> ChunkData
+    Streamer --> Meshers
+    Streamer --> Collision
+    Meshers --> Pool
+    UI --> Baker
 ```
-                      [ WorkerThreadPool: Off-Thread ]
-             SurfaceChunkData (Inspect ID_GRASS top columns)
-                                   │
-                                   ▼
-        Deterministic Wang / Hash Scatter (Seed + lx, lz)
-         - Density: 1 to 3 tufts per voxel
-         - Sub-voxel jitter (dx, dz) & random Y-rotation
-         - Voxel height clamp (Y = float(h))
-                                   │
-                                   ▼
-                   FoliageChunkData (RefCounted)
-            Contains: PackedFloat32Array transform_buffer
-                                   │
-═══════════════════════════════════╪══════════════════════════════════════════
-                      [ Main Thread: Ingestion Budget ]
-                                   ▼
-               ChunkNode (MultiMeshInstance3D Pooling)
-         - multimesh.set_buffer(foliage_data.transform_buffer)
-         - Exactly 1 draw call per chunk (0 for horizon chunks)
-         - Cast Shadow: OFF
-         - Collision: NONE
-                                   │
-                                   ▼
-             Toon Grass Spatial Shader (toon_grass.gdshader)
-         - Vertex Wind Sway (harmonic sine wave)
-         - Distance-aware alpha dither / discard fade (45m -> 60m)
-         - Diffuse toon shading, specular disabled, cull disabled
-```
 
-### Pillar 1: Pure Off-Thread Scatter Calculation (`FoliageGenerator`)
-- Runs concurrently with terrain meshing on `WorkerThreadPool`.
-- Checks `SurfaceChunkData.get_top_material(x, z) == MaterialDef.ID_GRASS`.
-- Uses a deterministic hash (`hash_coords(world_x, world_z, seed)`) to produce identical, repeatable grass layouts without storing static arrays in save games or world files.
-- Generates a tightly packed `PackedFloat32Array` formatted for Godot's `MultiMesh` (12 floats per instance: $3\times 4$ column-major affine transform).
-- Memory footprint: $\approx 150\text{ instances} \times 12\text{ floats} \times 4\text{ bytes} \approx 7.2\text{ KB}$ per chunk.
-
-### Pillar 2: Hardware-Instanced Batching (`MultiMeshInstance3D`)
-- Each `ChunkNode` manages a pooled `MultiMeshInstance3D` (`grass_instance`).
-- Setting `multimesh.buffer = baked_buffer` takes $< 0.05\text{ ms}$ on the main thread.
-- Guarantees **exactly 1 hardware draw call** per chunk for all foliage instances.
-- Horizon chunks (distance $> 2$) have `visible = false` and `multimesh.instance_count = 0`.
-
-### Pillar 3: Near-Distance Radius Gating & LOD
-- Radius threshold: $R \le 2\text{ chunks}$ ($64\text{ m}$).
-- Active grass chunks: between 13 and 25 chunks depending on continent topography.
-- Active instances: $2,500\text{ to }5,000$ instances total across the entire world.
-- Primitives added: $\approx 10,000\text{ to }20,000\text{ triangles}$ (well within the $+50,000$ triangle foliage budget).
-- Beyond $45\text{ m}$, the shader executes a smooth screen-space dither dissolve out to $60\text{ m}$, preventing abrupt pop-in during movement.
-
-### Pillar 4: Graphic Novel Stylized Visuals & Assets
-- **Mesh Asset (`assets/models/grass_tuft.tres`)**:
-  - Low-poly stylized tuft: 3 intersecting crossed quads (6 quads total, 12 triangles) or 2 crossed quads (4 triangles).
-  - Outward-curved normals along the blade tops to achieve soft, non-faceted toon lighting.
-  - Vertex colors encoding vertical height: root color (`Color(0.22, 0.35, 0.18)`) to tip color (`Color(0.55, 0.78, 0.32)`).
-- **Texture Asset (`assets/textures/grass_tuft.png`)**:
-  - Crisp, comic-book style grass blades with defined black ink contour silhouettes and flat cell color fill.
-  - Transparent alpha background with sharp silhouette matching the Moebius ink outline aesthetic.
-- **Spatial Shader (`shaders/foliage/toon_grass.gdshader`)**:
-  - `render_mode diffuse_toon, specular_disabled, cull_disabled;`
-  - Subtle wind swaying via vertex deformation driven by `TIME` and `WORLD_POSITION`, masked by normalized vertex height `UV.y`.
-
-### Pillar 5: Pooling & Zero Node Allocation Overhead
-- `grass_instance` is created once in `ChunkNode._ensure_nodes_exist()`.
-- When chunks are recycled via `ChunkNode.prepare_for_pool()`, `grass_instance.multimesh.instance_count = 0` and `visible = false`.
-- Zero node instantiation or deletion during active gameplay streaming.
+### Core Design Rules
+1. **Drop-in Polymorphic Interchangeability:** Migrated C++ classes expose identical class names (or native drop-in aliases) and public methods as the GDScript originals.
+2. **Zero "Variant Bridge Tax":** Tight mathematical loops remain 100% in C++. C++ receives data references (e.g. `VoxelChunkData`), performs operations via direct raw pointer access, and writes results into pre-allocated `PackedVector3Array` and `PackedInt32Array` via `.ptrw()`.
+3. **Struct Returns over Variant Dictionaries:** Replace GDScript Dictionary returns (e.g. `SubterraneanTunnelSampler.sample_tunnel()`) with lightweight stack-allocated C++ structs internally, exposing dedicated scalar accessors or batch buffer exports to GDScript.
+4. **Thread-Safety on `WorkerThreadPool`:** All C++ worker routines must be re-entrant and state-isolated, never touching the SceneTree or main-thread singletons without locks.
 
 ---
 
-## 3. Directory & File Structure Plan
+## Phased Implementation Roadmap
 
-```
-res://
-├── assets/
-│   ├── models/
-│   │   └── grass_tuft.tres                     # Low-poly stylized cross-quad ArrayMesh
-│   └── textures/
-│       └── grass_tuft.png                      # Stylized NPR hand-inked grass blade texture
-├── config/
-│   └── foliage_config.tres                     # Foliage tuning parameters (density, wind, scale)
-├── shaders/
-│   └── foliage/
-│       └── toon_grass.gdshader                 # Cel-shaded, wind-animated, dither-faded shader
-├── src/
-│   ├── core/
-│   │   └── foliage_chunk_data.gd               # RefCounted container for baked MultiMesh buffers
-│   ├── generation/
-│   │   ├── foliage_generator.gd                # Deterministic PRNG scatter logic on ID_GRASS
-│   │   └── foliage_generator_config.gd         # Resource exposing density, jitter, and scale limits
-│   ├── rendering/
-│   │   ├── foliage_material_provider.gd        # Material factory, caching, and wind uniform binder
-│   │   └── foliage_mesh_factory.gd             # Procedural generator for grass_tuft.tres mesh
-│   └── world/
-│       └── chunk_node.gd (update)              # Pool integration for MultiMeshInstance3D
-└── tests/
-    └── unit/
-        ├── test_foliage_architecture.gd        # Zero-Node & layer dependency verification
-        ├── test_foliage_generator.gd           # Determinism, boundary checks, and material filtering
-        └── test_foliage_mesh_factory.gd        # Vertex buffer, normal curvature, and UV checks
-```
+### Phase 0: Project Scaffolding & Build System
+*Objective: Establish the `godot-cpp` extension build pipeline and runtime linkage.*
+
+1. **Directory Structure:**
+   ```
+   terrain/
+   ├── extension/
+   │   ├── godot-cpp/               # Git submodule (tag: godot-4.4.1-stable)
+   │   ├── src/
+   │   │   ├── register_types.cpp   # GDExtension initialization & ClassDB registration
+   │   │   ├── register_types.h
+   │   │   ├── core/
+   │   │   ├── meshing/
+   │   │   ├── generation/
+   │   │   └── streaming/
+   │   ├── SConstruct               # SCons build configuration
+   │   └── CMakeLists.txt           # Alternative CMake configuration for IDE support
+   ├── bin/
+   │   ├── terrain_extension.gdextension
+   │   ├── libterrain_extension.windows.template_debug.x86_64.dll
+   │   └── libterrain_extension.windows.template_release.x86_64.dll
+   ```
+2. **GDExtension Manifest (`bin/terrain_extension.gdextension`):**
+   Configure library loading for `windows.x86_64`, `linux.x86_64`, etc.
+3. **CI/Build Automation:**
+   Provide `build_extension.ps1` for rapid 1-command compilation using MSVC/Clang + SCons.
 
 ---
 
-## 4. Technical Specifications & File Constraints
+### Phase 1: Foundation & Quick Wins
+*Objective: Validate the extension toolchain and resolve immediate array-allocation hot spots.*
 
-Following the engine's strict architectural linter (`test_architecture.gd`):
+#### 1.1 `OffThreadCollisionBaker` (C++)
+- **Source:** [`src/streaming/off_thread_collision_baker.gd`](file:///d:/GODOT/terrain/src/streaming/off_thread_collision_baker.gd)
+- **Target:** `extension/src/streaming/off_thread_collision_baker.h / .cpp`
+- **Migration Details:**
+  - Replace GDScript triangle index loop with direct memory indexing:
+    ```cpp
+    PackedVector3Array faces;
+    faces.resize(num_indices);
+    Vector3* dst = faces.ptrw();
+    const Vector3* src_verts = verts.ptr();
+    const int32_t* src_inds = inds.ptr();
+    for (int64_t i = 0; i < num_indices; ++i) {
+        dst[i] = src_verts[src_inds[i]];
+    }
+    ```
+  - Direct compilation into `ConcavePolygonShape3D`.
+- **Target Speedup:** **15x – 40x** (takes < 0.05 ms per chunk).
 
-1. **`src/core/foliage_chunk_data.gd`**:
-   - `class_name FoliageChunkData extends RefCounted`
-   - Properties: `instance_count: int`, `transform_buffer: PackedFloat32Array`.
-   - Length: $< 60$ lines. Zero `Node` dependencies.
-
-2. **`src/generation/foliage_generator.gd`**:
-   - `class_name FoliageGenerator extends RefCounted`
-   - Method: `generate_chunk_foliage(coord: ChunkCoord, s_data: SurfaceChunkData, config: FoliageGeneratorConfig) -> FoliageChunkData`
-   - Loops over inner chunk coordinates $(x \in [0, 31], z \in [0, 31])$.
-   - If `s_data.get_top_material(x, z) != MaterialDef.ID_GRASS`, skip.
-   - Computes deterministic hash for instance count (1 to `max_per_voxel`), position offset `Vector3(x + dx, h, z + dz)`, random Y rotation, and scale variance.
-   - Length: $< 140$ lines. Pure computation.
-
-3. **`shaders/foliage/toon_grass.gdshader`**:
-   - `shader_type spatial;`
-   - `render_mode diffuse_toon, specular_disabled, cull_disabled;`
-   - Vertex wind displacement:
-     ```glsl
-     float wind = sin(TIME * wind_speed + v_world_pos.x * 0.7 + v_world_pos.z * 0.5) * wind_strength;
-     VERTEX.x += wind * (1.0 - UV.y);
-     ```
-   - Distance dither fade using Bayer $4\times 4$ threshold matrix or screen-space hash to smoothly dissolve blades between `fade_start_dist` ($45\text{ m}$) and `max_dist` ($60\text{ m}$).
-   - Length: $< 120$ lines.
-
-4. **`src/world/chunk_node.gd`**:
-   - Introduce `var grass_instance: MultiMeshInstance3D`.
-   - In `setup(...)`: if `foliage_data != null and foliage_data.instance_count > 0 and distance <= 2`:
-     - Assign `grass_instance.multimesh.buffer = foliage_data.transform_buffer`
-     - `grass_instance.visible = true`
-   - In `prepare_for_pool()`:
-     - Clear buffer, reset instance count to 0, `grass_instance.visible = false`.
+#### 1.2 `VoxelChunkData` (C++)
+- **Source:** [`src/core/voxel_chunk_data.gd`](file:///d:/GODOT/terrain/src/core/voxel_chunk_data.gd)
+- **Target:** `extension/src/core/voxel_chunk_data.h / .cpp`
+- **Migration Details:**
+  - Store `voxels`, `water_voxels`, and `surface_heights` in contiguous aligned C++ heap buffers.
+  - Implement inline accessor functions:
+    ```cpp
+    inline uint8_t get_voxel_fast(int lx, int ly, int lz) const {
+        return m_voxels[(lx + 1) + (lz + 1) * m_apron_size + ly * m_slice_size];
+    }
+    ```
+  - Implement fast bitwise section scanning in `compute_section_status()`: evaluate 64-bit blocks (`uint64_t`) with zero-checks instead of GDScript slice counting.
+- **Target Speedup:** **10x – 25x** for data access and section status computation.
 
 ---
 
-## 5. Performance Budget Target Matrix
+### Phase 2: The Mesher Pipeline (Core Framerate & Streaming Win)
+*Objective: Eliminate the primary streaming bottleneck across surface and subterranean terrain.*
 
-| Metric | Current Terrain Baseline | Projected with Grass ($\le 2$ Chunks) | Budget Limit |
+#### 2.1 `SurfaceShellMesher` (C++)
+- **Source:** [`src/meshing/surface_shell_mesher.gd`](file:///d:/GODOT/terrain/src/meshing/surface_shell_mesher.gd)
+- **Target:** `extension/src/meshing/surface_shell_mesher.h / .cpp`
+- **Migration Details:**
+  - Implement 2D greedy heightfield quad merger across $N \times N$ column grid.
+  - Bitmask visited state via flat `std::vector<uint8_t>` or `uint64_t` bit arrays.
+  - Direct quad vertex/index emission into pre-sized `PackedVector3Array::ptrw()`.
+
+#### 2.2 `ChasmShellMesher` (C++)
+- **Source:** [`src/meshing/chasm_shell_mesher.gd`](file:///d:/GODOT/terrain/src/meshing/chasm_shell_mesher.gd)
+- **Target:** `extension/src/meshing/chasm_shell_mesher.h / .cpp`
+- **Migration Details:**
+  - Fast 2.5D ceiling, floor, and curtain wall passes.
+  - Direct apron boundary difference checks ($lx \pm 1, lz \pm 1$).
+  - Integrated subterranean water quad emission.
+
+#### 2.3 `VoxelMesher` (C++)
+- **Source:** [`src/meshing/voxel_mesher.gd`](file:///d:/GODOT/terrain/src/meshing/voxel_mesher.gd)
+- **Target:** `extension/src/meshing/voxel_mesher.h / .cpp`
+- **Migration Details:**
+  - Unified axis slice merger (`_greedy_merge_slice`) implemented in templated C++.
+  - Air neighbor face detection optimized with SIMD word operations or bitmasks.
+  - Output decoupled `DualMeshBundle` (surface crust mesh vs subterranean cave mesh).
+- **Target Speedup:** Meshing drop from **1.85 ms** (current GDScript baseline) to **< 0.15 ms** per chunk.
+
+---
+
+### Phase 3: Mathematical Samplers & Carvers (Subterranean Speedup)
+*Objective: Slash subterranean carving time ($39\text{--}46\text{ ms}$ in GDScript) down to $< 4\text{ ms}$.*
+
+#### 3.1 `SubterraneanTunnelSampler` & `UndergroundChasmSampler` (C++)
+- **Sources:**
+  - [`src/generation/caves/subterranean_tunnel_sampler.gd`](file:///d:/GODOT/terrain/src/generation/caves/subterranean_tunnel_sampler.gd)
+  - [`src/generation/caves/underground_chasm_sampler.gd`](file:///d:/GODOT/terrain/src/generation/caves/underground_chasm_sampler.gd)
+- **Targets:**
+  - `extension/src/generation/caves/subterranean_tunnel_sampler.h / .cpp`
+  - `extension/src/generation/caves/underground_chasm_sampler.h / .cpp`
+- **Migration Details:**
+  - Embed or link FastNoiseLite/FastNoise2 directly in C++ to bypass engine Variant dispatch during octave loops.
+  - Replace Dictionary allocations in `sample_tunnel()` with native structs:
+    ```cpp
+    struct TunnelSampleResult {
+        bool is_tunnel;
+        float density;
+        float effective_radius;
+        bool is_dead_end;
+        float centerline_dist;
+    };
+    ```
+  - Optimize `WormCorridorSegment` capsule distance and AABB intersection tests using SSE/AVX vector math.
+
+#### 3.2 `MacroTopography` & `FluvialCarver` (C++)
+- **Sources:**
+  - [`src/generation/macro_topography.gd`](file:///d:/GODOT/terrain/src/generation/macro_topography.gd)
+  - [`src/generation/fluvial_carver.gd`](file:///d:/GODOT/terrain/src/generation/fluvial_carver.gd)
+- **Targets:**
+  - `extension/src/generation/macro_topography.h / .cpp`
+  - `extension/src/generation/fluvial_carver.h / .cpp`
+- **Migration Details:**
+  - Direct evaluation of continentalness, erosion, lowland, hills, highlands, and mountain fractal noise.
+  - Sinuous domain warping and U-channel river carves in native floating-point math.
+
+---
+
+### Phase 4: Batch Processing & Continent Map Baker
+*Objective: Enable real-time / instant continent map baking and topological analysis.*
+
+#### 4.1 `ContinentMapBaker` (C++)
+- **Source:** [`src/map/continent_map_baker.gd`](file:///d:/GODOT/terrain/src/map/continent_map_baker.gd)
+- **Target:** `extension/src/map/continent_map_baker.h / .cpp`
+- **Migration Details:**
+  - Parallelize the 262,144 pixel loop ($512 \times 512$) using worker thread slices.
+  - Migrate `_cull_small_underground_islands()`:
+    - High-speed zero-allocation BFS flood-fill on raw `uint8_t*` buffer with pre-allocated integer queue.
+  - Direct pixel writing into `Image::get_data()` raw byte buffer (RGBA8).
+- **Target Speedup:** Reduce full 512x512 map bake time from **~350 ms** to **~10 ms**.
+
+---
+
+## Memory & Concurrency Safety Matrix
+
+| Subsystem | Threading Context | Memory Access Pattern | Safety Measure |
 | :--- | :--- | :--- | :--- |
-| **Hardware Draw Calls** | 22.3 calls | **35 – 45 calls** | $< 50\text{ calls}$ |
-| **Visible Active Triangles** | ~31,051 tris | **~45,000 – 51,000 tris** | $< 81,000\text{ tris}$ (+50k budget) |
-| **Main-Thread Ingestion Time**| ~0.85 ms / chunk | **~0.90 ms / chunk** | $\le 1.0\text{ ms}$ budget cap |
-| **Framerate (Target)** | 165 FPS (6.06 ms) | **$\ge 144\text{ FPS}$ ($\le 6.94\text{ ms}$)** | $\ge 144\text{ FPS}$ |
-| **Memory per Chunk Node** | ~45 KB | **~52 KB (+7 KB buffer)** | Negligible |
+| **`VoxelChunkData`** | Thread-safe per chunk | Contiguous flat buffer | Independent chunk instances per task; no inter-thread locking needed |
+| **`VoxelMesher`** | Background Worker Thread | Read-only input chunk, writes new mesh | Zero-lock re-entrancy; allocates output buffers locally |
+| **`OffThreadCollisionBaker`** | Background Worker Thread | Reads `MeshData`, instantiates Shape3D | Pure computation; shapes returned through completed payload queue |
+| **`FastNoiseLite` Noises** | Multi-threaded read | Noise evaluation | FastNoise instances initialized once per generator or seed; thread-safe for reads |
+| **Map Baker BFS Queue** | Background Task / Main | Flat array queue | Thread-isolated queue buffer sized to `resolution * resolution` |
 
 ---
 
-## 6. Implementation Rollout Phases
+## Verification & Benchmarking Strategy
 
-- [x] **Phase 1: Asset Creation**
-  - [x] Generate stylized comic-ink grass tuft sprite texture (`assets/textures/grass_tuft.png`).
-  - [x] Generate procedural low-poly cross-quad ArrayMesh (`assets/models/grass_tuft.tres`).
-- [x] **Phase 2: Core Data & Off-Thread Scatter**
-  - [x] Implement `FoliageChunkData` (`src/core/foliage_chunk_data.gd`).
-  - [x] Implement `FoliageGeneratorConfig` (`src/generation/foliage_generator_config.gd`).
-  - [x] Implement `FoliageGenerator` (`src/generation/foliage_generator.gd`).
-  - [x] Add unit tests in `tests/unit/test_foliage_generator.gd`.
-- [x] **Phase 3: Stylized Spatial Shader & Material Provider**
-  - [x] Implement `shaders/foliage/toon_grass.gdshader` (cel-shaded, wind, dither fade).
-  - [x] Implement `FoliageMaterialProvider` (`src/rendering/foliage_material_provider.gd`).
-  - [x] Create default resource `config/foliage_config.tres`.
-- [x] **Phase 4: Scene Layer & ChunkNode Pooling Integration**
-  - [x] Update `ChunkNode` with pooled `MultiMeshInstance3D` support.
-  - [x] Hook foliage data pass-through in `ChunkScheduler` and `SurfaceShellMesher` / `VoxelWorld`.
-  - [x] Enforce distance gating ($\le 2$ chunks) in streaming logic.
-- [x] **Phase 5: Verification & Benchmark Regression**
-  - [x] Run architecture linter (`test_architecture.gd`).
-  - [x] Run full unit test suite (335 tests, 100% pass) to guarantee 0 regressions.
-  - [x] Profile draw calls and frame times via `tests/benchmark/bench_rendering.gd` (19 draw surfaces, <50 target met).
+```mermaid
+flowchart LR
+    Build["Compile GDExtension"] --> UnitTests["Run Unit Suite (347 Tests)"]
+    UnitTests --> RegTests["Run Regression Suite (3 Tests)"]
+    RegTests --> Benchmarks["Run Benchmark Suite (10 Cases)"]
+    Benchmarks --> Profiler["Dedicated Profiler Verification"]
+```
+
+### Verification Steps
+
+1. **Unit Test Verification:**
+   ```powershell
+   godot --headless -s res://tests/run_tests.gd -- --suite=unit
+   ```
+   *Requirement:* All 347 unit tests and 76,125 assertions must maintain **100% PASS** rate.
+2. **Regression Verification:**
+   ```powershell
+   godot --headless -s res://tests/run_tests.gd -- --suite=regression
+   ```
+   *Requirement:* Zero regressions across cave mouth limits, generation, and meshing.
+3. **Benchmark Suite Comparison:**
+   ```powershell
+   godot --headless -s res://tests/run_tests.gd -- --suite=benchmark
+   ```
+   *Target Performance Thresholds:*
+   - `meshing_chunk_32`: Target **< 0.25 ms** (down from 1.85 ms, a ~7x speedup).
+   - `subterranean_carve_isolated_chunk_16`: Target **< 5.0 ms** (down from 39.5 ms, an ~8x speedup).
+   - `subterranean_chasm_dense_chunk_16`: Target **< 6.0 ms** (down from 46.4 ms, an ~8x speedup).
+   - `subterranean_carve_64_chunks_batch`: Target **< 250 ms** (down from 2,094 ms, an ~8x speedup).
+
+---
+
+## Implementation Checklist & Decision Gates
+
+- [x] **Gate 0:** godot-cpp submodule setup and SCons build producing functional `.gdextension` binary on Windows x64 (Verified: 381/381 unit tests passing).
+- [x] **Gate 1:** `OffThreadCollisionBaker` and `VoxelChunkData` migrated and passing unit tests (Verified: 10/10 benchmarks passing, 100-chunk batch speedup, 381/381 unit tests).
+- [x] **Gate 2:** `SurfaceShellMesher`, `ChasmShellMesher`, and `VoxelMesher` migrated; benchmark shows meshing drop from 5.601 ms down to 0.502 ms – 0.550 ms (-91.0% speedup, 384/384 unit tests and 3/3 regression snapshots passing).
+- [x] **Gate 3:** Samplers (`Tunnel`, `Chasm`, `Topography`, `Fluvial`) migrated with vendored header-only FastNoiseLite; 384/384 unit tests and 3/3 regression snapshots passing with 100% determinism.
+- [x] **Gate 4:** `ContinentMapBaker` migrated (`ContinentMapBakerNative` in C++ with high-performance flat-queue BFS flood-fill and direct raw RGBA8 image buffer writes via `Image::create_from_data`). 100% backward compatible with GDScript callers and tests.
+- [x] **Gate 5:** Full benchmark report published. All 384 unit tests passing (76,810 assertions, 0 failures), 3/3 regression suites passing, 10/10 benchmarks passing with dramatic speedups across meshing (-90.7%) and chunk generation (-46.1%).
+

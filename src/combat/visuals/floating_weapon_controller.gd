@@ -545,3 +545,4 @@ func get_evaluator() -> MeleeDeckEvaluator:
 func reset_card_sequence() -> void:
 	if _evaluator != null:
 		_evaluator.reset_sequence()
+

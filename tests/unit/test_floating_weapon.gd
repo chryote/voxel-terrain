@@ -164,3 +164,4 @@ func test_compatibility_layer() -> void:
 	assert_not_null(legacy_ctrl._weapon_root)
 	assert_eq(legacy_ctrl._sword_root, legacy_ctrl._weapon_root)
 	legacy_ctrl.free()
+

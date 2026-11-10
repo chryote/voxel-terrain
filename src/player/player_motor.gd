@@ -3,6 +3,8 @@ extends CharacterBody3D
 
 ## Character controller with camera-relative movement, sprinting, jumping, and step-assist.
 
+const FloatingSwordController = preload("res://src/combat/visuals/floating_sword_controller.gd")
+
 @export var walk_speed: float = 6.0
 @export var sprint_speed: float = 10.5
 @export var aim_speed: float = 4.2
@@ -13,6 +15,7 @@ extends CharacterBody3D
 @export var player_input: PlayerInput
 @export var camera_rig: ThirdPersonCamera
 @export var visual_assembler: PawnVisualAssembler
+@export var floating_sword: FloatingSwordController
 
 signal fired(raycast_hit: Dictionary)
 
@@ -20,6 +23,8 @@ func _ready() -> void:
 	floor_snap_length = 0.4
 	floor_constant_speed = true
 	floor_max_angle = deg_to_rad(46.0)
+	if floating_sword == null:
+		floating_sword = get_node_or_null("FloatingSwordController") as FloatingSwordController
 
 func _physics_process(delta: float) -> void:
 	if player_input == null or camera_rig == null:
@@ -28,10 +33,13 @@ func _physics_process(delta: float) -> void:
 	var intent = player_input.get_intent()
 	camera_rig.apply_intent(intent, delta)
 
-	# Firing / shooting query
+	# Firing / attacking query
 	if intent.fire_requested:
-		var hit = camera_rig.get_aim_raycast(300.0)
-		fired.emit(hit)
+		if floating_sword != null:
+			floating_sword.attack(camera_rig)
+		else:
+			var hit = camera_rig.get_aim_raycast(300.0)
+			fired.emit(hit)
 
 	# Locomotion direction relative to camera yaw
 	var cam_yaw = camera_rig.get_camera_yaw()

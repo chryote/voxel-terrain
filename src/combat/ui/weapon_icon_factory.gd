@@ -1,10 +1,14 @@
-class_name NoitaIconFactory
+class_name WeaponIconFactory
 extends RefCounted
 
 ## Procedural pixel-art icon generator for weapons and technique cards.
-## Recreates the authentic 16-bit pixel aesthetic seen in Noita.
+## Recreates a crisp, authentic 16-bit pixel aesthetic.
 
 static var _icon_cache: Dictionary = {}
+
+static func register_weapon_icon(weapon_id: String, texture: Texture2D) -> void:
+	if texture != null:
+		_icon_cache["weapon_" + weapon_id] = texture
 
 static func get_weapon_icon(weapon_id: String) -> Texture2D:
 	var key = "weapon_" + weapon_id
@@ -32,7 +36,6 @@ static func _generate_weapon_icon(weapon_id: String) -> Texture2D:
 
 	match weapon_id:
 		"apprentice_blade":
-			# Stylized broadsword with cyan glow and brass hilt
 			# Pommel
 			_draw_pixel(img, 5, 23, Color(0.9, 0.75, 0.25))
 			_draw_pixel(img, 6, 24, Color(0.7, 0.55, 0.15))
@@ -46,7 +49,7 @@ static func _generate_weapon_icon(weapon_id: String) -> Texture2D:
 				var gy = 19 + g
 				_draw_pixel(img, gx - 1, gy + 1, Color(0.85, 0.7, 0.2))
 				_draw_pixel(img, gx, gy, Color(1.0, 0.85, 0.35))
-			# Blade
+			# Core
 			for b in range(12):
 				var bx = 11 + b
 				var by = 17 - b
@@ -61,7 +64,6 @@ static func _generate_weapon_icon(weapon_id: String) -> Texture2D:
 			_draw_pixel(img, 23, 4, Color(1.0, 1.0, 1.0))
 
 		"flurry_rapier":
-			# Slender crimson rapier with curved basket guard
 			# Pommel
 			_draw_pixel(img, 4, 24, Color(0.8, 0.8, 0.85))
 			# Grip
@@ -75,7 +77,7 @@ static func _generate_weapon_icon(weapon_id: String) -> Texture2D:
 			_draw_pixel(img, 9, 20, Color(0.85, 0.7, 0.25))
 			_draw_pixel(img, 9, 21, Color(0.7, 0.55, 0.2))
 			_draw_pixel(img, 8, 22, Color(0.6, 0.45, 0.15))
-			# Needle Blade (Crimson / Silver)
+			# Needle Core (Crimson / Silver)
 			for b in range(14):
 				var bx = 9 + b
 				var by = 19 - b
@@ -87,7 +89,7 @@ static func _generate_weapon_icon(weapon_id: String) -> Texture2D:
 			_draw_pixel(img, 24, 4, Color(1.0, 1.0, 1.0))
 
 		_:
-			# Generic Greatsword fallback
+			# Generic fallback
 			for i in range(16):
 				var px = 6 + i
 				var py = 22 - i
@@ -202,7 +204,6 @@ static func _generate_card_icon(card_id: String, card_type: String) -> Texture2D
 
 		"trigger_on_hit":
 			# Magenta spark trigger star with payload center orb
-			# 4 spikes
 			for d in range(1, 8):
 				_draw_pixel(img, 12, 12 - d, Color(1.0, 0.5, 1.0, 1.0 - float(d) * 0.12))
 				_draw_pixel(img, 12, 12 + d, Color(1.0, 0.5, 1.0, 1.0 - float(d) * 0.12))

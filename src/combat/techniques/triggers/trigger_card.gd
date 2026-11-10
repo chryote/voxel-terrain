@@ -1,7 +1,7 @@
 class_name TriggerCard
 extends "res://src/combat/core/technique_card.gd"
 
-## Trigger technique card (Noita-style).
+## Trigger technique card.
 ## Carries payload cards that execute conditionally upon collision or timer expiry.
 
 enum TriggerType {

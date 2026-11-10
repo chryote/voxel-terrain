@@ -1,12 +1,12 @@
 extends SceneTree
 
-const NoitaDeckUIClass = preload("res://src/combat/ui/noita_deck_ui.gd")
+const WeaponDeckUIClass = preload("res://src/combat/ui/weapon_deck_ui.gd")
 const PlayerHUDClass = preload("res://src/player/player_hud.gd")
 const ContinentMapUIClass = preload("res://src/map/continent_map_ui.gd")
 
 func _init() -> void:
 	print("--- Generating UI Scenes ---")
-	_generate_noita_deck_ui()
+	_generate_weapon_deck_ui()
 	_generate_player_hud()
 	_generate_continent_map_ui()
 	print("--- All UI Scenes Generated Successfully ---")
@@ -18,10 +18,10 @@ func _set_owners(node: Node, root: Node) -> void:
 	for child in node.get_children():
 		_set_owners(child, root)
 
-func _generate_noita_deck_ui() -> void:
-	print("Generating res://scenes/ui/noita_deck_ui.tscn...")
-	var ui = NoitaDeckUIClass.new()
-	ui.name = "NoitaDeckUI"
+func _generate_weapon_deck_ui() -> void:
+	print("Generating res://scenes/ui/weapon_deck_ui.tscn...")
+	var ui = WeaponDeckUIClass.new()
+	ui.name = "WeaponDeckUI"
 	ui.set_anchors_preset(Control.PRESET_FULL_RECT)
 
 	ui._setup_inventory_overlay()
@@ -34,14 +34,14 @@ func _generate_noita_deck_ui() -> void:
 	var packed = PackedScene.new()
 	var err = packed.pack(ui)
 	if err != OK:
-		printerr("Failed to pack NoitaDeckUI: ", err)
+		printerr("Failed to pack WeaponDeckUI: ", err)
 		return
 
-	var save_err = ResourceSaver.save(packed, "res://scenes/ui/noita_deck_ui.tscn")
+	var save_err = ResourceSaver.save(packed, "res://scenes/ui/weapon_deck_ui.tscn")
 	if save_err != OK:
-		printerr("Failed to save noita_deck_ui.tscn: ", save_err)
+		printerr("Failed to save weapon_deck_ui.tscn: ", save_err)
 		return
-	print("Saved res://scenes/ui/noita_deck_ui.tscn successfully.")
+	print("Saved res://scenes/ui/weapon_deck_ui.tscn successfully.")
 
 func _generate_player_hud() -> void:
 	print("Generating res://scenes/ui/player_hud.tscn...")
@@ -79,12 +79,12 @@ func _generate_player_hud() -> void:
 	status_banner.visible = false
 	hud.add_child(status_banner)
 
-	# Instance NoitaDeckUI from its scene
-	var noita_deck_packed = load("res://scenes/ui/noita_deck_ui.tscn") as PackedScene
-	if noita_deck_packed != null:
-		var noita_deck_instance = noita_deck_packed.instantiate()
-		noita_deck_instance.name = "NoitaDeckUI"
-		hud.add_child(noita_deck_instance)
+	# Instance WeaponDeckUI from its scene
+	var weapon_deck_packed = load("res://scenes/ui/weapon_deck_ui.tscn") as PackedScene
+	if weapon_deck_packed != null:
+		var weapon_deck_instance = weapon_deck_packed.instantiate()
+		weapon_deck_instance.name = "WeaponDeckUI"
+		hud.add_child(weapon_deck_instance)
 
 	_set_owners(hud, hud)
 

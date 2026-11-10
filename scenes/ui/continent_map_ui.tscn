@@ -124,13 +124,13 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource("1_i3d52")
 
-[node name="@ColorRect@46" type="ColorRect" parent="."]
+[node name="@ColorRect@6" type="ColorRect" parent="."]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 color = Color(0.04, 0.06, 0.09, 0.82)
 
-[node name="@PanelContainer@47" type="PanelContainer" parent="."]
+[node name="@PanelContainer@7" type="PanelContainer" parent="."]
 layout_mode = 0
 anchor_left = 0.5
 anchor_top = 0.5
@@ -140,41 +140,41 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_y6w0f")
 
-[node name="@VBoxContainer@48" type="VBoxContainer" parent="@PanelContainer@47"]
+[node name="@VBoxContainer@8" type="VBoxContainer" parent="@PanelContainer@7"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="@HBoxContainer@49" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48"]
+[node name="@HBoxContainer@9" type="HBoxContainer" parent="@PanelContainer@7/@VBoxContainer@8"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="@Label@50" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HBoxContainer@49"]
+[node name="@Label@10" type="Label" parent="@PanelContainer@7/@VBoxContainer@8/@HBoxContainer@9"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 15
 theme_override_colors/font_color = Color(0.9, 0.95, 1, 1)
 text = "CONTINENT TOPOGRAPHIC MAP - SURFACE"
 
-[node name="@Control@51" type="Control" parent="@PanelContainer@47/@VBoxContainer@48/@HBoxContainer@49"]
+[node name="@Control@11" type="Control" parent="@PanelContainer@7/@VBoxContainer@8/@HBoxContainer@9"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="@Label@52" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HBoxContainer@49"]
+[node name="@Label@12" type="Label" parent="@PanelContainer@7/@VBoxContainer@8/@HBoxContainer@9"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 theme_override_colors/font_color = Color(0.65, 0.75, 0.85, 1)
 text = "Scroll: Zoom | Drag: Pan | Right-Click: Teleport | [R] Reset | [M/ESC] Close"
 
-[node name="@HBoxContainer@53" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48"]
+[node name="@HBoxContainer@13" type="HBoxContainer" parent="@PanelContainer@7/@VBoxContainer@8"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="@Label@54" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HBoxContainer@53"]
+[node name="@Label@14" type="Label" parent="@PanelContainer@7/@VBoxContainer@8/@HBoxContainer@13"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 theme_override_colors/font_color = Color(0.75, 0.85, 0.95, 1)
 text = "Map Level:"
 
-[node name="@Button@55" type="Button" parent="@PanelContainer@47/@VBoxContainer@48/@HBoxContainer@53"]
+[node name="@Button@15" type="Button" parent="@PanelContainer@7/@VBoxContainer@8/@HBoxContainer@13"]
 custom_minimum_size = Vector2(130, 26)
 layout_mode = 2
 focus_mode = 0
@@ -184,7 +184,7 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_asu1s")
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 text = "⛰ Surface [1]"
 
-[node name="@Button@56" type="Button" parent="@PanelContainer@47/@VBoxContainer@48/@HBoxContainer@53"]
+[node name="@Button@16" type="Button" parent="@PanelContainer@7/@VBoxContainer@8/@HBoxContainer@13"]
 custom_minimum_size = Vector2(170, 26)
 layout_mode = 2
 focus_mode = 0
@@ -194,32 +194,32 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_ly3tf")
 theme_override_colors/font_color = Color(0.68, 0.76, 0.85, 1)
 text = "⚔ Underground Arena [2]"
 
-[node name="@Label@57" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HBoxContainer@53"]
+[node name="@Label@17" type="Label" parent="@PanelContainer@7/@VBoxContainer@8/@HBoxContainer@13"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 theme_override_colors/font_color = Color(0.55, 0.65, 0.75, 1)
 text = "[Tab / 1 / 2 to toggle]"
 
-[node name="@CenterContainer@58" type="CenterContainer" parent="@PanelContainer@47/@VBoxContainer@48"]
+[node name="@CenterContainer@18" type="CenterContainer" parent="@PanelContainer@7/@VBoxContainer@8"]
 layout_mode = 2
 
-[node name="@PanelContainer@59" type="PanelContainer" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58"]
+[node name="@PanelContainer@19" type="PanelContainer" parent="@PanelContainer@7/@VBoxContainer@8/@CenterContainer@18"]
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_h7qym")
 
-[node name="@Control@60" type="Control" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59"]
+[node name="@Control@20" type="Control" parent="@PanelContainer@7/@VBoxContainer@8/@CenterContainer@18/@PanelContainer@19"]
 clip_contents = true
 custom_minimum_size = Vector2(512, 512)
 layout_mode = 2
 
-[node name="@Control@61" type="Control" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60"]
+[node name="@Control@21" type="Control" parent="@PanelContainer@7/@VBoxContainer@8/@CenterContainer@18/@PanelContainer@19/@Control@20"]
 custom_minimum_size = Vector2(512, 512)
 anchors_preset = 0
 offset_right = 512.0
 offset_bottom = 512.0
 mouse_filter = 2
 
-[node name="@TextureRect@62" type="TextureRect" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60/@Control@61"]
+[node name="@TextureRect@22" type="TextureRect" parent="@PanelContainer@7/@VBoxContainer@8/@CenterContainer@18/@PanelContainer@19/@Control@20/@Control@21"]
 texture_filter = 2
 layout_mode = 0
 anchor_right = 1.0
@@ -228,7 +228,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="@Label@63" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60"]
+[node name="@Label@23" type="Label" parent="@PanelContainer@7/@VBoxContainer@8/@CenterContainer@18/@PanelContainer@19/@Control@20"]
 layout_mode = 0
 offset_left = 480.0
 offset_top = 8.0
@@ -241,7 +241,7 @@ theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 text = "▲ N"
 
-[node name="@Label@64" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60"]
+[node name="@Label@24" type="Label" parent="@PanelContainer@7/@VBoxContainer@8/@CenterContainer@18/@PanelContainer@19/@Control@20"]
 layout_mode = 0
 offset_left = 10.0
 offset_top = 8.0
@@ -254,7 +254,7 @@ theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 text = "100% (1.0x)"
 
-[node name="@Label@65" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60"]
+[node name="@Label@25" type="Label" parent="@PanelContainer@7/@VBoxContainer@8/@CenterContainer@18/@PanelContainer@19/@Control@20"]
 layout_mode = 0
 anchor_left = 0.5
 anchor_top = 0.5
@@ -265,7 +265,7 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 text = "Baking continent topography..."
 
-[node name="@Control@66" type="Control" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60"]
+[node name="@Control@26" type="Control" parent="@PanelContainer@7/@VBoxContainer@8/@CenterContainer@18/@PanelContainer@19/@Control@20"]
 custom_minimum_size = Vector2(512, 512)
 anchors_preset = 0
 offset_right = 512.0
@@ -273,7 +273,7 @@ offset_bottom = 512.0
 mouse_filter = 2
 script = ExtResource("2_wqvm3")
 
-[node name="@Control@67" type="Control" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60"]
+[node name="@Control@27" type="Control" parent="@PanelContainer@7/@VBoxContainer@8/@CenterContainer@18/@PanelContainer@19/@Control@20"]
 z_index = 5
 custom_minimum_size = Vector2(512, 512)
 anchors_preset = 0
@@ -282,217 +282,217 @@ offset_bottom = 512.0
 mouse_filter = 2
 script = ExtResource("3_7gc10")
 
-[node name="@PanelContainer@74" type="PanelContainer" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60"]
+[node name="@PanelContainer@34" type="PanelContainer" parent="@PanelContainer@7/@VBoxContainer@8/@CenterContainer@18/@PanelContainer@19/@Control@20"]
 visible = false
 z_index = 25
 layout_mode = 0
 theme_override_styles/panel = SubResource("StyleBoxFlat_yb7vv")
 
-[node name="@VBoxContainer@68" type="VBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60/@PanelContainer@74"]
+[node name="@VBoxContainer@28" type="VBoxContainer" parent="@PanelContainer@7/@VBoxContainer@8/@CenterContainer@18/@PanelContainer@19/@Control@20/@PanelContainer@34"]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="@Label@69" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60/@PanelContainer@74/@VBoxContainer@68"]
+[node name="@Label@29" type="Label" parent="@PanelContainer@7/@VBoxContainer@8/@CenterContainer@18/@PanelContainer@19/@Control@20/@PanelContainer@34/@VBoxContainer@28"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 theme_override_colors/font_color = Color(0.9, 0.94, 1, 1)
 text = "Target: (X: 0, Z: 0, Alt: 0m)"
 
-[node name="@Label@70" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60/@PanelContainer@74/@VBoxContainer@68"]
+[node name="@Label@30" type="Label" parent="@PanelContainer@7/@VBoxContainer@8/@CenterContainer@18/@PanelContainer@19/@Control@20/@PanelContainer@34/@VBoxContainer@28"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 10
 theme_override_colors/font_color = Color(0.65, 0.78, 0.92, 1)
 text = "Destination: Surface"
 
-[node name="@HBoxContainer@71" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60/@PanelContainer@74/@VBoxContainer@68"]
+[node name="@HBoxContainer@31" type="HBoxContainer" parent="@PanelContainer@7/@VBoxContainer@8/@CenterContainer@18/@PanelContainer@19/@Control@20/@PanelContainer@34/@VBoxContainer@28"]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="@Button@72" type="Button" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60/@PanelContainer@74/@VBoxContainer@68/@HBoxContainer@71"]
+[node name="@Button@32" type="Button" parent="@PanelContainer@7/@VBoxContainer@8/@CenterContainer@18/@PanelContainer@19/@Control@20/@PanelContainer@34/@VBoxContainer@28/@HBoxContainer@31"]
 layout_mode = 2
 focus_mode = 0
 theme_override_styles/normal = SubResource("StyleBoxFlat_mpwqq")
 theme_override_font_sizes/font_size = 11
 text = "⚡ Teleport Here"
 
-[node name="@Button@73" type="Button" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60/@PanelContainer@74/@VBoxContainer@68/@HBoxContainer@71"]
+[node name="@Button@33" type="Button" parent="@PanelContainer@7/@VBoxContainer@8/@CenterContainer@18/@PanelContainer@19/@Control@20/@PanelContainer@34/@VBoxContainer@28/@HBoxContainer@31"]
 layout_mode = 2
 focus_mode = 0
 theme_override_styles/normal = SubResource("StyleBoxFlat_nakdg")
 theme_override_font_sizes/font_size = 11
 text = "Cancel"
 
-[node name="@Label@75" type="Label" parent="@PanelContainer@47/@VBoxContainer@48"]
+[node name="@Label@35" type="Label" parent="@PanelContainer@7/@VBoxContainer@8"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 theme_override_colors/font_color = Color(0.8, 0.9, 0.95, 1)
 text = "Player: (X: 0, Z: 0, Alt: 0m)"
 
-[node name="@HFlowContainer@76" type="HFlowContainer" parent="@PanelContainer@47/@VBoxContainer@48"]
+[node name="@HFlowContainer@36" type="HFlowContainer" parent="@PanelContainer@7/@VBoxContainer@8"]
 layout_mode = 2
 theme_override_constants/h_separation = 10
 theme_override_constants/v_separation = 4
 
-[node name="@HBoxContainer@79" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76"]
+[node name="@HBoxContainer@39" type="HBoxContainer" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="@ColorRect@77" type="ColorRect" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@79"]
+[node name="@ColorRect@37" type="ColorRect" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36/@HBoxContainer@39"]
 custom_minimum_size = Vector2(10, 10)
 layout_mode = 2
 color = Color(0.105882, 0.247059, 0.388235, 1)
 
-[node name="@Label@78" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@79"]
+[node name="@Label@38" type="Label" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36/@HBoxContainer@39"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 theme_override_colors/font_color = Color(0.75, 0.82, 0.9, 1)
 text = "Ocean"
 
-[node name="@HBoxContainer@82" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76"]
+[node name="@HBoxContainer@42" type="HBoxContainer" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="@ColorRect@80" type="ColorRect" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@82"]
+[node name="@ColorRect@40" type="ColorRect" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36/@HBoxContainer@42"]
 custom_minimum_size = Vector2(10, 10)
 layout_mode = 2
 color = Color(0.180392, 0.486275, 0.658824, 1)
 
-[node name="@Label@81" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@82"]
+[node name="@Label@41" type="Label" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36/@HBoxContainer@42"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 theme_override_colors/font_color = Color(0.75, 0.82, 0.9, 1)
 text = "Water"
 
-[node name="@HBoxContainer@85" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76"]
+[node name="@HBoxContainer@45" type="HBoxContainer" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="@ColorRect@83" type="ColorRect" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@85"]
+[node name="@ColorRect@43" type="ColorRect" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36/@HBoxContainer@45"]
 custom_minimum_size = Vector2(10, 10)
 layout_mode = 2
 color = Color(0.847059, 0.780392, 0.54902, 1)
 
-[node name="@Label@84" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@85"]
+[node name="@Label@44" type="Label" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36/@HBoxContainer@45"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 theme_override_colors/font_color = Color(0.75, 0.82, 0.9, 1)
 text = "Beach"
 
-[node name="@HBoxContainer@88" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76"]
+[node name="@HBoxContainer@48" type="HBoxContainer" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="@ColorRect@86" type="ColorRect" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@88"]
+[node name="@ColorRect@46" type="ColorRect" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36/@HBoxContainer@48"]
 custom_minimum_size = Vector2(10, 10)
 layout_mode = 2
 color = Color(0.337255, 0.490196, 0.27451, 1)
 
-[node name="@Label@87" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@88"]
+[node name="@Label@47" type="Label" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36/@HBoxContainer@48"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 theme_override_colors/font_color = Color(0.75, 0.82, 0.9, 1)
 text = "Plains"
 
-[node name="@HBoxContainer@91" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76"]
+[node name="@HBoxContainer@51" type="HBoxContainer" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="@ColorRect@89" type="ColorRect" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@91"]
+[node name="@ColorRect@49" type="ColorRect" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36/@HBoxContainer@51"]
 custom_minimum_size = Vector2(10, 10)
 layout_mode = 2
 color = Color(0.419608, 0.309804, 0.219608, 1)
 
-[node name="@Label@90" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@91"]
+[node name="@Label@50" type="Label" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36/@HBoxContainer@51"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 theme_override_colors/font_color = Color(0.75, 0.82, 0.9, 1)
 text = "Hills"
 
-[node name="@HBoxContainer@94" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76"]
+[node name="@HBoxContainer@54" type="HBoxContainer" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="@ColorRect@92" type="ColorRect" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@94"]
+[node name="@ColorRect@52" type="ColorRect" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36/@HBoxContainer@54"]
 custom_minimum_size = Vector2(10, 10)
 layout_mode = 2
 color = Color(0.470588, 0.470588, 0.470588, 1)
 
-[node name="@Label@93" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@94"]
+[node name="@Label@53" type="Label" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36/@HBoxContainer@54"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 theme_override_colors/font_color = Color(0.75, 0.82, 0.9, 1)
 text = "Stone"
 
-[node name="@HBoxContainer@97" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76"]
+[node name="@HBoxContainer@57" type="HBoxContainer" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="@ColorRect@95" type="ColorRect" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@97"]
+[node name="@ColorRect@55" type="ColorRect" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36/@HBoxContainer@57"]
 custom_minimum_size = Vector2(10, 10)
 layout_mode = 2
 color = Color(0.956863, 0.968627, 0.984314, 1)
 
-[node name="@Label@96" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@97"]
+[node name="@Label@56" type="Label" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36/@HBoxContainer@57"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 theme_override_colors/font_color = Color(0.75, 0.82, 0.9, 1)
 text = "Snow"
 
-[node name="@HBoxContainer@100" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76"]
+[node name="@HBoxContainer@60" type="HBoxContainer" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="@ColorRect@98" type="ColorRect" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@100"]
+[node name="@ColorRect@58" type="ColorRect" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36/@HBoxContainer@60"]
 custom_minimum_size = Vector2(10, 10)
 layout_mode = 2
 color = Color(0.96, 0.22, 0.22, 1)
 
-[node name="@Label@99" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@100"]
+[node name="@Label@59" type="Label" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36/@HBoxContainer@60"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 theme_override_colors/font_color = Color(0.75, 0.82, 0.9, 1)
 text = "Dead Cave (C)"
 
-[node name="@HBoxContainer@103" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76"]
+[node name="@HBoxContainer@63" type="HBoxContainer" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="@ColorRect@101" type="ColorRect" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@103"]
+[node name="@ColorRect@61" type="ColorRect" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36/@HBoxContainer@63"]
 custom_minimum_size = Vector2(10, 10)
 layout_mode = 2
 color = Color(0.98, 0.86, 0.12, 1)
 
-[node name="@Label@102" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@103"]
+[node name="@Label@62" type="Label" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36/@HBoxContainer@63"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 theme_override_colors/font_color = Color(0.75, 0.82, 0.9, 1)
 text = "Tunnel Cave (C)"
 
-[node name="@HBoxContainer@106" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76"]
+[node name="@HBoxContainer@66" type="HBoxContainer" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="@ColorRect@104" type="ColorRect" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@106"]
+[node name="@ColorRect@64" type="ColorRect" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36/@HBoxContainer@66"]
 custom_minimum_size = Vector2(10, 10)
 layout_mode = 2
 color = Color(0.22, 0.96, 0.38, 1)
 
-[node name="@Label@105" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@106"]
+[node name="@Label@65" type="Label" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36/@HBoxContainer@66"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 theme_override_colors/font_color = Color(0.75, 0.82, 0.9, 1)
 text = "Chasm Cave (C)"
 
-[node name="@HBoxContainer@109" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76"]
+[node name="@HBoxContainer@69" type="HBoxContainer" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="@ColorRect@107" type="ColorRect" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@109"]
+[node name="@ColorRect@67" type="ColorRect" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36/@HBoxContainer@69"]
 custom_minimum_size = Vector2(10, 10)
 layout_mode = 2
 color = Color(0.92, 0.12, 0.12, 1)
 
-[node name="@Label@108" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@109"]
+[node name="@Label@68" type="Label" parent="@PanelContainer@7/@VBoxContainer@8/@HFlowContainer@36/@HBoxContainer@69"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 theme_override_colors/font_color = Color(0.75, 0.82, 0.9, 1)

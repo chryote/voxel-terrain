@@ -1,7 +1,7 @@
-class_name NoitaDeckUI
+class_name WeaponDeckUI
 extends Control
 
-## Authentic Noita-style Melee Weapon & Deck Interface.
+## Authentic Weapon & Technique Deck Interface.
 ## Normal HUD: Top-left compact quickbar displaying weapon icons in small boxes beside item boxes.
 ## Inventory Mode ("I" Key): Opens full-screen backdrop, reveals bright white text labels
 ## (WEAPON, ITEM, INVENTORY), places weapon accordion directly under the top-left weapon quick access,
@@ -15,7 +15,7 @@ const ModifierCard = preload("res://src/combat/techniques/modifiers/modifier_car
 const MulticastCard = preload("res://src/combat/techniques/multicast/multicast_card.gd")
 const TriggerCard = preload("res://src/combat/techniques/triggers/trigger_card.gd")
 const MeleeDeckEvaluator = preload("res://src/combat/core/melee_deck_evaluator.gd")
-const NoitaIconFactory = preload("res://src/combat/ui/noita_icon_factory.gd")
+const WeaponIconFactory = preload("res://src/combat/ui/weapon_icon_factory.gd")
 
 @export var floating_sword: FloatingSwordController
 @export var player_motor: PlayerMotor
@@ -68,7 +68,7 @@ const INVENTORY_GRID_COLS: int = 8
 const INVENTORY_GRID_ROWS: int = 4 # 32 slots total
 const ACCORDION_SLOTS_PER_ROW: int = 10 # Break weapon accordion slots per 10 slots
 
-# Visual Color Palette (Faithful to Noita)
+# Visual Color Palette
 const COLOR_BG_BACKDROP: Color = Color(0.04, 0.03, 0.02, 0.85)
 const COLOR_ACCORDION_BORDER: Color = Color(0.55, 0.40, 0.22, 0.95)
 const COLOR_ACCORDION_ACTIVE_BORDER: Color = Color(0.92, 0.72, 0.28, 1.0)
@@ -531,6 +531,7 @@ func _create_slot_box(box_size: Vector2, slot_type: String, weapon_idx: int, slo
 	box.add_theme_stylebox_override("panel", style)
 
 	var center = CenterContainer.new()
+	center.name = "CenterContainer"
 	center.mouse_filter = MOUSE_FILTER_IGNORE
 	center.set_anchors_preset(PRESET_FULL_RECT)
 	box.add_child(center)
@@ -569,7 +570,7 @@ func _create_slot_box(box_size: Vector2, slot_type: String, weapon_idx: int, slo
 ## DRAG AND DROP HOOKS
 ## -----------------------------------------------------------------------------
 func _setup_drag_and_drop(box: PanelContainer, slot_type: String, weapon_idx: int, slot_idx: int) -> void:
-	box.set_script(load("res://src/combat/ui/noita_slot_control.gd"))
+	box.set_script(load("res://src/combat/ui/weapon_slot_control.gd"))
 	box.set("deck_ui", self)
 	box.set("slot_type", slot_type)
 	box.set("weapon_idx", weapon_idx)
@@ -734,7 +735,7 @@ func _update_ui_state() -> void:
 
 		if i < weapons.size() and weapons[i] != null:
 			var w = weapons[i]
-			var icon_tex = NoitaIconFactory.get_weapon_icon(w.weapon_id)
+			var icon_tex = w.icon if (w != null and "icon" in w and w.icon != null) else WeaponIconFactory.get_weapon_icon(w.weapon_id)
 			if icon_rect != null:
 				icon_rect.texture = icon_tex
 				icon_rect.visible = true
@@ -795,7 +796,7 @@ func _rebuild_inventory_ui() -> void:
 
 		if i < inv_cards.size() and inv_cards[i] != null:
 			var card = inv_cards[i] as TechniqueCard
-			var card_tex = NoitaIconFactory.get_card_icon(card.card_id, card.get_class())
+			var card_tex = WeaponIconFactory.get_card_icon(card.card_id, card.get_class())
 			if icon_rect != null:
 				icon_rect.texture = card_tex
 				icon_rect.visible = true
@@ -877,7 +878,7 @@ func _create_weapon_accordion_card(w: MeleeWeaponDef, w_idx: int, is_active: boo
 	w_icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	w_icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	w_icon_rect.custom_minimum_size = Vector2(30, 30)
-	w_icon_rect.texture = NoitaIconFactory.get_weapon_icon(w.weapon_id)
+	w_icon_rect.texture = w.icon if (w != null and "icon" in w and w.icon != null) else WeaponIconFactory.get_weapon_icon(w.weapon_id)
 	w_center.add_child(w_icon_rect)
 
 	w_icon_box.mouse_filter = MOUSE_FILTER_STOP
@@ -928,7 +929,7 @@ func _create_weapon_accordion_card(w: MeleeWeaponDef, w_idx: int, is_active: boo
 
 		if s_idx < w.slotted_techniques.size() and w.slotted_techniques[s_idx] != null:
 			var card = w.slotted_techniques[s_idx] as TechniqueCard
-			var card_tex = NoitaIconFactory.get_card_icon(card.card_id, card.get_class())
+			var card_tex = WeaponIconFactory.get_card_icon(card.card_id, card.get_class())
 			if icon_rect != null:
 				icon_rect.texture = card_tex
 				icon_rect.visible = true

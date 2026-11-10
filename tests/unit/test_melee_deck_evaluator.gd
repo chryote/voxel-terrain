@@ -184,3 +184,39 @@ func test_trigger_on_hit_payload_attached() -> void:
 	assert_eq(ctx.nested_triggers[0].payload_cards.size(), 1)
 	assert_eq(ctx.nested_triggers[0].payload_cards[0].card_id, "payload_cleave")
 
+func test_reset_sequence_returns_to_first_card() -> void:
+	var m1 = MotionCard.new()
+	m1.card_id = "card_alpha"
+	m1.execution_duration = 0.2
+	m1.recovery_delay = 0.1
+
+	var m2 = MotionCard.new()
+	m2.card_id = "card_beta"
+	m2.execution_duration = 0.2
+	m2.recovery_delay = 0.1
+
+	var weapon = MeleeWeaponDef.new()
+	weapon.slotted_techniques = [m1, m2]
+
+	var evaluator = MeleeDeckEvaluator.new(weapon)
+
+	# Execute first card
+	var a1 = evaluator.evaluate_attack()
+	assert_eq(a1.size(), 1)
+	assert_eq(a1[0].source_card_id, "card_alpha")
+	assert_eq(evaluator.get_current_index(), 1)
+
+	# Player releases attack -> reset sequence!
+	evaluator.reset_sequence()
+	assert_eq(evaluator.get_current_index(), 0)
+
+	# Elapse recovery delay
+	evaluator.update(0.12)
+	assert_true(evaluator.is_ready())
+
+	# Next attack should cast card_alpha again (reset back to first card)
+	var a2 = evaluator.evaluate_attack()
+	assert_eq(a2.size(), 1)
+	assert_eq(a2[0].source_card_id, "card_alpha")
+	assert_eq(evaluator.get_current_index(), 1)
+

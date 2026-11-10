@@ -7,14 +7,20 @@ func test_intent_initial_and_reset() -> void:
 	assert_false(intent.jump_requested)
 	assert_false(intent.aim_requested)
 	assert_false(intent.fire_requested)
+	assert_false(intent.fire_held)
+	assert_false(intent.fire_released)
 
 	intent.move_vector = Vector2(1, -1)
 	intent.jump_requested = true
 	intent.aim_requested = true
 	intent.fire_requested = true
+	intent.fire_held = true
+	intent.fire_released = true
 
 	intent.reset()
 	assert_eq(intent.move_vector, Vector2.ZERO)
 	assert_false(intent.jump_requested)
 	assert_false(intent.aim_requested)
 	assert_false(intent.fire_requested)
+	assert_false(intent.fire_held)
+	assert_false(intent.fire_released)

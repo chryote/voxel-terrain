@@ -1,7 +1,7 @@
 class_name MeleeDeckEvaluator
 extends RefCounted
 
-## Evaluator for Noita-style melee technique decks.
+## Evaluator for style melee technique decks.
 ## Parses slotted cards from MeleeWeaponDef, resolves modifiers, multicasts,
 ## and triggers, and compiles MeleeAttackContext packets.
 ## Strictly enforces card-driven execution speed (duration) and frequency (recovery).
@@ -23,6 +23,7 @@ enum State {
 signal state_changed(new_state: State)
 signal deck_recharged()
 signal card_executed(card_index: int, context: MeleeAttackContext)
+signal sequence_reset()
 
 var weapon: MeleeWeaponDef:
 	set(value):
@@ -81,6 +82,16 @@ func get_total_cards() -> int:
 
 func get_cooldown_remaining() -> float:
 	return maxf(_timer, 0.0)
+
+## Resets the cast pointer back to the first card in the deck sequence.
+## Clears any queued modifiers and pending triggers.
+## Preserves recovery/recharge cooldown timers so delays cannot be bypassed.
+func reset_sequence() -> void:
+	if _current_index != 0 or not _accumulated_modifiers.is_empty() or not _pending_triggers.is_empty():
+		_current_index = 0
+		_accumulated_modifiers.clear()
+		_pending_triggers.clear()
+		sequence_reset.emit()
 
 ## Main evaluation function: casts the next technique(s) in sequence.
 ## Returns an array of compiled MeleeAttackContexts to be dispatched visually and physically.

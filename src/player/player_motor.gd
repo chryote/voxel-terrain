@@ -19,6 +19,8 @@ const FloatingSwordController = preload("res://src/combat/visuals/floating_sword
 
 signal fired(raycast_hit: Dictionary)
 
+var _was_fire_held: bool = false
+
 func _ready() -> void:
 	floor_snap_length = 0.4
 	floor_constant_speed = true
@@ -33,13 +35,20 @@ func _physics_process(delta: float) -> void:
 	var intent = player_input.get_intent()
 	camera_rig.apply_intent(intent, delta)
 
-	# Firing / attacking query
-	if intent.fire_requested:
+	# Firing / attacking query: auto-attack while held, reset card sequence on release
+	var wants_attack = intent.fire_held or intent.fire_requested
+	if wants_attack:
 		if floating_sword != null:
 			floating_sword.attack(camera_rig)
 		else:
-			var hit = camera_rig.get_aim_raycast(300.0)
-			fired.emit(hit)
+			if intent.fire_requested:
+				var hit = camera_rig.get_aim_raycast(300.0)
+				fired.emit(hit)
+	elif intent.fire_released or (_was_fire_held and not wants_attack):
+		if floating_sword != null:
+			floating_sword.reset_card_sequence()
+
+	_was_fire_held = wants_attack
 
 	# Locomotion direction relative to camera yaw
 	var cam_yaw = camera_rig.get_camera_yaw()

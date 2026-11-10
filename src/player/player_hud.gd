@@ -22,9 +22,9 @@ var _status_banner: Label
 
 const FPS_CAP_PRESETS: Array[int] = [120, 165, 0, 60]
 var _fps_cap_index: int = 0
-var _noita_deck_ui: NoitaDeckUI
+var _weapon_deck_ui: WeaponDeckUI
 
-const NoitaDeckUI = preload("res://src/combat/ui/noita_deck_ui.gd")
+const WeaponDeckUI = preload("res://src/combat/ui/weapon_deck_ui.gd")
 
 func cycle_fps_cap() -> int:
 	_fps_cap_index = (_fps_cap_index + 1) % FPS_CAP_PRESETS.size()
@@ -84,21 +84,21 @@ func _ready() -> void:
 		_status_banner.visible = false
 		add_child(_status_banner)
 
-	if has_node("NoitaDeckUI"):
-		_noita_deck_ui = get_node("NoitaDeckUI") as NoitaDeckUI
-	elif ResourceLoader.exists("res://scenes/ui/noita_deck_ui.tscn"):
-		var packed = load("res://scenes/ui/noita_deck_ui.tscn") as PackedScene
-		_noita_deck_ui = packed.instantiate() as NoitaDeckUI
-		_noita_deck_ui.name = "NoitaDeckUI"
-		add_child(_noita_deck_ui)
+	if has_node("WeaponDeckUI"):
+		_weapon_deck_ui = get_node("WeaponDeckUI") as WeaponDeckUI
+	elif ResourceLoader.exists("res://scenes/ui/weapon_deck_ui.tscn"):
+		var packed = load("res://scenes/ui/weapon_deck_ui.tscn") as PackedScene
+		_weapon_deck_ui = packed.instantiate() as WeaponDeckUI
+		_weapon_deck_ui.name = "WeaponDeckUI"
+		add_child(_weapon_deck_ui)
 	else:
-		_noita_deck_ui = NoitaDeckUI.new()
-		_noita_deck_ui.name = "NoitaDeckUI"
-		add_child(_noita_deck_ui)
+		_weapon_deck_ui = WeaponDeckUI.new()
+		_weapon_deck_ui.name = "WeaponDeckUI"
+		add_child(_weapon_deck_ui)
 
-	_noita_deck_ui.player_motor = player_motor
+	_weapon_deck_ui.player_motor = player_motor
 	if player_motor != null:
-		_noita_deck_ui.floating_sword = player_motor.floating_sword
+		_weapon_deck_ui.floating_sword = player_motor.floating_sword
 
 	if player_motor != null:
 		player_motor.fired.connect(_on_player_fired)
@@ -107,11 +107,11 @@ func _ready() -> void:
 		voxel_world.spawn_mode_changed.connect(_on_spawn_mode_changed)
 
 func _process(delta: float) -> void:
-	if _noita_deck_ui != null:
-		if _noita_deck_ui.player_motor == null and player_motor != null:
-			_noita_deck_ui.player_motor = player_motor
-		if _noita_deck_ui.floating_sword == null and player_motor != null:
-			_noita_deck_ui.floating_sword = player_motor.floating_sword
+	if _weapon_deck_ui != null:
+		if _weapon_deck_ui.player_motor == null and player_motor != null:
+			_weapon_deck_ui.player_motor = player_motor
+		if _weapon_deck_ui.floating_sword == null and player_motor != null:
+			_weapon_deck_ui.floating_sword = player_motor.floating_sword
 
 	if _hit_marker_time > 0.0:
 		_hit_marker_time -= delta

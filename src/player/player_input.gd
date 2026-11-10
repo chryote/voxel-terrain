@@ -63,6 +63,8 @@ func get_intent() -> PlayerIntent:
 		intent.sprint_requested = Input.is_action_pressed("sprint")
 		intent.aim_requested = Input.is_action_pressed("aim")
 		intent.fire_requested = Input.is_action_just_pressed("fire")
+		intent.fire_held = Input.is_action_pressed("fire")
+		intent.fire_released = Input.is_action_just_released("fire")
 		intent.swap_shoulder_requested = Input.is_action_just_pressed("swap_shoulder")
 
 	return intent

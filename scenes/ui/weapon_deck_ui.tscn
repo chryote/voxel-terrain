@@ -1,9 +1,9 @@
 [gd_scene load_steps=44 format=3]
 
-[ext_resource type="Script" path="res://src/combat/ui/noita_deck_ui.gd" id="1_pv8r2"]
-[ext_resource type="Script" path="res://src/combat/ui/noita_slot_control.gd" id="2_l1ged"]
+[ext_resource type="Script" path="res://src/combat/ui/weapon_deck_ui.gd" id="1_qpcgk"]
+[ext_resource type="Script" path="res://src/combat/ui/weapon_slot_control.gd" id="2_s7hd3"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kr5i4"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_85ymv"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -15,7 +15,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_f1sd8"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8bbsf"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -27,7 +27,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dcdmi"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kd8as"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -39,7 +39,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_h3niw"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_48i1a"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -51,7 +51,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nxmwg"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bwmqk"]
 bg_color = Color(0.09, 0.07, 0.05, 0.85)
 border_width_left = 1
 border_width_top = 1
@@ -63,7 +63,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_k40s0"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_aad0q"]
 bg_color = Color(0.09, 0.07, 0.05, 0.85)
 border_width_left = 1
 border_width_top = 1
@@ -75,7 +75,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gw3hc"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vqf01"]
 bg_color = Color(0.09, 0.07, 0.05, 0.85)
 border_width_left = 1
 border_width_top = 1
@@ -87,7 +87,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pilcp"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hpp1n"]
 bg_color = Color(0.09, 0.07, 0.05, 0.85)
 border_width_left = 1
 border_width_top = 1
@@ -99,7 +99,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qtwch"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lrug7"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -111,7 +111,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xs1vm"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rqjuo"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -123,7 +123,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fbfgf"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_afm5v"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -135,7 +135,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_udqi3"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_36bq8"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -147,7 +147,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4nxkr"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fg14y"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -159,7 +159,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ixmrs"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3yw5h"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -171,7 +171,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xvilu"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pc2x7"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -183,7 +183,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_goa5v"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ldc1v"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -195,7 +195,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5bhqo"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5q84f"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -207,7 +207,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hyrmg"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wvjtp"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -219,7 +219,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7n4s1"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2u732"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -231,7 +231,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_q1hgg"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_acs4h"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -243,7 +243,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tukmg"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4p5fb"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -255,7 +255,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_k0tdu"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vripg"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -267,7 +267,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8lrp5"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gb8hl"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -279,7 +279,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_16cvv"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hm22j"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -291,7 +291,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1682p"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_82xbe"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -303,7 +303,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2lcm0"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_svqxi"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -315,7 +315,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_u8dj0"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nw227"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -327,7 +327,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nnfgv"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cggan"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -339,7 +339,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_but01"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_x7jsr"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -351,7 +351,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_itj5h"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vyde1"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -363,7 +363,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kt883"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_us7dn"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -375,7 +375,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8lbo5"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_16tys"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -387,7 +387,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_m3jhp"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gw1r4"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -399,7 +399,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2l6kh"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_0t3be"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -411,7 +411,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sgx6x"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4ta50"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -423,7 +423,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mr7xu"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_urtcv"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -435,7 +435,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dpx1t"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bclvx"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -447,7 +447,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_f2scw"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mow0b"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -459,7 +459,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_0u67g"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_h58ro"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -471,7 +471,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5qch3"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6y8ga"]
 bg_color = Color(0.11, 0.08, 0.06, 0.95)
 border_width_left = 1
 border_width_top = 1
@@ -483,7 +483,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rcc48"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_scq45"]
 bg_color = Color(0.08, 0.06, 0.05, 0.96)
 border_width_left = 2
 border_width_top = 2
@@ -495,12 +495,12 @@ corner_radius_top_right = 3
 corner_radius_bottom_right = 3
 corner_radius_bottom_left = 3
 
-[node name="NoitaDeckUI" type="Control"]
+[node name="WeaponDeckUI" type="Control"]
 layout_mode = 3
 anchors_preset = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
-script = ExtResource("1_pv8r2")
+script = ExtResource("1_qpcgk")
 
 [node name="InventoryOverlay" type="Control" parent="."]
 visible = false
@@ -602,16 +602,16 @@ theme_override_constants/separation = 4
 [node name="WeaponSlot_0" type="PanelContainer" parent="TopBarContainer/WeaponColumn/TopSlotsHBox"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_kr5i4")
+theme_override_styles/panel = SubResource("StyleBoxFlat_85ymv")
 metadata/slot_type = "quickbar"
 metadata/weapon_idx = -1
 metadata/slot_idx = 0
 
-[node name="@CenterContainer@6" type="CenterContainer" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_0"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_0"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_0/@CenterContainer@6"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_0/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -619,7 +619,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_0/@CenterContainer@6"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_0/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -633,16 +633,16 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="WeaponSlot_1" type="PanelContainer" parent="TopBarContainer/WeaponColumn/TopSlotsHBox"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_f1sd8")
+theme_override_styles/panel = SubResource("StyleBoxFlat_8bbsf")
 metadata/slot_type = "quickbar"
 metadata/weapon_idx = -1
 metadata/slot_idx = 1
 
-[node name="@CenterContainer@7" type="CenterContainer" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_1"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_1"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_1/@CenterContainer@7"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_1/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -650,7 +650,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_1/@CenterContainer@7"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_1/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -664,16 +664,16 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="WeaponSlot_2" type="PanelContainer" parent="TopBarContainer/WeaponColumn/TopSlotsHBox"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_dcdmi")
+theme_override_styles/panel = SubResource("StyleBoxFlat_kd8as")
 metadata/slot_type = "quickbar"
 metadata/weapon_idx = -1
 metadata/slot_idx = 2
 
-[node name="@CenterContainer@8" type="CenterContainer" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_2"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_2"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_2/@CenterContainer@8"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_2/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -681,7 +681,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_2/@CenterContainer@8"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_2/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -695,16 +695,16 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="WeaponSlot_3" type="PanelContainer" parent="TopBarContainer/WeaponColumn/TopSlotsHBox"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_h3niw")
+theme_override_styles/panel = SubResource("StyleBoxFlat_48i1a")
 metadata/slot_type = "quickbar"
 metadata/weapon_idx = -1
 metadata/slot_idx = 3
 
-[node name="@CenterContainer@9" type="CenterContainer" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_3"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_3"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_3/@CenterContainer@9"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_3/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -712,7 +712,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_3/@CenterContainer@9"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_3/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -761,16 +761,16 @@ mouse_filter = 2
 [node name="ItemSlot_0" type="PanelContainer" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_0"]
 custom_minimum_size = Vector2(26, 26)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_nxmwg")
+theme_override_styles/panel = SubResource("StyleBoxFlat_bwmqk")
 metadata/slot_type = "item"
 metadata/weapon_idx = -1
 metadata/slot_idx = 0
 
-[node name="@CenterContainer@10" type="CenterContainer" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_0/ItemSlot_0"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_0/ItemSlot_0"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_0/ItemSlot_0/@CenterContainer@10"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_0/ItemSlot_0/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(22, 22)
 layout_mode = 2
@@ -778,7 +778,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_0/ItemSlot_0/@CenterContainer@10"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_0/ItemSlot_0/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -797,16 +797,16 @@ mouse_filter = 2
 [node name="ItemSlot_1" type="PanelContainer" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_1"]
 custom_minimum_size = Vector2(26, 26)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_k40s0")
+theme_override_styles/panel = SubResource("StyleBoxFlat_aad0q")
 metadata/slot_type = "item"
 metadata/weapon_idx = -1
 metadata/slot_idx = 1
 
-[node name="@CenterContainer@11" type="CenterContainer" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_1/ItemSlot_1"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_1/ItemSlot_1"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_1/ItemSlot_1/@CenterContainer@11"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_1/ItemSlot_1/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(22, 22)
 layout_mode = 2
@@ -814,7 +814,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_1/ItemSlot_1/@CenterContainer@11"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_1/ItemSlot_1/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -833,16 +833,16 @@ mouse_filter = 2
 [node name="ItemSlot_2" type="PanelContainer" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_2"]
 custom_minimum_size = Vector2(26, 26)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_gw3hc")
+theme_override_styles/panel = SubResource("StyleBoxFlat_vqf01")
 metadata/slot_type = "item"
 metadata/weapon_idx = -1
 metadata/slot_idx = 2
 
-[node name="@CenterContainer@12" type="CenterContainer" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_2/ItemSlot_2"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_2/ItemSlot_2"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_2/ItemSlot_2/@CenterContainer@12"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_2/ItemSlot_2/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(22, 22)
 layout_mode = 2
@@ -850,7 +850,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_2/ItemSlot_2/@CenterContainer@12"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_2/ItemSlot_2/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -869,16 +869,16 @@ mouse_filter = 2
 [node name="ItemSlot_3" type="PanelContainer" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_3"]
 custom_minimum_size = Vector2(26, 26)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_pilcp")
+theme_override_styles/panel = SubResource("StyleBoxFlat_hpp1n")
 metadata/slot_type = "item"
 metadata/weapon_idx = -1
 metadata/slot_idx = 3
 
-[node name="@CenterContainer@13" type="CenterContainer" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_3/ItemSlot_3"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_3/ItemSlot_3"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_3/ItemSlot_3/@CenterContainer@13"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_3/ItemSlot_3/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(22, 22)
 layout_mode = 2
@@ -886,7 +886,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_3/ItemSlot_3/@CenterContainer@13"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_3/ItemSlot_3/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -944,17 +944,17 @@ columns = 8
 [node name="InvSlot_0" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_qtwch")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_lrug7")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 0
 
-[node name="@CenterContainer@14" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_0"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_0"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_0/@CenterContainer@14"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_0/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -962,7 +962,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_0/@CenterContainer@14"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_0/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -976,17 +976,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_1" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_xs1vm")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_rqjuo")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 1
 
-[node name="@CenterContainer@15" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_1"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_1"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_1/@CenterContainer@15"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_1/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -994,7 +994,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_1/@CenterContainer@15"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_1/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1008,17 +1008,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_2" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_fbfgf")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_afm5v")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 2
 
-[node name="@CenterContainer@16" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_2"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_2"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_2/@CenterContainer@16"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_2/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1026,7 +1026,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_2/@CenterContainer@16"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_2/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1040,17 +1040,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_3" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_udqi3")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_36bq8")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 3
 
-[node name="@CenterContainer@17" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_3"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_3"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_3/@CenterContainer@17"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_3/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1058,7 +1058,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_3/@CenterContainer@17"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_3/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1072,17 +1072,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_4" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_4nxkr")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_fg14y")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 4
 
-[node name="@CenterContainer@18" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_4"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_4"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_4/@CenterContainer@18"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_4/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1090,7 +1090,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_4/@CenterContainer@18"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_4/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1104,17 +1104,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_5" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_ixmrs")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_3yw5h")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 5
 
-[node name="@CenterContainer@19" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_5"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_5"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_5/@CenterContainer@19"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_5/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1122,7 +1122,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_5/@CenterContainer@19"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_5/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1136,17 +1136,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_6" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_xvilu")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_pc2x7")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 6
 
-[node name="@CenterContainer@20" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_6"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_6"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_6/@CenterContainer@20"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_6/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1154,7 +1154,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_6/@CenterContainer@20"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_6/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1168,17 +1168,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_7" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_goa5v")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_ldc1v")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 7
 
-[node name="@CenterContainer@21" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_7"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_7"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_7/@CenterContainer@21"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_7/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1186,7 +1186,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_7/@CenterContainer@21"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_7/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1200,17 +1200,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_8" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_5bhqo")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_5q84f")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 8
 
-[node name="@CenterContainer@22" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_8"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_8"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_8/@CenterContainer@22"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_8/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1218,7 +1218,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_8/@CenterContainer@22"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_8/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1232,17 +1232,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_9" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_hyrmg")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_wvjtp")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 9
 
-[node name="@CenterContainer@23" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_9"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_9"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_9/@CenterContainer@23"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_9/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1250,7 +1250,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_9/@CenterContainer@23"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_9/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1264,17 +1264,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_10" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_7n4s1")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_2u732")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 10
 
-[node name="@CenterContainer@24" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_10"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_10"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_10/@CenterContainer@24"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_10/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1282,7 +1282,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_10/@CenterContainer@24"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_10/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1296,17 +1296,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_11" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_q1hgg")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_acs4h")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 11
 
-[node name="@CenterContainer@25" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_11"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_11"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_11/@CenterContainer@25"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_11/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1314,7 +1314,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_11/@CenterContainer@25"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_11/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1328,17 +1328,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_12" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_tukmg")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_4p5fb")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 12
 
-[node name="@CenterContainer@26" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_12"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_12"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_12/@CenterContainer@26"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_12/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1346,7 +1346,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_12/@CenterContainer@26"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_12/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1360,17 +1360,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_13" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_k0tdu")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_vripg")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 13
 
-[node name="@CenterContainer@27" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_13"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_13"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_13/@CenterContainer@27"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_13/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1378,7 +1378,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_13/@CenterContainer@27"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_13/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1392,17 +1392,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_14" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_8lrp5")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_gb8hl")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 14
 
-[node name="@CenterContainer@28" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_14"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_14"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_14/@CenterContainer@28"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_14/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1410,7 +1410,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_14/@CenterContainer@28"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_14/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1424,17 +1424,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_15" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_16cvv")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_hm22j")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 15
 
-[node name="@CenterContainer@29" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_15"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_15"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_15/@CenterContainer@29"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_15/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1442,7 +1442,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_15/@CenterContainer@29"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_15/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1456,17 +1456,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_16" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_1682p")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_82xbe")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 16
 
-[node name="@CenterContainer@30" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_16"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_16"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_16/@CenterContainer@30"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_16/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1474,7 +1474,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_16/@CenterContainer@30"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_16/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1488,17 +1488,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_17" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_2lcm0")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_svqxi")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 17
 
-[node name="@CenterContainer@31" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_17"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_17"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_17/@CenterContainer@31"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_17/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1506,7 +1506,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_17/@CenterContainer@31"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_17/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1520,17 +1520,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_18" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_u8dj0")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_nw227")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 18
 
-[node name="@CenterContainer@32" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_18"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_18"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_18/@CenterContainer@32"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_18/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1538,7 +1538,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_18/@CenterContainer@32"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_18/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1552,17 +1552,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_19" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_nnfgv")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_cggan")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 19
 
-[node name="@CenterContainer@33" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_19"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_19"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_19/@CenterContainer@33"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_19/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1570,7 +1570,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_19/@CenterContainer@33"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_19/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1584,17 +1584,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_20" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_but01")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_x7jsr")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 20
 
-[node name="@CenterContainer@34" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_20"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_20"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_20/@CenterContainer@34"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_20/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1602,7 +1602,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_20/@CenterContainer@34"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_20/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1616,17 +1616,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_21" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_itj5h")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_vyde1")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 21
 
-[node name="@CenterContainer@35" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_21"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_21"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_21/@CenterContainer@35"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_21/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1634,7 +1634,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_21/@CenterContainer@35"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_21/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1648,17 +1648,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_22" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_kt883")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_us7dn")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 22
 
-[node name="@CenterContainer@36" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_22"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_22"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_22/@CenterContainer@36"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_22/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1666,7 +1666,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_22/@CenterContainer@36"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_22/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1680,17 +1680,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_23" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_8lbo5")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_16tys")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 23
 
-[node name="@CenterContainer@37" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_23"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_23"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_23/@CenterContainer@37"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_23/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1698,7 +1698,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_23/@CenterContainer@37"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_23/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1712,17 +1712,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_24" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_m3jhp")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_gw1r4")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 24
 
-[node name="@CenterContainer@38" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_24"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_24"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_24/@CenterContainer@38"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_24/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1730,7 +1730,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_24/@CenterContainer@38"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_24/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1744,17 +1744,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_25" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_2l6kh")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_0t3be")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 25
 
-[node name="@CenterContainer@39" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_25"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_25"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_25/@CenterContainer@39"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_25/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1762,7 +1762,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_25/@CenterContainer@39"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_25/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1776,17 +1776,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_26" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_sgx6x")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_4ta50")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 26
 
-[node name="@CenterContainer@40" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_26"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_26"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_26/@CenterContainer@40"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_26/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1794,7 +1794,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_26/@CenterContainer@40"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_26/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1808,17 +1808,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_27" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_mr7xu")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_urtcv")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 27
 
-[node name="@CenterContainer@41" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_27"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_27"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_27/@CenterContainer@41"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_27/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1826,7 +1826,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_27/@CenterContainer@41"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_27/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1840,17 +1840,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_28" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_dpx1t")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_bclvx")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 28
 
-[node name="@CenterContainer@42" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_28"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_28"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_28/@CenterContainer@42"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_28/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1858,7 +1858,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_28/@CenterContainer@42"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_28/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1872,17 +1872,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_29" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_f2scw")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_mow0b")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 29
 
-[node name="@CenterContainer@43" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_29"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_29"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_29/@CenterContainer@43"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_29/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1890,7 +1890,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_29/@CenterContainer@43"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_29/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1904,17 +1904,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_30" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_0u67g")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_h58ro")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 30
 
-[node name="@CenterContainer@44" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_30"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_30"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_30/@CenterContainer@44"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_30/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1922,7 +1922,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_30/@CenterContainer@44"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_30/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1936,17 +1936,17 @@ color = Color(0.85, 0.2, 0.1, 0)
 [node name="InvSlot_31" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
 custom_minimum_size = Vector2(34, 34)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_5qch3")
-script = ExtResource("2_l1ged")
+theme_override_styles/panel = SubResource("StyleBoxFlat_6y8ga")
+script = ExtResource("2_s7hd3")
 metadata/slot_type = "inventory"
 metadata/weapon_idx = -1
 metadata/slot_idx = 31
 
-[node name="@CenterContainer@45" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_31"]
+[node name="CenterContainer" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_31"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_31/@CenterContainer@45"]
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_31/CenterContainer"]
 texture_filter = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
@@ -1954,7 +1954,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_31/@CenterContainer@45"]
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_31/CenterContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
@@ -1986,7 +1986,7 @@ visible = false
 top_level = true
 layout_mode = 0
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_rcc48")
+theme_override_styles/panel = SubResource("StyleBoxFlat_scq45")
 
 [node name="MarginContainer" type="MarginContainer" parent="TooltipPanel"]
 layout_mode = 2

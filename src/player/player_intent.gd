@@ -9,6 +9,8 @@ var jump_requested: bool = false
 var sprint_requested: bool = false
 var aim_requested: bool = false
 var fire_requested: bool = false
+var fire_held: bool = false
+var fire_released: bool = false
 var swap_shoulder_requested: bool = false
 var toggle_mouse_requested: bool = false
 var toggle_debug_requested: bool = false
@@ -22,6 +24,8 @@ func reset() -> void:
 	sprint_requested = false
 	aim_requested = false
 	fire_requested = false
+	fire_held = false
+	fire_released = false
 	swap_shoulder_requested = false
 	toggle_mouse_requested = false
 	toggle_debug_requested = false

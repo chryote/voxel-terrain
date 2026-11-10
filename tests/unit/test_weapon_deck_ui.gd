@@ -1,9 +1,9 @@
-class_name TestNoitaDeckUI
+class_name TestWeaponDeckUI
 extends "res://tests/framework/test_case.gd"
 
-## Unit tests for NoitaDeckUI, weapon quickbar, accordion, and extensive inventory grid.
+## Unit tests for WeaponDeckUI, weapon quickbar, accordion, and extensive inventory grid.
 
-const NoitaDeckUI = preload("res://src/combat/ui/noita_deck_ui.gd")
+const WeaponDeckUI = preload("res://src/combat/ui/weapon_deck_ui.gd")
 const FloatingSwordController = preload("res://src/combat/visuals/floating_sword_controller.gd")
 const MeleeWeaponDef = preload("res://src/combat/core/melee_weapon_def.gd")
 const MotionCard = preload("res://src/combat/techniques/motions/motion_card.gd")
@@ -13,7 +13,7 @@ func test_ui_initialization() -> void:
 	var sword_ctrl = FloatingSwordController.new()
 	sword_ctrl._ready()
 
-	var ui = NoitaDeckUI.new()
+	var ui = WeaponDeckUI.new()
 	ui.floating_sword = sword_ctrl
 	ui._ready()
 
@@ -30,7 +30,7 @@ func test_inventory_open_and_close() -> void:
 	var sword_ctrl = FloatingSwordController.new()
 	sword_ctrl._ready()
 
-	var ui = NoitaDeckUI.new()
+	var ui = WeaponDeckUI.new()
 	ui.floating_sword = sword_ctrl
 	ui._ready()
 
@@ -62,7 +62,7 @@ func test_grid_and_accordion_slots() -> void:
 	var sword_ctrl = FloatingSwordController.new()
 	sword_ctrl._ready()
 
-	var ui = NoitaDeckUI.new()
+	var ui = WeaponDeckUI.new()
 	ui.floating_sword = sword_ctrl
 	ui._ready()
 
@@ -119,7 +119,7 @@ func test_weapon_switching_from_quickbar() -> void:
 	sword_ctrl.free()
 
 func test_procedural_icons() -> void:
-	var IconFactory = preload("res://src/combat/ui/noita_icon_factory.gd")
+	var IconFactory = preload("res://src/combat/ui/weapon_icon_factory.gd")
 	var w_icon = IconFactory.get_weapon_icon("apprentice_blade")
 	assert_not_null(w_icon)
 	assert_true(w_icon.get_width() > 0)
@@ -135,7 +135,7 @@ func test_top_bar_hud_and_item_boxes() -> void:
 	var sword_ctrl = FloatingSwordController.new()
 	sword_ctrl._ready()
 
-	var ui = NoitaDeckUI.new()
+	var ui = WeaponDeckUI.new()
 	ui.floating_sword = sword_ctrl
 	ui._ready()
 
@@ -157,7 +157,7 @@ func test_drag_and_drop_slot_swap() -> void:
 	var sword_ctrl = FloatingSwordController.new()
 	sword_ctrl._ready()
 
-	var ui = NoitaDeckUI.new()
+	var ui = WeaponDeckUI.new()
 	ui.floating_sword = sword_ctrl
 	ui._ready()
 	ui.open_inventory()
@@ -221,7 +221,7 @@ func test_long_weapon_slot_wrapping_and_item_col_stability() -> void:
 	long_w.slot_capacity = 20
 	sword_ctrl.weapons.append(long_w)
 
-	var ui = NoitaDeckUI.new()
+	var ui = WeaponDeckUI.new()
 	ui.floating_sword = sword_ctrl
 	ui._ready()
 

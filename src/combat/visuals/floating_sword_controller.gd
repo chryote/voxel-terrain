@@ -298,7 +298,12 @@ func _create_sword() -> void:
 		_sword_root = null
 
 	var builder = weapon_def.mesh_builder if weapon_def != null and weapon_def.mesh_builder != null else SwordMeshBuilder
-	_sword_root = builder.create_sword_node()
+	if builder.has_method("create_weapon_node"):
+		_sword_root = builder.create_weapon_node(weapon_def)
+	elif builder.has_method("create_sword_node"):
+		_sword_root = builder.create_sword_node()
+	else:
+		_sword_root = Node3D.new()
 	_sword_root.name = "FloatingSwordVisual"
 	add_child(_sword_root)
 
@@ -500,3 +505,8 @@ func _on_slash_completed() -> void:
 
 func get_evaluator() -> MeleeDeckEvaluator:
 	return _evaluator
+
+## Resets the technique card evaluation pointer back to the first card in the slotted sequence.
+func reset_card_sequence() -> void:
+	if _evaluator != null:
+		_evaluator.reset_sequence()

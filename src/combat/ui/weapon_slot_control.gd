@@ -1,7 +1,7 @@
-class_name NoitaSlotControl
+class_name WeaponSlotControl
 extends PanelContainer
 
-## Custom slot control enabling native Godot 4 drag-and-drop for Noita technique cards.
+## Custom slot control enabling native Godot 4 drag-and-drop for weapon technique cards.
 
 var deck_ui: Control
 var slot_type: String = ""

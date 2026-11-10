@@ -20,6 +20,7 @@ var _progress: float = 0.0
 
 const SLASH_SHADER = preload("res://shaders/combat/slash_volume.gdshader")
 const SlashArcMeshBuilder = preload("res://src/combat/visuals/slash_arc_mesh_builder.gd")
+const MeleeAttackContext = preload("res://src/combat/core/melee_attack_context.gd")
 
 func _init() -> void:
 	top_level = true # In world space so it doesn't skew with subsequent player movements
@@ -54,6 +55,39 @@ func _setup_visuals() -> void:
 	_spark_particles = _create_spark_particles()
 	_spark_particles.name = "SlashSparkParticles"
 	add_child(_spark_particles)
+
+## Plays slash using a card-compiled MeleeAttackContext.
+## Configures 3D arc geometry, duration (speed), and shader colors directly from the card.
+func play_context(start_transform: Transform3D, ctx: MeleeAttackContext) -> void:
+	inner_radius = ctx.inner_radius
+	outer_radius = ctx.outer_radius
+	sweep_angle_deg = ctx.arc_sweep_degrees
+
+	_setup_visuals()
+
+	# Rebuild mesh with card-defined parameters if different from defaults
+	_mesh_instance.mesh = SlashArcMeshBuilder.build_volumetric_slash_mesh(
+		ctx.inner_radius,
+		ctx.outer_radius,
+		deg_to_rad(ctx.arc_sweep_degrees),
+		ctx.volume_thickness,
+		ctx.outer_height,
+		36
+	)
+
+	# Apply card-defined shader parameters
+	_slash_material.set_shader_parameter("core_color", ctx.core_color)
+	_slash_material.set_shader_parameter("edge_color", ctx.edge_color)
+	_slash_material.set_shader_parameter("deep_color", ctx.deep_color)
+	_slash_material.set_shader_parameter("emission_intensity", ctx.emission_intensity)
+	_slash_material.set_shader_parameter("trail_length", ctx.trail_dissolve_rate)
+
+	# Tint spark particles to match card edge color
+	if _spark_particles != null:
+		_spark_particles.color = ctx.edge_color
+
+	# Dispatch animation with card-defined execution_duration
+	play(start_transform, ctx.execution_duration, ctx.tilt_degrees, ctx.is_reversed_sweep)
 
 func play(
 	start_transform: Transform3D,

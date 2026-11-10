@@ -1,0 +1,499 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://src/map/continent_map_ui.gd" id="1_i3d52"]
+[ext_resource type="Script" path="res://src/map/cave_mouth_overlay.gd" id="2_wqvm3"]
+[ext_resource type="Script" path="res://src/map/player_marker_overlay.gd" id="3_7gc10"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_y6w0f"]
+content_margin_left = 14.0
+content_margin_top = 14.0
+content_margin_right = 14.0
+content_margin_bottom = 14.0
+bg_color = Color(0.08, 0.11, 0.15, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.24, 0.36, 0.48, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_asu1s"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(0.18, 0.42, 0.72, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.5, 0.8, 1, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ly3tf"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(0.1, 0.13, 0.18, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.25, 0.33, 0.44, 0.8)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_h7qym"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.04, 0.05, 0.07, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.35, 0.45, 0.55, 0.8)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_yb7vv"]
+content_margin_left = 8.0
+content_margin_top = 8.0
+content_margin_right = 8.0
+content_margin_bottom = 8.0
+bg_color = Color(0.07, 0.1, 0.15, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.38, 0.58, 0.82, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mpwqq"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(0.18, 0.42, 0.72, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.45, 0.75, 1, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nakdg"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(0.15, 0.18, 0.24, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.3, 0.38, 0.48, 0.8)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="ContinentMapUI" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_i3d52")
+
+[node name="@ColorRect@46" type="ColorRect" parent="."]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.04, 0.06, 0.09, 0.82)
+
+[node name="@PanelContainer@47" type="PanelContainer" parent="."]
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_y6w0f")
+
+[node name="@VBoxContainer@48" type="VBoxContainer" parent="@PanelContainer@47"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="@HBoxContainer@49" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="@Label@50" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HBoxContainer@49"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+theme_override_colors/font_color = Color(0.9, 0.95, 1, 1)
+text = "CONTINENT TOPOGRAPHIC MAP - SURFACE"
+
+[node name="@Control@51" type="Control" parent="@PanelContainer@47/@VBoxContainer@48/@HBoxContainer@49"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="@Label@52" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HBoxContainer@49"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.65, 0.75, 0.85, 1)
+text = "Scroll: Zoom | Drag: Pan | Right-Click: Teleport | [R] Reset | [M/ESC] Close"
+
+[node name="@HBoxContainer@53" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="@Label@54" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HBoxContainer@53"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.75, 0.85, 0.95, 1)
+text = "Map Level:"
+
+[node name="@Button@55" type="Button" parent="@PanelContainer@47/@VBoxContainer@48/@HBoxContainer@53"]
+custom_minimum_size = Vector2(130, 26)
+layout_mode = 2
+focus_mode = 0
+theme_override_styles/normal = SubResource("StyleBoxFlat_asu1s")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_asu1s")
+theme_override_styles/hover = SubResource("StyleBoxFlat_asu1s")
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "⛰ Surface [1]"
+
+[node name="@Button@56" type="Button" parent="@PanelContainer@47/@VBoxContainer@48/@HBoxContainer@53"]
+custom_minimum_size = Vector2(170, 26)
+layout_mode = 2
+focus_mode = 0
+theme_override_styles/normal = SubResource("StyleBoxFlat_ly3tf")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_ly3tf")
+theme_override_styles/hover = SubResource("StyleBoxFlat_ly3tf")
+theme_override_colors/font_color = Color(0.68, 0.76, 0.85, 1)
+text = "⚔ Underground Arena [2]"
+
+[node name="@Label@57" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HBoxContainer@53"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.55, 0.65, 0.75, 1)
+text = "[Tab / 1 / 2 to toggle]"
+
+[node name="@CenterContainer@58" type="CenterContainer" parent="@PanelContainer@47/@VBoxContainer@48"]
+layout_mode = 2
+
+[node name="@PanelContainer@59" type="PanelContainer" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_h7qym")
+
+[node name="@Control@60" type="Control" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59"]
+clip_contents = true
+custom_minimum_size = Vector2(512, 512)
+layout_mode = 2
+
+[node name="@Control@61" type="Control" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60"]
+custom_minimum_size = Vector2(512, 512)
+anchors_preset = 0
+offset_right = 512.0
+offset_bottom = 512.0
+mouse_filter = 2
+
+[node name="@TextureRect@62" type="TextureRect" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60/@Control@61"]
+texture_filter = 2
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="@Label@63" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60"]
+layout_mode = 0
+offset_left = 480.0
+offset_top = 8.0
+offset_right = 480.0
+offset_bottom = 8.0
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+text = "▲ N"
+
+[node name="@Label@64" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 8.0
+offset_right = 10.0
+offset_bottom = 8.0
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.9, 0.95, 1, 0.9)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+text = "100% (1.0x)"
+
+[node name="@Label@65" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60"]
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "Baking continent topography..."
+
+[node name="@Control@66" type="Control" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60"]
+custom_minimum_size = Vector2(512, 512)
+anchors_preset = 0
+offset_right = 512.0
+offset_bottom = 512.0
+mouse_filter = 2
+script = ExtResource("2_wqvm3")
+
+[node name="@Control@67" type="Control" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60"]
+z_index = 5
+custom_minimum_size = Vector2(512, 512)
+anchors_preset = 0
+offset_right = 512.0
+offset_bottom = 512.0
+mouse_filter = 2
+script = ExtResource("3_7gc10")
+
+[node name="@PanelContainer@74" type="PanelContainer" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60"]
+visible = false
+z_index = 25
+layout_mode = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_yb7vv")
+
+[node name="@VBoxContainer@68" type="VBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60/@PanelContainer@74"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="@Label@69" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60/@PanelContainer@74/@VBoxContainer@68"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.9, 0.94, 1, 1)
+text = "Target: (X: 0, Z: 0, Alt: 0m)"
+
+[node name="@Label@70" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60/@PanelContainer@74/@VBoxContainer@68"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+theme_override_colors/font_color = Color(0.65, 0.78, 0.92, 1)
+text = "Destination: Surface"
+
+[node name="@HBoxContainer@71" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60/@PanelContainer@74/@VBoxContainer@68"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="@Button@72" type="Button" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60/@PanelContainer@74/@VBoxContainer@68/@HBoxContainer@71"]
+layout_mode = 2
+focus_mode = 0
+theme_override_styles/normal = SubResource("StyleBoxFlat_mpwqq")
+theme_override_font_sizes/font_size = 11
+text = "⚡ Teleport Here"
+
+[node name="@Button@73" type="Button" parent="@PanelContainer@47/@VBoxContainer@48/@CenterContainer@58/@PanelContainer@59/@Control@60/@PanelContainer@74/@VBoxContainer@68/@HBoxContainer@71"]
+layout_mode = 2
+focus_mode = 0
+theme_override_styles/normal = SubResource("StyleBoxFlat_nakdg")
+theme_override_font_sizes/font_size = 11
+text = "Cancel"
+
+[node name="@Label@75" type="Label" parent="@PanelContainer@47/@VBoxContainer@48"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.8, 0.9, 0.95, 1)
+text = "Player: (X: 0, Z: 0, Alt: 0m)"
+
+[node name="@HFlowContainer@76" type="HFlowContainer" parent="@PanelContainer@47/@VBoxContainer@48"]
+layout_mode = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 4
+
+[node name="@HBoxContainer@79" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="@ColorRect@77" type="ColorRect" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@79"]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+color = Color(0.105882, 0.247059, 0.388235, 1)
+
+[node name="@Label@78" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@79"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.75, 0.82, 0.9, 1)
+text = "Ocean"
+
+[node name="@HBoxContainer@82" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="@ColorRect@80" type="ColorRect" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@82"]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+color = Color(0.180392, 0.486275, 0.658824, 1)
+
+[node name="@Label@81" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@82"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.75, 0.82, 0.9, 1)
+text = "Water"
+
+[node name="@HBoxContainer@85" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="@ColorRect@83" type="ColorRect" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@85"]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+color = Color(0.847059, 0.780392, 0.54902, 1)
+
+[node name="@Label@84" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@85"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.75, 0.82, 0.9, 1)
+text = "Beach"
+
+[node name="@HBoxContainer@88" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="@ColorRect@86" type="ColorRect" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@88"]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+color = Color(0.337255, 0.490196, 0.27451, 1)
+
+[node name="@Label@87" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@88"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.75, 0.82, 0.9, 1)
+text = "Plains"
+
+[node name="@HBoxContainer@91" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="@ColorRect@89" type="ColorRect" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@91"]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+color = Color(0.419608, 0.309804, 0.219608, 1)
+
+[node name="@Label@90" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@91"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.75, 0.82, 0.9, 1)
+text = "Hills"
+
+[node name="@HBoxContainer@94" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="@ColorRect@92" type="ColorRect" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@94"]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+color = Color(0.470588, 0.470588, 0.470588, 1)
+
+[node name="@Label@93" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@94"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.75, 0.82, 0.9, 1)
+text = "Stone"
+
+[node name="@HBoxContainer@97" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="@ColorRect@95" type="ColorRect" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@97"]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+color = Color(0.956863, 0.968627, 0.984314, 1)
+
+[node name="@Label@96" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@97"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.75, 0.82, 0.9, 1)
+text = "Snow"
+
+[node name="@HBoxContainer@100" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="@ColorRect@98" type="ColorRect" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@100"]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+color = Color(0.96, 0.22, 0.22, 1)
+
+[node name="@Label@99" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@100"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.75, 0.82, 0.9, 1)
+text = "Dead Cave (C)"
+
+[node name="@HBoxContainer@103" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="@ColorRect@101" type="ColorRect" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@103"]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+color = Color(0.98, 0.86, 0.12, 1)
+
+[node name="@Label@102" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@103"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.75, 0.82, 0.9, 1)
+text = "Tunnel Cave (C)"
+
+[node name="@HBoxContainer@106" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="@ColorRect@104" type="ColorRect" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@106"]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+color = Color(0.22, 0.96, 0.38, 1)
+
+[node name="@Label@105" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@106"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.75, 0.82, 0.9, 1)
+text = "Chasm Cave (C)"
+
+[node name="@HBoxContainer@109" type="HBoxContainer" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="@ColorRect@107" type="ColorRect" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@109"]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+color = Color(0.92, 0.12, 0.12, 1)
+
+[node name="@Label@108" type="Label" parent="@PanelContainer@47/@VBoxContainer@48/@HFlowContainer@76/@HBoxContainer@109"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.75, 0.82, 0.9, 1)
+text = "Player"

@@ -1,0 +1,2022 @@
+[gd_scene load_steps=44 format=3]
+
+[ext_resource type="Script" path="res://src/combat/ui/noita_deck_ui.gd" id="1_pv8r2"]
+[ext_resource type="Script" path="res://src/combat/ui/noita_slot_control.gd" id="2_l1ged"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kr5i4"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_f1sd8"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dcdmi"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_h3niw"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nxmwg"]
+bg_color = Color(0.09, 0.07, 0.05, 0.85)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.26, 0.19, 0.14, 0.85)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_k40s0"]
+bg_color = Color(0.09, 0.07, 0.05, 0.85)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.26, 0.19, 0.14, 0.85)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gw3hc"]
+bg_color = Color(0.09, 0.07, 0.05, 0.85)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.26, 0.19, 0.14, 0.85)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pilcp"]
+bg_color = Color(0.09, 0.07, 0.05, 0.85)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.26, 0.19, 0.14, 0.85)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qtwch"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xs1vm"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fbfgf"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_udqi3"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4nxkr"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ixmrs"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xvilu"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_goa5v"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5bhqo"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hyrmg"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7n4s1"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_q1hgg"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tukmg"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_k0tdu"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8lrp5"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_16cvv"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1682p"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2lcm0"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_u8dj0"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nnfgv"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_but01"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_itj5h"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kt883"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8lbo5"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_m3jhp"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2l6kh"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sgx6x"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mr7xu"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dpx1t"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_f2scw"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_0u67g"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5qch3"]
+bg_color = Color(0.11, 0.08, 0.06, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.23, 0.17, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rcc48"]
+bg_color = Color(0.08, 0.06, 0.05, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.85, 0.65, 0.25, 0.95)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[node name="NoitaDeckUI" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_pv8r2")
+
+[node name="InventoryOverlay" type="Control" parent="."]
+visible = false
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Backdrop" type="ColorRect" parent="InventoryOverlay"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.04, 0.03, 0.02, 0.85)
+
+[node name="TopBarContainer" type="HBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 10.0
+offset_right = 16.0
+offset_bottom = 10.0
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="WeaponColumn" type="VBoxContainer" parent="TopBarContainer"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 3
+
+[node name="WeaponLabel" type="Label" parent="TopBarContainer/WeaponColumn"]
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.95)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+text = "WEAPON"
+
+[node name="TopIndicatorHBox" type="HBoxContainer" parent="TopBarContainer/WeaponColumn"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="@Label@2" type="Label" parent="TopBarContainer/WeaponColumn/TopIndicatorHBox"]
+custom_minimum_size = Vector2(34, 13)
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+theme_override_colors/font_color = Color(1, 0.92, 0.65, 0.95)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+text = "1"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="@Label@3" type="Label" parent="TopBarContainer/WeaponColumn/TopIndicatorHBox"]
+custom_minimum_size = Vector2(34, 13)
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+theme_override_colors/font_color = Color(1, 0.92, 0.65, 0.95)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="@Label@4" type="Label" parent="TopBarContainer/WeaponColumn/TopIndicatorHBox"]
+custom_minimum_size = Vector2(34, 13)
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+theme_override_colors/font_color = Color(1, 0.92, 0.65, 0.95)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="@Label@5" type="Label" parent="TopBarContainer/WeaponColumn/TopIndicatorHBox"]
+custom_minimum_size = Vector2(34, 13)
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+theme_override_colors/font_color = Color(1, 0.92, 0.65, 0.95)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TopSlotsHBox" type="HBoxContainer" parent="TopBarContainer/WeaponColumn"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="WeaponSlot_0" type="PanelContainer" parent="TopBarContainer/WeaponColumn/TopSlotsHBox"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_kr5i4")
+metadata/slot_type = "quickbar"
+metadata/weapon_idx = -1
+metadata/slot_idx = 0
+
+[node name="@CenterContainer@6" type="CenterContainer" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_0"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_0/@CenterContainer@6"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_0/@CenterContainer@6"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_0"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="WeaponSlot_1" type="PanelContainer" parent="TopBarContainer/WeaponColumn/TopSlotsHBox"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_f1sd8")
+metadata/slot_type = "quickbar"
+metadata/weapon_idx = -1
+metadata/slot_idx = 1
+
+[node name="@CenterContainer@7" type="CenterContainer" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_1"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_1/@CenterContainer@7"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_1/@CenterContainer@7"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_1"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="WeaponSlot_2" type="PanelContainer" parent="TopBarContainer/WeaponColumn/TopSlotsHBox"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_dcdmi")
+metadata/slot_type = "quickbar"
+metadata/weapon_idx = -1
+metadata/slot_idx = 2
+
+[node name="@CenterContainer@8" type="CenterContainer" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_2"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_2/@CenterContainer@8"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_2/@CenterContainer@8"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_2"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="WeaponSlot_3" type="PanelContainer" parent="TopBarContainer/WeaponColumn/TopSlotsHBox"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_h3niw")
+metadata/slot_type = "quickbar"
+metadata/weapon_idx = -1
+metadata/slot_idx = 3
+
+[node name="@CenterContainer@9" type="CenterContainer" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_3"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_3/@CenterContainer@9"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_3/@CenterContainer@9"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/WeaponColumn/TopSlotsHBox/WeaponSlot_3"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="ItemSpacer" type="Control" parent="TopBarContainer"]
+custom_minimum_size = Vector2(10, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ItemColumn" type="VBoxContainer" parent="TopBarContainer"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 3
+
+[node name="ItemLabel" type="Label" parent="TopBarContainer/ItemColumn"]
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.95)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+text = "ITEM"
+
+[node name="IndSpacer" type="Control" parent="TopBarContainer/ItemColumn"]
+custom_minimum_size = Vector2(0, 13)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ItemSlotsHBox" type="HBoxContainer" parent="TopBarContainer/ItemColumn"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="ItemCenter_0" type="CenterContainer" parent="TopBarContainer/ItemColumn/ItemSlotsHBox"]
+custom_minimum_size = Vector2(28, 34)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ItemSlot_0" type="PanelContainer" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_0"]
+custom_minimum_size = Vector2(26, 26)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_nxmwg")
+metadata/slot_type = "item"
+metadata/weapon_idx = -1
+metadata/slot_idx = 0
+
+[node name="@CenterContainer@10" type="CenterContainer" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_0/ItemSlot_0"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_0/ItemSlot_0/@CenterContainer@10"]
+texture_filter = 1
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_0/ItemSlot_0/@CenterContainer@10"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_0/ItemSlot_0"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="ItemCenter_1" type="CenterContainer" parent="TopBarContainer/ItemColumn/ItemSlotsHBox"]
+custom_minimum_size = Vector2(28, 34)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ItemSlot_1" type="PanelContainer" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_1"]
+custom_minimum_size = Vector2(26, 26)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_k40s0")
+metadata/slot_type = "item"
+metadata/weapon_idx = -1
+metadata/slot_idx = 1
+
+[node name="@CenterContainer@11" type="CenterContainer" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_1/ItemSlot_1"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_1/ItemSlot_1/@CenterContainer@11"]
+texture_filter = 1
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_1/ItemSlot_1/@CenterContainer@11"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_1/ItemSlot_1"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="ItemCenter_2" type="CenterContainer" parent="TopBarContainer/ItemColumn/ItemSlotsHBox"]
+custom_minimum_size = Vector2(28, 34)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ItemSlot_2" type="PanelContainer" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_2"]
+custom_minimum_size = Vector2(26, 26)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_gw3hc")
+metadata/slot_type = "item"
+metadata/weapon_idx = -1
+metadata/slot_idx = 2
+
+[node name="@CenterContainer@12" type="CenterContainer" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_2/ItemSlot_2"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_2/ItemSlot_2/@CenterContainer@12"]
+texture_filter = 1
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_2/ItemSlot_2/@CenterContainer@12"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_2/ItemSlot_2"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="ItemCenter_3" type="CenterContainer" parent="TopBarContainer/ItemColumn/ItemSlotsHBox"]
+custom_minimum_size = Vector2(28, 34)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ItemSlot_3" type="PanelContainer" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_3"]
+custom_minimum_size = Vector2(26, 26)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_pilcp")
+metadata/slot_type = "item"
+metadata/weapon_idx = -1
+metadata/slot_idx = 3
+
+[node name="@CenterContainer@13" type="CenterContainer" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_3/ItemSlot_3"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_3/ItemSlot_3/@CenterContainer@13"]
+texture_filter = 1
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_3/ItemSlot_3/@CenterContainer@13"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/ItemColumn/ItemSlotsHBox/ItemCenter_3/ItemSlot_3"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSpacer" type="Control" parent="TopBarContainer"]
+visible = false
+custom_minimum_size = Vector2(94, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="InventoryColumn" type="VBoxContainer" parent="TopBarContainer"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 3
+
+[node name="HeaderHBox" type="HBoxContainer" parent="TopBarContainer/InventoryColumn"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="InventoryLabel" type="Label" parent="TopBarContainer/InventoryColumn/HeaderHBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.95)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+text = "INVENTORY"
+
+[node name="InventoryHint" type="Label" parent="TopBarContainer/InventoryColumn/HeaderHBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+theme_override_colors/font_color = Color(0.85, 0.85, 0.85, 0.8)
+text = "(32 SLOTS)  • Click/Drag to Swap • Right-Click Quick Slot"
+
+[node name="InvIndSpacer" type="Control" parent="TopBarContainer/InventoryColumn"]
+custom_minimum_size = Vector2(0, 13)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="GridContainer" type="GridContainer" parent="TopBarContainer/InventoryColumn"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 4
+columns = 8
+
+[node name="InvSlot_0" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_qtwch")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 0
+
+[node name="@CenterContainer@14" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_0"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_0/@CenterContainer@14"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_0/@CenterContainer@14"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_0"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_1" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_xs1vm")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 1
+
+[node name="@CenterContainer@15" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_1"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_1/@CenterContainer@15"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_1/@CenterContainer@15"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_1"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_2" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_fbfgf")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 2
+
+[node name="@CenterContainer@16" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_2"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_2/@CenterContainer@16"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_2/@CenterContainer@16"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_2"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_3" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_udqi3")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 3
+
+[node name="@CenterContainer@17" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_3"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_3/@CenterContainer@17"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_3/@CenterContainer@17"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_3"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_4" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_4nxkr")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 4
+
+[node name="@CenterContainer@18" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_4"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_4/@CenterContainer@18"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_4/@CenterContainer@18"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_4"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_5" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_ixmrs")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 5
+
+[node name="@CenterContainer@19" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_5"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_5/@CenterContainer@19"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_5/@CenterContainer@19"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_5"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_6" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_xvilu")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 6
+
+[node name="@CenterContainer@20" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_6"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_6/@CenterContainer@20"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_6/@CenterContainer@20"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_6"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_7" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_goa5v")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 7
+
+[node name="@CenterContainer@21" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_7"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_7/@CenterContainer@21"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_7/@CenterContainer@21"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_7"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_8" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_5bhqo")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 8
+
+[node name="@CenterContainer@22" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_8"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_8/@CenterContainer@22"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_8/@CenterContainer@22"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_8"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_9" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_hyrmg")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 9
+
+[node name="@CenterContainer@23" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_9"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_9/@CenterContainer@23"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_9/@CenterContainer@23"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_9"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_10" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_7n4s1")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 10
+
+[node name="@CenterContainer@24" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_10"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_10/@CenterContainer@24"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_10/@CenterContainer@24"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_10"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_11" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_q1hgg")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 11
+
+[node name="@CenterContainer@25" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_11"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_11/@CenterContainer@25"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_11/@CenterContainer@25"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_11"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_12" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_tukmg")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 12
+
+[node name="@CenterContainer@26" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_12"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_12/@CenterContainer@26"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_12/@CenterContainer@26"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_12"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_13" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_k0tdu")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 13
+
+[node name="@CenterContainer@27" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_13"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_13/@CenterContainer@27"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_13/@CenterContainer@27"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_13"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_14" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_8lrp5")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 14
+
+[node name="@CenterContainer@28" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_14"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_14/@CenterContainer@28"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_14/@CenterContainer@28"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_14"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_15" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_16cvv")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 15
+
+[node name="@CenterContainer@29" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_15"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_15/@CenterContainer@29"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_15/@CenterContainer@29"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_15"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_16" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_1682p")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 16
+
+[node name="@CenterContainer@30" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_16"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_16/@CenterContainer@30"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_16/@CenterContainer@30"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_16"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_17" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_2lcm0")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 17
+
+[node name="@CenterContainer@31" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_17"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_17/@CenterContainer@31"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_17/@CenterContainer@31"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_17"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_18" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_u8dj0")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 18
+
+[node name="@CenterContainer@32" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_18"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_18/@CenterContainer@32"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_18/@CenterContainer@32"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_18"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_19" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_nnfgv")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 19
+
+[node name="@CenterContainer@33" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_19"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_19/@CenterContainer@33"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_19/@CenterContainer@33"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_19"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_20" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_but01")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 20
+
+[node name="@CenterContainer@34" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_20"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_20/@CenterContainer@34"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_20/@CenterContainer@34"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_20"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_21" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_itj5h")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 21
+
+[node name="@CenterContainer@35" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_21"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_21/@CenterContainer@35"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_21/@CenterContainer@35"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_21"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_22" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_kt883")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 22
+
+[node name="@CenterContainer@36" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_22"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_22/@CenterContainer@36"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_22/@CenterContainer@36"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_22"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_23" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_8lbo5")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 23
+
+[node name="@CenterContainer@37" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_23"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_23/@CenterContainer@37"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_23/@CenterContainer@37"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_23"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_24" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_m3jhp")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 24
+
+[node name="@CenterContainer@38" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_24"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_24/@CenterContainer@38"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_24/@CenterContainer@38"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_24"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_25" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_2l6kh")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 25
+
+[node name="@CenterContainer@39" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_25"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_25/@CenterContainer@39"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_25/@CenterContainer@39"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_25"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_26" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_sgx6x")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 26
+
+[node name="@CenterContainer@40" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_26"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_26/@CenterContainer@40"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_26/@CenterContainer@40"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_26"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_27" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_mr7xu")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 27
+
+[node name="@CenterContainer@41" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_27"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_27/@CenterContainer@41"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_27/@CenterContainer@41"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_27"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_28" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_dpx1t")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 28
+
+[node name="@CenterContainer@42" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_28"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_28/@CenterContainer@42"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_28/@CenterContainer@42"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_28"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_29" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_f2scw")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 29
+
+[node name="@CenterContainer@43" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_29"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_29/@CenterContainer@43"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_29/@CenterContainer@43"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_29"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_30" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_0u67g")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 30
+
+[node name="@CenterContainer@44" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_30"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_30/@CenterContainer@44"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_30/@CenterContainer@44"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_30"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="InvSlot_31" type="PanelContainer" parent="TopBarContainer/InventoryColumn/GridContainer"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_5qch3")
+script = ExtResource("2_l1ged")
+metadata/slot_type = "inventory"
+metadata/weapon_idx = -1
+metadata/slot_idx = 31
+
+[node name="@CenterContainer@45" type="CenterContainer" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_31"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconRect" type="TextureRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_31/@CenterContainer@45"]
+texture_filter = 1
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotLabel" type="Label" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_31/@CenterContainer@45"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="TopBarContainer/InventoryColumn/GridContainer/InvSlot_31"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.85, 0.2, 0.1, 0)
+
+[node name="AccordionScroll" type="ScrollContainer" parent="."]
+visible = false
+custom_minimum_size = Vector2(360, 420)
+layout_mode = 0
+offset_left = 16.0
+offset_top = 94.0
+offset_right = 16.0
+offset_bottom = 94.0
+horizontal_scroll_mode = 0
+
+[node name="AccordionContainer" type="VBoxContainer" parent="AccordionScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="TooltipPanel" type="PanelContainer" parent="."]
+visible = false
+top_level = true
+layout_mode = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_rcc48")
+
+[node name="MarginContainer" type="MarginContainer" parent="TooltipPanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="VBoxContainer" type="VBoxContainer" parent="TooltipPanel/MarginContainer"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 3
+
+[node name="TitleLabel" type="Label" parent="TooltipPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+
+[node name="TypeLabel" type="Label" parent="TooltipPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+
+[node name="StatsLabel" type="Label" parent="TooltipPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.88, 0.92, 0.95, 1)
+
+[node name="DescLabel" type="Label" parent="TooltipPanel/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(230, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+theme_override_colors/font_color = Color(0.72, 0.68, 0.62, 1)
+autowrap_mode = 3

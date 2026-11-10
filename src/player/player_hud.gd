@@ -22,6 +22,9 @@ var _status_banner: Label
 
 const FPS_CAP_PRESETS: Array[int] = [120, 165, 0, 60]
 var _fps_cap_index: int = 0
+var _noita_deck_ui: NoitaDeckUI
+
+const NoitaDeckUI = preload("res://src/combat/ui/noita_deck_ui.gd")
 
 func cycle_fps_cap() -> int:
 	_fps_cap_index = (_fps_cap_index + 1) % FPS_CAP_PRESETS.size()
@@ -45,31 +48,57 @@ func _ready() -> void:
 	mouse_filter = MOUSE_FILTER_IGNORE
 	set_anchors_preset(PRESET_FULL_RECT)
 
-	_debug_label = Label.new()
-	_debug_label.position = Vector2(16, 16)
-	_debug_label.add_theme_color_override("font_color", Color.WHITE)
-	_debug_label.add_theme_color_override("font_shadow_color", Color.BLACK)
-	_debug_label.add_theme_constant_override("shadow_offset_x", 1)
-	_debug_label.add_theme_constant_override("shadow_offset_y", 1)
-	_debug_label.visible = show_debug
-	add_child(_debug_label)
+	if has_node("DebugLabel"):
+		_debug_label = get_node("DebugLabel") as Label
+		_debug_label.visible = show_debug
+	else:
+		_debug_label = Label.new()
+		_debug_label.name = "DebugLabel"
+		_debug_label.position = Vector2(16, 85)
+		_debug_label.add_theme_color_override("font_color", Color.WHITE)
+		_debug_label.add_theme_color_override("font_shadow_color", Color.BLACK)
+		_debug_label.add_theme_constant_override("shadow_offset_x", 1)
+		_debug_label.add_theme_constant_override("shadow_offset_y", 1)
+		_debug_label.visible = show_debug
+		add_child(_debug_label)
 
-	_status_banner = Label.new()
-	_status_banner.anchor_left = 0.5
-	_status_banner.anchor_top = 0.0
-	_status_banner.anchor_right = 0.5
-	_status_banner.anchor_bottom = 0.0
-	_status_banner.offset_left = -250
-	_status_banner.offset_top = 32
-	_status_banner.offset_right = 250
-	_status_banner.offset_bottom = 64
-	_status_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_status_banner.add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
-	_status_banner.add_theme_color_override("font_shadow_color", Color.BLACK)
-	_status_banner.add_theme_constant_override("shadow_offset_x", 1)
-	_status_banner.add_theme_constant_override("shadow_offset_y", 1)
-	_status_banner.visible = false
-	add_child(_status_banner)
+	if has_node("StatusBanner"):
+		_status_banner = get_node("StatusBanner") as Label
+		_status_banner.visible = false
+	else:
+		_status_banner = Label.new()
+		_status_banner.name = "StatusBanner"
+		_status_banner.anchor_left = 0.5
+		_status_banner.anchor_top = 0.0
+		_status_banner.anchor_right = 0.5
+		_status_banner.anchor_bottom = 0.0
+		_status_banner.offset_left = -250
+		_status_banner.offset_top = 32
+		_status_banner.offset_right = 250
+		_status_banner.offset_bottom = 64
+		_status_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_status_banner.add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
+		_status_banner.add_theme_color_override("font_shadow_color", Color.BLACK)
+		_status_banner.add_theme_constant_override("shadow_offset_x", 1)
+		_status_banner.add_theme_constant_override("shadow_offset_y", 1)
+		_status_banner.visible = false
+		add_child(_status_banner)
+
+	if has_node("NoitaDeckUI"):
+		_noita_deck_ui = get_node("NoitaDeckUI") as NoitaDeckUI
+	elif ResourceLoader.exists("res://scenes/ui/noita_deck_ui.tscn"):
+		var packed = load("res://scenes/ui/noita_deck_ui.tscn") as PackedScene
+		_noita_deck_ui = packed.instantiate() as NoitaDeckUI
+		_noita_deck_ui.name = "NoitaDeckUI"
+		add_child(_noita_deck_ui)
+	else:
+		_noita_deck_ui = NoitaDeckUI.new()
+		_noita_deck_ui.name = "NoitaDeckUI"
+		add_child(_noita_deck_ui)
+
+	_noita_deck_ui.player_motor = player_motor
+	if player_motor != null:
+		_noita_deck_ui.floating_sword = player_motor.floating_sword
 
 	if player_motor != null:
 		player_motor.fired.connect(_on_player_fired)
@@ -78,6 +107,12 @@ func _ready() -> void:
 		voxel_world.spawn_mode_changed.connect(_on_spawn_mode_changed)
 
 func _process(delta: float) -> void:
+	if _noita_deck_ui != null:
+		if _noita_deck_ui.player_motor == null and player_motor != null:
+			_noita_deck_ui.player_motor = player_motor
+		if _noita_deck_ui.floating_sword == null and player_motor != null:
+			_noita_deck_ui.floating_sword = player_motor.floating_sword
+
 	if _hit_marker_time > 0.0:
 		_hit_marker_time -= delta
 		queue_redraw()

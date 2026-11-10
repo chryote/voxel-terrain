@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="MotionCard" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/combat/techniques/motions/motion_card.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+card_id = "downcleave"
+card_name = "Downward Cleave"
+description = "Crushing overhead slam dealing high poise break and knockback."
+stamina_cost = 24.0
+execution_duration = 0.36
+recovery_delay = 0.42
+inner_radius = 0.80
+outer_radius = 2.8
+arc_sweep_degrees = 140.0
+volume_thickness = 0.32
+outer_height = 0.035
+tilt_degrees = -42.0
+is_reversed_sweep = false
+core_color = Color(1.0, 0.95, 0.85, 1)
+edge_color = Color(1.0, 0.65, 0.2, 1)
+deep_color = Color(0.65, 0.15, 0.05, 1)
+emission_intensity = 5.2
+trail_dissolve_rate = 0.75
+base_damage = 48.0
+poise_damage = 40.0
+knockback_force = 14.0
+elemental_type = 0
+

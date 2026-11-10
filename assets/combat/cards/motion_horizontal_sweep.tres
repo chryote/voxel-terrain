@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="MotionCard" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/combat/techniques/motions/motion_card.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+card_id = "horizontal_sweep"
+card_name = "Horizontal Sweep"
+description = "Wide 130° cleaving arc effective against multiple targets."
+stamina_cost = 12.0
+execution_duration = 0.22
+recovery_delay = 0.16
+inner_radius = 0.75
+outer_radius = 2.5
+arc_sweep_degrees = 130.0
+volume_thickness = 0.22
+outer_height = 0.025
+tilt_degrees = -10.0
+is_reversed_sweep = false
+core_color = Color(0.9, 0.96, 1, 1)
+edge_color = Color(0.15, 0.75, 1, 1)
+deep_color = Color(0.02, 0.18, 0.75, 1)
+emission_intensity = 4.5
+trail_dissolve_rate = 0.65
+base_damage = 25.0
+poise_damage = 15.0
+knockback_force = 6.0
+elemental_type = 0
+

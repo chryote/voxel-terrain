@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="TriggerCard" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/combat/techniques/triggers/trigger_card.gd" id="1_script"]
+[ext_resource type="Resource" path="res://assets/combat/cards/motion_downcleave.tres" id="2_downcleave"]
+
+[resource]
+script = ExtResource("1_script")
+card_id = "on_hit_trigger"
+card_name = "On-Hit Trigger"
+description = "Payload Trigger: upon striking an enemy or terrain, immediately triggers nested Downward Cleave!"
+stamina_cost = 20.0
+trigger_type = 0
+timer_delay = 0.12
+payload_cards = [ExtResource("2_downcleave")]
+

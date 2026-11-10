@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="MeleeWeaponDef" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://src/combat/core/melee_weapon_def.gd" id="1_def"]
+[ext_resource type="Script" path="res://src/combat/visuals/sword_mesh_builder.gd" id="2_mesh"]
+[ext_resource type="Resource" path="res://assets/combat/cards/mod_swift_edge.tres" id="3_swift"]
+[ext_resource type="Resource" path="res://assets/combat/cards/motion_piercing_thrust.tres" id="4_thrust"]
+[ext_resource type="Resource" path="res://assets/combat/cards/motion_upswing.tres" id="5_upswing"]
+
+[resource]
+script = ExtResource("1_def")
+weapon_id = "flurry_rapier"
+display_name = "Flurry Rapier"
+description = "Lightweight thrusting frame designed for lightning-fast consecutive strikes."
+mesh_builder = ExtResource("2_mesh")
+float_offset_right = 0.62
+float_offset_height = 0.92
+float_offset_forward = -0.08
+float_tilt_degrees = Vector3(22, -10, 8)
+slot_capacity = 6
+slotted_techniques = [ExtResource("3_swift"), ExtResource("4_thrust"), ExtResource("5_upswing")]
+is_shuffle = false
+deck_recharge_time = 0.35
+base_damage_multiplier = 0.95
+stamina_cost_multiplier = 0.85
+

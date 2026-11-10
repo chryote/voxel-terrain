@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ModifierCard" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/combat/techniques/modifiers/modifier_card.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+card_id = "swift_edge"
+card_name = "Swift Edge"
+description = "Lightens the blade: -35% execution duration and -45% recovery delay for high attack frequency."
+stamina_cost = 4.0
+execution_duration_multiplier = 0.65
+recovery_delay_multiplier = 0.55
+damage_multiplier = 0.90
+poise_multiplier = 0.85
+elemental_override = -1
+color_tint = Color(0.3, 1.0, 0.8, 1)
+emission_multiplier = 1.2
+radius_multiplier = 0.95
+arc_sweep_multiplier = 1.05
+thickness_multiplier = 0.85
+player_lunge_distance = 0.5
+

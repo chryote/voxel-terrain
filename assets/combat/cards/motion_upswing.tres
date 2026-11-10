@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="MotionCard" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/combat/techniques/motions/motion_card.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+card_id = "upswing"
+card_name = "Upswing Cut"
+description = "Fast upward slice that lifts lightweight targets."
+stamina_cost = 10.0
+execution_duration = 0.18
+recovery_delay = 0.12
+inner_radius = 0.70
+outer_radius = 2.4
+arc_sweep_degrees = 135.0
+volume_thickness = 0.20
+outer_height = 0.025
+tilt_degrees = 32.0
+is_reversed_sweep = true
+core_color = Color(0.95, 0.98, 1, 1)
+edge_color = Color(0.2, 0.85, 1, 1)
+deep_color = Color(0.04, 0.25, 0.85, 1)
+emission_intensity = 4.8
+trail_dissolve_rate = 0.60
+base_damage = 22.0
+poise_damage = 20.0
+knockback_force = 8.0
+elemental_type = 0
+

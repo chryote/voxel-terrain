@@ -3,8 +3,8 @@
 [ext_resource type="Script" path="res://src/player/player_motor.gd" id="1_motor"]
 [ext_resource type="Script" path="res://src/player/player_input.gd" id="2_input"]
 [ext_resource type="Script" path="res://src/player/third_person_camera.gd" id="3_camera"]
-[ext_resource type="Script" path="res://src/player/player_hud.gd" id="4_hud"]
-[ext_resource type="Script" path="res://src/map/continent_map_ui.gd" id="5_map"]
+[ext_resource type="PackedScene" path="res://scenes/ui/player_hud.tscn" id="4_hud_scene"]
+[ext_resource type="PackedScene" path="res://scenes/ui/continent_map_ui.tscn" id="5_map_scene"]
 [ext_resource type="Shader" path="res://shaders/character/weathered_capsule.gdshader" id="6_capsule_shader"]
 [ext_resource type="Script" path="res://src/player/contact_shadow_projector.gd" id="8_contact_shadow"]
 [ext_resource type="Script" path="res://src/rendering/ash_fall_emitter.gd" id="9_ash_emitter"]
@@ -69,25 +69,11 @@ script = ExtResource("3_camera")
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 layer = 10
 
-[node name="PlayerHUD" type="Control" parent="CanvasLayer" node_paths=PackedStringArray("player_motor")]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("4_hud")
+[node name="PlayerHUD" parent="CanvasLayer" node_paths=PackedStringArray("player_motor") instance=ExtResource("4_hud_scene")]
 player_motor = NodePath("../..")
 
-[node name="ContinentMapUI" type="Control" parent="CanvasLayer" node_paths=PackedStringArray("player_motor")]
+[node name="ContinentMapUI" parent="CanvasLayer" node_paths=PackedStringArray("player_motor") instance=ExtResource("5_map_scene")]
 visible = false
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("5_map")
 player_motor = NodePath("../..")
 
 [node name="AshFallEmitter" type="GPUParticles3D" parent="."]

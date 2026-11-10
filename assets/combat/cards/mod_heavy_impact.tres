@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ModifierCard" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/combat/techniques/modifiers/modifier_card.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+card_id = "heavy_impact"
+card_name = "Heavy Impact"
+description = "Massive kinetic weight: +60% damage and larger arc, with slower execution and longer recovery."
+stamina_cost = 14.0
+execution_duration_multiplier = 1.35
+recovery_delay_multiplier = 1.45
+damage_multiplier = 1.60
+poise_multiplier = 1.80
+elemental_override = -1
+color_tint = Color(1.0, 0.85, 0.45, 1)
+emission_multiplier = 1.35
+radius_multiplier = 1.25
+arc_sweep_multiplier = 1.15
+thickness_multiplier = 1.40
+player_lunge_distance = 0.8
+

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MulticastCard" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/combat/techniques/multicast/multicast_card.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+card_id = "double_slash"
+card_name = "Double Slash"
+description = "Multicast formation: resolves 2 subsequent motion cards simultaneously in one swing action."
+stamina_cost = 16.0
+simultaneous_count = 2
+formation_tilt_offset = 36.0
+reverse_second_sweep = true
+

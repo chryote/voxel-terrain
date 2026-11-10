@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="MeleeWeaponDef" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://src/combat/core/melee_weapon_def.gd" id="1_def"]
+[ext_resource type="Script" path="res://src/combat/visuals/sword_mesh_builder.gd" id="2_mesh"]
+[ext_resource type="Resource" path="res://assets/combat/cards/motion_horizontal_sweep.tres" id="3_sweep"]
+[ext_resource type="Resource" path="res://assets/combat/cards/motion_upswing.tres" id="4_upswing"]
+[ext_resource type="Resource" path="res://assets/combat/cards/motion_downcleave.tres" id="5_downcleave"]
+
+[resource]
+script = ExtResource("1_def")
+weapon_id = "apprentice_blade"
+display_name = "Apprentice Blade"
+description = "A balanced steel blade frame slotted with foundational sword techniques."
+mesh_builder = ExtResource("2_mesh")
+float_offset_right = 0.68
+float_offset_height = 0.95
+float_offset_forward = -0.12
+float_tilt_degrees = Vector3(18, -12, 10)
+slot_capacity = 5
+slotted_techniques = [ExtResource("3_sweep"), ExtResource("4_upswing"), ExtResource("5_downcleave")]
+is_shuffle = false
+deck_recharge_time = 0.55
+base_damage_multiplier = 1.0
+stamina_cost_multiplier = 1.0
+

@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="MotionCard" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/combat/techniques/motions/motion_card.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+card_id = "piercing_thrust"
+card_name = "Piercing Thrust"
+description = "Ultra-fast direct linear thrust with high penetration."
+stamina_cost = 8.0
+execution_duration = 0.14
+recovery_delay = 0.10
+inner_radius = 0.50
+outer_radius = 2.9
+arc_sweep_degrees = 35.0
+volume_thickness = 0.16
+outer_height = 0.02
+tilt_degrees = 0.0
+is_reversed_sweep = false
+core_color = Color(1.0, 1.0, 1.0, 1)
+edge_color = Color(0.4, 0.9, 1.0, 1)
+deep_color = Color(0.1, 0.4, 0.9, 1)
+emission_intensity = 5.5
+trail_dissolve_rate = 0.50
+base_damage = 28.0
+poise_damage = 18.0
+knockback_force = 5.0
+elemental_type = 0
+

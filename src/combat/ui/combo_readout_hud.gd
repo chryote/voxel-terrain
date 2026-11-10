@@ -4,12 +4,19 @@ extends Control
 ## On-screen HUD displaying the active melee weapon frame, slotted technique cards,
 ## active card highlight, and cooldown / recharge progress bar.
 
-const FloatingSwordController = preload("res://src/combat/visuals/floating_sword_controller.gd")
+const FloatingWeaponController = preload("res://src/combat/visuals/floating_weapon_controller.gd")
 const MeleeDeckEvaluator = preload("res://src/combat/core/melee_deck_evaluator.gd")
 const MotionCard = preload("res://src/combat/techniques/motions/motion_card.gd")
 const ModifierCard = preload("res://src/combat/techniques/modifiers/modifier_card.gd")
 
-@export var floating_sword: FloatingSwordController
+@export var floating_weapon: FloatingWeaponController
+
+## Compatibility alias for code checking floating_sword
+var floating_sword: FloatingWeaponController:
+	get:
+		return floating_weapon
+	set(val):
+		floating_weapon = val
 
 var _weapon_name_label: Label
 var _cards_container: HBoxContainer

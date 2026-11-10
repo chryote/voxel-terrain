@@ -3,7 +3,7 @@ extends CharacterBody3D
 
 ## Character controller with camera-relative movement, sprinting, jumping, and step-assist.
 
-const FloatingSwordController = preload("res://src/combat/visuals/floating_sword_controller.gd")
+const FloatingWeaponController = preload("res://src/combat/visuals/floating_weapon_controller.gd")
 
 @export var walk_speed: float = 6.0
 @export var sprint_speed: float = 10.5
@@ -15,7 +15,14 @@ const FloatingSwordController = preload("res://src/combat/visuals/floating_sword
 @export var player_input: PlayerInput
 @export var camera_rig: ThirdPersonCamera
 @export var visual_assembler: PawnVisualAssembler
-@export var floating_sword: FloatingSwordController
+@export var floating_weapon: FloatingWeaponController
+
+## Compatibility alias for code checking floating_sword
+var floating_sword: FloatingWeaponController:
+	get:
+		return floating_weapon
+	set(val):
+		floating_weapon = val
 
 signal fired(raycast_hit: Dictionary)
 
@@ -25,8 +32,10 @@ func _ready() -> void:
 	floor_snap_length = 0.4
 	floor_constant_speed = true
 	floor_max_angle = deg_to_rad(46.0)
-	if floating_sword == null:
-		floating_sword = get_node_or_null("FloatingSwordController") as FloatingSwordController
+	if floating_weapon == null:
+		floating_weapon = get_node_or_null("FloatingWeaponController") as FloatingWeaponController
+	if floating_weapon == null:
+		floating_weapon = get_node_or_null("FloatingSwordController") as FloatingWeaponController
 
 func _physics_process(delta: float) -> void:
 	if player_input == null or camera_rig == null:
@@ -38,15 +47,15 @@ func _physics_process(delta: float) -> void:
 	# Firing / attacking query: auto-attack while held, reset card sequence on release
 	var wants_attack = intent.fire_held or intent.fire_requested
 	if wants_attack:
-		if floating_sword != null:
-			floating_sword.attack(camera_rig)
+		if floating_weapon != null:
+			floating_weapon.attack(camera_rig)
 		else:
 			if intent.fire_requested:
 				var hit = camera_rig.get_aim_raycast(300.0)
 				fired.emit(hit)
 	elif intent.fire_released or (_was_fire_held and not wants_attack):
-		if floating_sword != null:
-			floating_sword.reset_card_sequence()
+		if floating_weapon != null:
+			floating_weapon.reset_card_sequence()
 
 	_was_fire_held = wants_attack
 

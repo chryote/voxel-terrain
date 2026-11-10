@@ -6,13 +6,13 @@ extends Resource
 ## All combat execution (VFX, speed, frequency) is dictated by slotted TechniqueCards.
 
 const TechniqueCard = preload("res://src/combat/core/technique_card.gd")
-const SwordMeshBuilder = preload("res://src/combat/visuals/sword_mesh_builder.gd")
+const ProceduralWeaponEngine = preload("res://src/combat/generator/procedural_weapon_engine.gd")
 
 @export_group("Identity & Visual Profile")
-@export var weapon_id: String = "novice_longsword"
-@export var display_name: String = "Novice Longsword"
-@export_multiline var description: String = "A balanced steel blade that serves as a modular technique frame."
-@export var mesh_builder: Script = SwordMeshBuilder
+@export var weapon_id: String = "procedural_weapon"
+@export var display_name: String = "Modular Weapon"
+@export_multiline var description: String = "A procedural voxel weapon frame that serves as a modular technique stance."
+@export var mesh_builder: Script = ProceduralWeaponEngine
 @export var icon: Texture2D = null
 @export var procedural_data: Dictionary = {}
 

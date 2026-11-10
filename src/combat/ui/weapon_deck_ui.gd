@@ -7,7 +7,7 @@ extends Control
 ## (WEAPON, ITEM, INVENTORY), places weapon accordion directly under the top-left weapon quick access,
 ## breaks weapon accordion sockets per 10 slots (rows of 10), and ensures ITEM slots NEVER move away from WEAPON slots.
 
-const FloatingSwordController = preload("res://src/combat/visuals/floating_sword_controller.gd")
+const FloatingWeaponController = preload("res://src/combat/visuals/floating_weapon_controller.gd")
 const MeleeWeaponDef = preload("res://src/combat/core/melee_weapon_def.gd")
 const TechniqueCard = preload("res://src/combat/core/technique_card.gd")
 const MotionCard = preload("res://src/combat/techniques/motions/motion_card.gd")
@@ -17,7 +17,15 @@ const TriggerCard = preload("res://src/combat/techniques/triggers/trigger_card.g
 const MeleeDeckEvaluator = preload("res://src/combat/core/melee_deck_evaluator.gd")
 const WeaponIconFactory = preload("res://src/combat/ui/weapon_icon_factory.gd")
 
-@export var floating_sword: FloatingSwordController
+@export var floating_weapon: FloatingWeaponController
+
+## Compatibility alias for code checking floating_sword
+var floating_sword: FloatingWeaponController:
+	get:
+		return floating_weapon
+	set(val):
+		floating_weapon = val
+
 @export var player_motor: PlayerMotor
 
 # UI Modes
@@ -98,9 +106,9 @@ func _ready() -> void:
 		_setup_accordion_section()
 		_setup_tooltip()
 
-	if floating_sword != null:
-		floating_sword.inventory_updated.connect(_on_inventory_data_changed)
-		floating_sword.weapon_equipped.connect(_on_weapon_equipped)
+	if floating_weapon != null:
+		floating_weapon.inventory_updated.connect(_on_inventory_data_changed)
+		floating_weapon.weapon_equipped.connect(_on_weapon_equipped)
 
 	_update_ui_state()
 
@@ -577,7 +585,7 @@ func _setup_drag_and_drop(box: PanelContainer, slot_type: String, weapon_idx: in
 	box.set("slot_idx", slot_idx)
 
 func handle_slot_drop(data: Dictionary, target_box: Control) -> void:
-	if floating_sword == null or not (data is Dictionary and data.has("card")):
+	if floating_weapon == null or not (data is Dictionary and data.has("card")):
 		return
 
 	var src_type = data.get("source", "")
@@ -589,16 +597,16 @@ func handle_slot_drop(data: Dictionary, target_box: Control) -> void:
 	var tgt_s = target_box.get("slot_idx") if "slot_idx" in target_box else target_box.get_meta("slot_idx", -1)
 
 	if src_type == "inventory" and tgt_type == "inventory":
-		floating_sword.swap_inventory_slots(src_s, tgt_s)
+		floating_weapon.swap_inventory_slots(src_s, tgt_s)
 	elif src_type == "weapon" and tgt_type == "inventory":
-		floating_sword.swap_weapon_and_inventory(src_w, src_s, tgt_s)
+		floating_weapon.swap_weapon_and_inventory(src_w, src_s, tgt_s)
 	elif src_type == "inventory" and tgt_type == "weapon":
-		floating_sword.swap_weapon_and_inventory(tgt_w, tgt_s, src_s)
+		floating_weapon.swap_weapon_and_inventory(tgt_w, tgt_s, src_s)
 	elif src_type == "weapon" and tgt_type == "weapon":
 		if src_w == tgt_w:
-			floating_sword.swap_weapon_sockets(src_s, tgt_s)
+			floating_weapon.swap_weapon_sockets(src_s, tgt_s)
 		else:
-			floating_sword.swap_between_weapons(src_w, src_s, tgt_w, tgt_s)
+			floating_weapon.swap_between_weapons(src_w, src_s, tgt_w, tgt_s)
 
 	_clear_selection()
 	_rebuild_inventory_ui()
@@ -615,8 +623,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 		if not _is_inventory_open and event.physical_keycode in [KEY_1, KEY_2, KEY_3, KEY_4]:
 			var idx = event.physical_keycode - KEY_1
-			if floating_sword != null:
-				floating_sword.equip_weapon_index(idx)
+			if floating_weapon != null:
+				floating_weapon.equip_weapon_index(idx)
 			_mark_handled()
 			return
 
@@ -686,11 +694,11 @@ func _process(_delta: float) -> void:
 		_tooltip_panel.position = mouse_pos + Vector2(16, 16)
 
 func _update_quickbar_cooldowns() -> void:
-	if floating_sword == null:
+	if floating_weapon == null:
 		return
 
-	var active_idx = floating_sword.active_weapon_index
-	var evaluator = floating_sword.get_evaluator()
+	var active_idx = floating_weapon.active_weapon_index
+	var evaluator = floating_weapon.get_evaluator()
 
 	for i in range(_hud_weapon_boxes.size()):
 		var box = _hud_weapon_boxes[i]
@@ -718,11 +726,11 @@ func _update_quickbar_cooldowns() -> void:
 ## STATE SYNCHRONIZATION
 ## -----------------------------------------------------------------------------
 func _update_ui_state() -> void:
-	if floating_sword == null:
+	if floating_weapon == null:
 		return
 
-	var weapons = floating_sword.weapons
-	var active_idx = floating_sword.active_weapon_index
+	var weapons = floating_weapon.weapons
+	var active_idx = floating_weapon.active_weapon_index
 
 	for i in range(_hud_weapon_boxes.size()):
 		var box = _hud_weapon_boxes[i]
@@ -766,15 +774,15 @@ func _update_ui_state() -> void:
 ## ACCORDIONS & 32-GRID REBUILD
 ## -----------------------------------------------------------------------------
 func _rebuild_inventory_ui() -> void:
-	if floating_sword == null:
+	if floating_weapon == null:
 		return
 
 	# 1. Rebuild Weapon Accordions
 	for c in _accordion_container.get_children():
 		c.queue_free()
 
-	var weapons = floating_sword.weapons
-	var active_idx = floating_sword.active_weapon_index
+	var weapons = floating_weapon.weapons
+	var active_idx = floating_weapon.active_weapon_index
 
 	for w_idx in range(weapons.size()):
 		var w = weapons[w_idx]
@@ -785,7 +793,7 @@ func _rebuild_inventory_ui() -> void:
 		_accordion_container.add_child(acc_panel)
 
 	# 2. Rebuild Extensive 32 Inventory Grid
-	var inv_cards = floating_sword.inventory_cards
+	var inv_cards = floating_weapon.inventory_cards
 	for i in range(_inventory_boxes.size()):
 		var box = _inventory_boxes[i]
 		var icon_rect = box.get_node_or_null("CenterContainer/IconRect") as TextureRect
@@ -884,7 +892,7 @@ func _create_weapon_accordion_card(w: MeleeWeaponDef, w_idx: int, is_active: boo
 	w_icon_box.mouse_filter = MOUSE_FILTER_STOP
 	w_icon_box.gui_input.connect(func(ev):
 		if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT and ev.pressed:
-			floating_sword.equip_weapon_index(w_idx)
+			floating_weapon.equip_weapon_index(w_idx)
 	)
 	top_hbox.add_child(w_icon_box)
 
@@ -992,59 +1000,59 @@ func _disconnect_mouse_signals(box: PanelContainer) -> void:
 ## -----------------------------------------------------------------------------
 func _on_hud_box_clicked(event: InputEvent, box_idx: int) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		if floating_sword != null:
-			floating_sword.equip_weapon_index(box_idx)
+		if floating_weapon != null:
+			floating_weapon.equip_weapon_index(box_idx)
 			_update_ui_state()
 
 func _on_inventory_slot_clicked(event: InputEvent, slot_idx: int) -> void:
 	if not (event is InputEventMouseButton and event.pressed):
 		return
-	if floating_sword == null:
+	if floating_weapon == null:
 		return
 
 	if event.button_index == MOUSE_BUTTON_RIGHT:
-		floating_sword.quick_slot_card(slot_idx)
+		floating_weapon.quick_slot_card(slot_idx)
 		_clear_selection()
 		_rebuild_inventory_ui()
 		return
 
 	if event.button_index == MOUSE_BUTTON_LEFT:
 		if _selected_source == "":
-			if slot_idx < floating_sword.inventory_cards.size() and floating_sword.inventory_cards[slot_idx] != null:
+			if slot_idx < floating_weapon.inventory_cards.size() and floating_weapon.inventory_cards[slot_idx] != null:
 				_selected_source = "inventory"
 				_selected_slot_idx = slot_idx
-				_selected_card = floating_sword.inventory_cards[slot_idx]
+				_selected_card = floating_weapon.inventory_cards[slot_idx]
 				_rebuild_inventory_ui()
 		elif _selected_source == "inventory":
 			if _selected_slot_idx == slot_idx:
 				_clear_selection()
 				_rebuild_inventory_ui()
 			else:
-				floating_sword.swap_inventory_slots(_selected_slot_idx, slot_idx)
+				floating_weapon.swap_inventory_slots(_selected_slot_idx, slot_idx)
 				_clear_selection()
 				_rebuild_inventory_ui()
 		elif _selected_source == "weapon":
-			floating_sword.swap_weapon_and_inventory(_selected_weapon_idx, _selected_slot_idx, slot_idx)
+			floating_weapon.swap_weapon_and_inventory(_selected_weapon_idx, _selected_slot_idx, slot_idx)
 			_clear_selection()
 			_rebuild_inventory_ui()
 
 func _on_weapon_socket_clicked(event: InputEvent, w_idx: int, s_idx: int) -> void:
 	if not (event is InputEventMouseButton and event.pressed):
 		return
-	if floating_sword == null:
+	if floating_weapon == null:
 		return
 
-	if floating_sword.active_weapon_index != w_idx:
-		floating_sword.equip_weapon_index(w_idx)
+	if floating_weapon.active_weapon_index != w_idx:
+		floating_weapon.equip_weapon_index(w_idx)
 
 	if event.button_index == MOUSE_BUTTON_RIGHT:
-		floating_sword.quick_unslot_card(w_idx, s_idx)
+		floating_weapon.quick_unslot_card(w_idx, s_idx)
 		_clear_selection()
 		_rebuild_inventory_ui()
 		return
 
 	if event.button_index == MOUSE_BUTTON_LEFT:
-		var w = floating_sword.weapons[w_idx] if w_idx < floating_sword.weapons.size() else null
+		var w = floating_weapon.weapons[w_idx] if w_idx < floating_weapon.weapons.size() else null
 		if _selected_source == "":
 			if w != null and s_idx < w.slotted_techniques.size() and w.slotted_techniques[s_idx] != null:
 				_selected_source = "weapon"
@@ -1053,7 +1061,7 @@ func _on_weapon_socket_clicked(event: InputEvent, w_idx: int, s_idx: int) -> voi
 				_selected_card = w.slotted_techniques[s_idx]
 				_rebuild_inventory_ui()
 		elif _selected_source == "inventory":
-			floating_sword.swap_weapon_and_inventory(w_idx, s_idx, _selected_slot_idx)
+			floating_weapon.swap_weapon_and_inventory(w_idx, s_idx, _selected_slot_idx)
 			_clear_selection()
 			_rebuild_inventory_ui()
 		elif _selected_source == "weapon":
@@ -1061,11 +1069,11 @@ func _on_weapon_socket_clicked(event: InputEvent, w_idx: int, s_idx: int) -> voi
 				_clear_selection()
 				_rebuild_inventory_ui()
 			elif _selected_weapon_idx == w_idx:
-				floating_sword.swap_weapon_sockets(_selected_slot_idx, s_idx)
+				floating_weapon.swap_weapon_sockets(_selected_slot_idx, s_idx)
 				_clear_selection()
 				_rebuild_inventory_ui()
 			else:
-				floating_sword.swap_between_weapons(_selected_weapon_idx, _selected_slot_idx, w_idx, s_idx)
+				floating_weapon.swap_between_weapons(_selected_weapon_idx, _selected_slot_idx, w_idx, s_idx)
 				_clear_selection()
 				_rebuild_inventory_ui()
 

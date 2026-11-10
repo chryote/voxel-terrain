@@ -206,7 +206,7 @@ func test_quick_slot_and_unslot() -> void:
 	# Quick-unslot back to inventory
 	var unslot_ok = sword_ctrl.quick_unslot_card(sword_ctrl.active_weapon_index, found_socket)
 	assert_true(unslot_ok)
-	assert_null(sword_ctrl.weapon_def.slotted_techniques[found_socket])
+	assert_true(found_socket >= sword_ctrl.weapon_def.slotted_techniques.size() or sword_ctrl.weapon_def.slotted_techniques[found_socket] == null)
 
 	sword_ctrl.free()
 

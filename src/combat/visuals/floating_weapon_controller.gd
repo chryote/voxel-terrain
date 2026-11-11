@@ -180,12 +180,44 @@ func unslot_card(socket_idx: int) -> bool:
 	inventory_updated.emit()
 	return true
 
+func swap_weapons(idx_a: int, idx_b: int) -> bool:
+	if idx_a < 0 or idx_b < 0 or idx_a >= 4 or idx_b >= 4:
+		return false
+	if idx_a == idx_b:
+		return true
+
+	var max_idx = maxi(idx_a, idx_b)
+	while weapons.size() <= max_idx:
+		weapons.append(null)
+
+	if weapons[idx_a] == null and weapons[idx_b] == null:
+		return false
+
+	var temp = weapons[idx_a]
+	weapons[idx_a] = weapons[idx_b]
+	weapons[idx_b] = temp
+
+	if active_weapon_index == idx_a:
+		active_weapon_index = idx_b
+	elif active_weapon_index == idx_b:
+		active_weapon_index = idx_a
+
+	if active_weapon_index >= 0 and active_weapon_index < weapons.size() and weapons[active_weapon_index] != null:
+		weapon_def = weapons[active_weapon_index]
+
+	inventory_updated.emit()
+	return true
+
 func swap_weapon_sockets(slot_a: int, slot_b: int) -> bool:
 	if weapon_def == null:
 		return false
-	var count = weapon_def.slotted_techniques.size()
-	if slot_a < 0 or slot_a >= count or slot_b < 0 or slot_b >= count:
+	var capacity = weapon_def.slot_capacity
+	if slot_a < 0 or slot_a >= capacity or slot_b < 0 or slot_b >= capacity:
 		return false
+
+	var max_slot = maxi(slot_a, slot_b)
+	while weapon_def.slotted_techniques.size() <= max_slot:
+		weapon_def.slotted_techniques.append(null)
 
 	var temp = weapon_def.slotted_techniques[slot_a]
 	weapon_def.slotted_techniques[slot_a] = weapon_def.slotted_techniques[slot_b]

@@ -84,6 +84,24 @@ var _accordion_scroll: ScrollContainer
 var _accordion_container: VBoxContainer
 var _grid_container: GridContainer
 var _inventory_boxes: Array[PanelContainer] = []
+var _accordion_weapon_boxes: Array[PanelContainer] = []
+var _accordion_socket_boxes: Array[PanelContainer] = []
+
+# Drag-and-Drop & Fly-Back State
+const FLY_BACK_DURATION: float = 0.20
+var _drag_proxy: PanelContainer
+var _drag_proxy_style: StyleBoxFlat
+var _drag_proxy_icon: TextureRect
+var _is_dragging: bool = false
+var _drag_from_mouse_input: bool = false
+var _drag_data: Dictionary = {}
+var _hovered_drop_box: Control = null
+var _hovered_drop_prev_border: Color = COLOR_SLOT_BORDER
+var _is_flying_back: bool = false
+var _fly_back_elapsed: float = 0.0
+var _fly_back_start_pos: Vector2 = Vector2.ZERO
+var _fly_back_target_pos: Vector2 = Vector2.ZERO
+var _fly_back_origin_box: Control = null
 
 # Constants
 const INVENTORY_GRID_COLS: int = 8
@@ -96,7 +114,7 @@ const COLOR_ACCORDION_BORDER: Color = Color(0.55, 0.40, 0.22, 0.95)
 const COLOR_ACCORDION_ACTIVE_BORDER: Color = Color(0.92, 0.72, 0.28, 1.0)
 const COLOR_SLOT_BG: Color = Color(0.11, 0.08, 0.06, 0.95)
 const COLOR_SLOT_BORDER: Color = Color(0.32, 0.23, 0.17, 0.95)
-const COLOR_SLOT_HOVER: Color = Color(0.72, 0.52, 0.32, 1.0)
+const COLOR_SLOT_HOVER: Color = Color(0.98, 0.82, 0.35, 1.0)
 const COLOR_SLOT_SELECTED: Color = Color(1.0, 0.85, 0.25, 1.0)
 const COLOR_ITEM_BORDER: Color = Color(0.26, 0.19, 0.14, 0.85)
 
@@ -119,6 +137,8 @@ func _ready() -> void:
 		_setup_top_bar()
 		_setup_accordion_section()
 		_setup_tooltip()
+
+	_setup_drag_proxy()
 
 	if player_motor != null and floating_weapon == null and player_motor.floating_weapon != null:
 		floating_weapon = player_motor.floating_weapon
@@ -153,9 +173,11 @@ func _bind_scene_nodes() -> void:
 	var w_idx = 0
 	for child in _top_slots_hbox.get_children():
 		if child is PanelContainer:
+			_ensure_slot_children_mouse_ignore(child)
 			child.set_meta("slot_type", "quickbar")
-			child.set_meta("weapon_idx", -1)
+			child.set_meta("weapon_idx", w_idx)
 			child.set_meta("slot_idx", w_idx)
+			_setup_drag_and_drop(child, "quickbar", w_idx, w_idx)
 			if not child.gui_input.is_connected(_on_hud_box_clicked):
 				child.gui_input.connect(_on_hud_box_clicked.bind(w_idx))
 			_hud_weapon_boxes.append(child)
@@ -171,6 +193,7 @@ func _bind_scene_nodes() -> void:
 	for center_c in item_slots_hbox.get_children():
 		for child in center_c.get_children():
 			if child is PanelContainer:
+				_ensure_slot_children_mouse_ignore(child)
 				child.set_meta("slot_type", "item")
 				child.set_meta("weapon_idx", -1)
 				child.set_meta("slot_idx", item_idx)
@@ -187,6 +210,7 @@ func _bind_scene_nodes() -> void:
 	var slot_i = 0
 	for child in _grid_container.get_children():
 		if child is PanelContainer:
+			_ensure_slot_children_mouse_ignore(child)
 			if not child.gui_input.is_connected(_on_inventory_slot_clicked):
 				child.gui_input.connect(_on_inventory_slot_clicked.bind(slot_i))
 			_setup_drag_and_drop(child, "inventory", -1, slot_i)
@@ -204,6 +228,12 @@ func _bind_scene_nodes() -> void:
 		_tooltip_desc = _tooltip_panel.find_child("DescLabel", true, false) as Label
 	else:
 		_setup_tooltip()
+
+func _ensure_slot_children_mouse_ignore(box: Control) -> void:
+	for child in box.get_children():
+		if child is Control:
+			child.mouse_filter = MOUSE_FILTER_IGNORE
+			_ensure_slot_children_mouse_ignore(child)
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
@@ -318,8 +348,9 @@ func _setup_top_bar() -> void:
 	_quickbar_hbox = _top_slots_hbox
 
 	for i in range(4):
-		var box = _create_slot_box(Vector2(34, 34), "quickbar", -1, i)
+		var box = _create_slot_box(Vector2(34, 34), "quickbar", i, i)
 		box.name = "WeaponSlot_%d" % i
+		_setup_drag_and_drop(box, "quickbar", i, i)
 		box.gui_input.connect(_on_hud_box_clicked.bind(i))
 		_top_slots_hbox.add_child(box)
 		_hud_weapon_boxes.append(box)
@@ -537,12 +568,56 @@ func _setup_tooltip() -> void:
 
 	add_child(_tooltip_panel)
 
+func _setup_drag_proxy() -> void:
+	if _drag_proxy != null:
+		return
+
+	_drag_proxy = PanelContainer.new()
+	_drag_proxy.name = "DragProxy"
+	_drag_proxy.mouse_filter = MOUSE_FILTER_IGNORE
+	_drag_proxy.visible = false
+	_drag_proxy.top_level = true
+	_drag_proxy.z_index = 120
+	_drag_proxy.custom_minimum_size = Vector2(34, 34)
+	_drag_proxy.size = Vector2(34, 34)
+
+	_drag_proxy_style = StyleBoxFlat.new()
+	_drag_proxy_style.bg_color = COLOR_SLOT_BG
+	_drag_proxy_style.border_width_left = 2
+	_drag_proxy_style.border_width_top = 2
+	_drag_proxy_style.border_width_right = 2
+	_drag_proxy_style.border_width_bottom = 2
+	_drag_proxy_style.border_color = COLOR_SLOT_SELECTED
+	_drag_proxy_style.corner_radius_top_left = 2
+	_drag_proxy_style.corner_radius_top_right = 2
+	_drag_proxy_style.corner_radius_bottom_left = 2
+	_drag_proxy_style.corner_radius_bottom_right = 2
+	_drag_proxy.add_theme_stylebox_override("panel", _drag_proxy_style)
+
+	var center = CenterContainer.new()
+	center.name = "CenterContainer"
+	center.mouse_filter = MOUSE_FILTER_IGNORE
+	center.set_anchors_preset(PRESET_FULL_RECT)
+	_drag_proxy.add_child(center)
+
+	_drag_proxy_icon = TextureRect.new()
+	_drag_proxy_icon.name = "IconRect"
+	_drag_proxy_icon.mouse_filter = MOUSE_FILTER_IGNORE
+	_drag_proxy_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_drag_proxy_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_drag_proxy_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_drag_proxy_icon.custom_minimum_size = Vector2(30, 30)
+	center.add_child(_drag_proxy_icon)
+
+	add_child(_drag_proxy)
+
 ## -----------------------------------------------------------------------------
 ## HELPER: CREATE SLOT BOX
 ## -----------------------------------------------------------------------------
 func _create_slot_box(box_size: Vector2, slot_type: String, weapon_idx: int, slot_idx: int) -> PanelContainer:
 	var box = PanelContainer.new()
 	box.custom_minimum_size = box_size
+	box.size = box_size
 	box.mouse_filter = MOUSE_FILTER_STOP
 
 	var style = StyleBoxFlat.new()
@@ -595,7 +670,7 @@ func _create_slot_box(box_size: Vector2, slot_type: String, weapon_idx: int, slo
 	return box
 
 ## -----------------------------------------------------------------------------
-## DRAG AND DROP HOOKS
+## DRAG AND DROP & FLY-BACK SYSTEM
 ## -----------------------------------------------------------------------------
 func _setup_drag_and_drop(box: PanelContainer, slot_type: String, weapon_idx: int, slot_idx: int) -> void:
 	box.set_script(load("res://src/combat/ui/weapon_slot_control.gd"))
@@ -603,27 +678,369 @@ func _setup_drag_and_drop(box: PanelContainer, slot_type: String, weapon_idx: in
 	box.set("slot_type", slot_type)
 	box.set("weapon_idx", weapon_idx)
 	box.set("slot_idx", slot_idx)
+	box.set_meta("slot_type", slot_type)
+	box.set_meta("weapon_idx", weapon_idx)
+	box.set_meta("slot_idx", slot_idx)
 
-func handle_slot_drop(data: Dictionary, target_box: Control) -> void:
-	if floating_weapon == null or not (data is Dictionary and data.has("card")):
+func _get_box_slot_type(box: Control) -> String:
+	if box == null or not is_instance_valid(box):
+		return ""
+	if "slot_type" in box and str(box.get("slot_type")) != "":
+		return str(box.get("slot_type"))
+	if box.has_meta("slot_type"):
+		return str(box.get_meta("slot_type"))
+	return ""
+
+func _get_box_weapon_idx(box: Control) -> int:
+	if box == null or not is_instance_valid(box):
+		return -1
+	if "weapon_idx" in box and int(box.get("weapon_idx")) >= 0:
+		return int(box.get("weapon_idx"))
+	if box.has_meta("weapon_idx") and int(box.get_meta("weapon_idx")) >= 0:
+		return int(box.get_meta("weapon_idx"))
+	return -1
+
+func _get_box_slot_idx(box: Control) -> int:
+	if box == null or not is_instance_valid(box):
+		return -1
+	if "slot_idx" in box and int(box.get("slot_idx")) >= 0:
+		return int(box.get("slot_idx"))
+	if box.has_meta("slot_idx") and int(box.get_meta("slot_idx")) >= 0:
+		return int(box.get_meta("slot_idx"))
+	return -1
+
+func _can_drag_from_box(box: Control) -> bool:
+	if floating_weapon == null or box == null or not is_instance_valid(box):
+		return false
+	var stype = _get_box_slot_type(box)
+	if stype == "quickbar" or stype == "accordion_weapon":
+		var w_idx = _get_box_weapon_idx(box)
+		if w_idx < 0:
+			w_idx = _get_box_slot_idx(box)
+		return w_idx >= 0 and w_idx < floating_weapon.weapons.size() and floating_weapon.weapons[w_idx] != null
+	elif stype == "inventory":
+		var s_idx = _get_box_slot_idx(box)
+		return s_idx >= 0 and s_idx < floating_weapon.inventory_cards.size() and floating_weapon.inventory_cards[s_idx] != null
+	elif stype == "weapon_socket" or stype == "weapon":
+		var w_idx = _get_box_weapon_idx(box)
+		var s_idx = _get_box_slot_idx(box)
+		if w_idx >= 0 and w_idx < floating_weapon.weapons.size() and floating_weapon.weapons[w_idx] != null:
+			var w = floating_weapon.weapons[w_idx]
+			return s_idx >= 0 and s_idx < w.slotted_techniques.size() and w.slotted_techniques[s_idx] != null
+	return false
+
+func is_valid_drop_target(data: Dictionary, target_box: Control) -> bool:
+	if target_box == null or not is_instance_valid(target_box) or data.is_empty():
+		return false
+
+	var tgt_type = _get_box_slot_type(target_box)
+	var item_type = str(data.get("item_type", ""))
+	if item_type == "":
+		if data.has("weapon") and data.get("weapon") != null:
+			item_type = "weapon"
+		elif data.has("card") and data.get("card") != null:
+			item_type = "card"
+
+	if item_type == "weapon":
+		return tgt_type == "quickbar" or tgt_type == "accordion_weapon"
+	elif item_type == "card":
+		return tgt_type == "inventory" or tgt_type == "weapon_socket" or tgt_type == "weapon"
+
+	return false
+
+func start_slot_drag(box: Control, cursor_pos: Vector2 = Vector2.ZERO) -> bool:
+	if not _is_inventory_open or floating_weapon == null or box == null or not is_instance_valid(box):
+		return false
+	if _is_flying_back:
+		_complete_fly_back()
+	if _is_dragging:
+		return false
+	if not _can_drag_from_box(box):
+		return false
+
+	var stype = _get_box_slot_type(box)
+	var w_idx = _get_box_weapon_idx(box)
+	var s_idx = _get_box_slot_idx(box)
+
+	var box_rect = box.get_global_rect()
+	var box_size = box_rect.size if box_rect.size.x > 0 else box.custom_minimum_size
+	if box_size.x <= 0:
+		box_size = Vector2(34, 34)
+	var origin_center = box_rect.position + box_size * 0.5
+	var start_cursor = cursor_pos if cursor_pos != Vector2.ZERO else origin_center
+
+	if stype == "quickbar" or stype == "accordion_weapon":
+		var resolved_w_idx = w_idx if w_idx >= 0 else s_idx
+		var w = floating_weapon.weapons[resolved_w_idx]
+		var icon_tex = w.icon if (w != null and "icon" in w and w.icon != null) else WeaponIconFactory.get_weapon_icon(w.weapon_id)
+
+		_drag_data = {
+			"item_type": "weapon",
+			"source": stype,
+			"weapon_idx": resolved_w_idx,
+			"slot_idx": resolved_w_idx,
+			"weapon": w,
+			"origin_box": box,
+			"origin_global_pos": box_rect.position,
+			"origin_size": box_size,
+			"start_mouse_pos": start_cursor,
+			"has_moved": false
+		}
+
+		if _drag_proxy != null:
+			_drag_proxy.custom_minimum_size = box_size
+			_drag_proxy.size = box_size
+			_drag_proxy_icon.texture = icon_tex
+			_drag_proxy_style.bg_color = Color(0.18, 0.14, 0.08, 0.96)
+			_drag_proxy_style.border_color = COLOR_ACCORDION_ACTIVE_BORDER
+	else:
+		var card: TechniqueCard = null
+		if stype == "inventory":
+			card = floating_weapon.inventory_cards[s_idx] as TechniqueCard
+		else:
+			card = floating_weapon.weapons[w_idx].slotted_techniques[s_idx] as TechniqueCard
+
+		var card_tex = WeaponIconFactory.get_card_icon(card.card_id, card.get_class())
+		_drag_data = {
+			"item_type": "card",
+			"source": stype,
+			"weapon_idx": w_idx,
+			"slot_idx": s_idx,
+			"card": card,
+			"origin_box": box,
+			"origin_global_pos": box_rect.position,
+			"origin_size": box_size,
+			"start_mouse_pos": start_cursor,
+			"has_moved": false
+		}
+
+		if _drag_proxy != null:
+			_drag_proxy.custom_minimum_size = box_size
+			_drag_proxy.size = box_size
+			_drag_proxy_icon.texture = card_tex
+			_apply_card_slot_style(_drag_proxy_style, card)
+
+	_is_dragging = true
+	_hide_tooltip()
+
+	var origin_icon = box.get_node_or_null("CenterContainer/IconRect") as TextureRect
+	if origin_icon != null:
+		origin_icon.visible = false
+
+	if _drag_proxy != null:
+		_drag_proxy.global_position = start_cursor - _drag_proxy.size * 0.5
+		_drag_proxy.visible = true
+
+	return true
+
+func update_slot_drag(cursor_pos: Vector2) -> void:
+	if not _is_dragging:
 		return
 
-	var src_type = data.get("source", "")
-	var src_w = data.get("weapon_idx", -1)
-	var src_s = data.get("slot_idx", -1)
+	var start_pos: Vector2 = _drag_data.get("start_mouse_pos", cursor_pos)
+	if cursor_pos.distance_to(start_pos) > 3.0:
+		_drag_data["has_moved"] = true
 
-	var tgt_type = target_box.get("slot_type") if "slot_type" in target_box else target_box.get_meta("slot_type", "")
-	var tgt_w = target_box.get("weapon_idx") if "weapon_idx" in target_box else target_box.get_meta("weapon_idx", -1)
-	var tgt_s = target_box.get("slot_idx") if "slot_idx" in target_box else target_box.get_meta("slot_idx", -1)
+	if _drag_proxy != null:
+		_drag_proxy.global_position = cursor_pos - _drag_proxy.size * 0.5
+
+	var hovered = _get_slot_at_position(cursor_pos)
+	if hovered != null and is_valid_drop_target(_drag_data, hovered):
+		_set_hovered_drop_box(hovered)
+	else:
+		_set_hovered_drop_box(null)
+
+func end_slot_drag(cursor_pos: Vector2) -> bool:
+	if not _is_dragging:
+		return false
+
+	var target_box = _get_slot_at_position(cursor_pos)
+	return end_slot_drag_on_target(target_box, cursor_pos)
+
+func end_slot_drag_on_target(target_box: Control, cursor_pos: Vector2 = Vector2.ZERO) -> bool:
+	if not _is_dragging:
+		return false
+
+	if cursor_pos != Vector2.ZERO and _drag_proxy != null:
+		var start_pos: Vector2 = _drag_data.get("start_mouse_pos", cursor_pos)
+		if cursor_pos.distance_to(start_pos) > 3.0:
+			_drag_data["has_moved"] = true
+		_drag_proxy.global_position = cursor_pos - _drag_proxy.size * 0.5
+
+	_set_hovered_drop_box(null)
+	_drag_from_mouse_input = false
+
+	var origin_box: Control = _drag_data.get("origin_box", null)
+	var has_moved: bool = _drag_data.get("has_moved", false)
+
+	if target_box != null and is_valid_drop_target(_drag_data, target_box):
+		_is_dragging = false
+		if _drag_proxy != null:
+			_drag_proxy.visible = false
+		_restore_box_icon_visibility(origin_box)
+
+		# Quick click without dragging onto the same origin slot
+		if target_box == origin_box and not has_moved:
+			var item_type = str(_drag_data.get("item_type", ""))
+			if item_type == "weapon":
+				var w_idx = int(_drag_data.get("weapon_idx", -1))
+				if floating_weapon != null and w_idx >= 0:
+					floating_weapon.equip_weapon_index(w_idx)
+					_update_ui_state()
+			else:
+				_handle_card_slot_click(origin_box)
+			_drag_data.clear()
+			return true
+
+		var drop_payload = _drag_data.duplicate()
+		_drag_data.clear()
+		handle_slot_drop(drop_payload, target_box)
+		return true
+
+	# Invalid drop target (or dropped outside any valid slot) -> fly back toward origin slot!
+	_fly_back_to_origin()
+	return false
+
+func _fly_back_to_origin() -> void:
+	_is_dragging = false
+	_is_flying_back = true
+	_fly_back_elapsed = 0.0
+	_fly_back_origin_box = _drag_data.get("origin_box", null)
+	_fly_back_start_pos = _drag_proxy.global_position if _drag_proxy != null else _drag_data.get("origin_global_pos", Vector2.ZERO)
+	_fly_back_target_pos = _get_origin_target_pos()
+
+	if _drag_proxy != null:
+		_drag_proxy.visible = true
+
+func _get_origin_target_pos() -> Vector2:
+	if _fly_back_origin_box != null and is_instance_valid(_fly_back_origin_box):
+		var rect = _fly_back_origin_box.get_global_rect()
+		var proxy_size = _drag_proxy.size if _drag_proxy != null else rect.size
+		return rect.position + (rect.size - proxy_size) * 0.5
+	return _drag_data.get("origin_global_pos", Vector2.ZERO)
+
+func _complete_fly_back() -> void:
+	_is_flying_back = false
+	_fly_back_elapsed = 0.0
+	if _drag_proxy != null:
+		_drag_proxy.global_position = _fly_back_target_pos
+		_drag_proxy.visible = false
+	_restore_box_icon_visibility(_fly_back_origin_box)
+	_fly_back_origin_box = null
+	_drag_data.clear()
+	_update_ui_state()
+
+func _cancel_drag_and_restore() -> void:
+	_set_hovered_drop_box(null)
+	_is_dragging = false
+	_drag_from_mouse_input = false
+	_is_flying_back = false
+	_fly_back_elapsed = 0.0
+	if _drag_proxy != null:
+		_drag_proxy.visible = false
+	var origin_box: Control = _drag_data.get("origin_box", _fly_back_origin_box)
+	_restore_box_icon_visibility(origin_box)
+	_fly_back_origin_box = null
+	_drag_data.clear()
+
+func _restore_box_icon_visibility(box: Control) -> void:
+	if box != null and is_instance_valid(box):
+		var icon_rect = box.get_node_or_null("CenterContainer/IconRect") as TextureRect
+		if icon_rect != null and icon_rect.texture != null:
+			icon_rect.visible = true
+
+func _set_hovered_drop_box(box: Control) -> void:
+	if _hovered_drop_box == box:
+		return
+	if _hovered_drop_box != null and is_instance_valid(_hovered_drop_box):
+		var prev_style = _hovered_drop_box.get_theme_stylebox("panel") as StyleBoxFlat
+		if prev_style != null:
+			prev_style.border_color = _hovered_drop_prev_border
+	_hovered_drop_box = box
+	if _hovered_drop_box != null and is_instance_valid(_hovered_drop_box):
+		var new_style = _hovered_drop_box.get_theme_stylebox("panel") as StyleBoxFlat
+		if new_style != null:
+			_hovered_drop_prev_border = new_style.border_color
+			new_style.border_color = COLOR_SLOT_HOVER
+
+func _get_slot_at_position(global_pos: Vector2) -> Control:
+	for box in _hud_weapon_boxes:
+		if box != null and is_instance_valid(box) and box.visible and box.get_global_rect().has_point(global_pos):
+			return box
+
+	for box in _hud_item_boxes:
+		if box != null and is_instance_valid(box) and box.visible and box.get_global_rect().has_point(global_pos):
+			return box
+
+	if _inventory_column != null and _inventory_column.visible:
+		for box in _inventory_boxes:
+			if box != null and is_instance_valid(box) and box.visible and box.get_global_rect().has_point(global_pos):
+				return box
+
+	if _accordion_scroll != null and _accordion_scroll.visible:
+		var scroll_rect = _accordion_scroll.get_global_rect()
+		var check_inside_scroll = scroll_rect.size.x <= 0 or scroll_rect.has_point(global_pos)
+		if check_inside_scroll:
+			for box in _accordion_weapon_boxes:
+				if box != null and is_instance_valid(box) and box.visible and box.get_global_rect().has_point(global_pos):
+					return box
+			for box in _accordion_socket_boxes:
+				if box != null and is_instance_valid(box) and box.visible and box.get_global_rect().has_point(global_pos):
+					return box
+
+	return null
+
+func is_dragging() -> bool:
+	return _is_dragging
+
+func is_flying_back() -> bool:
+	return _is_flying_back
+
+func get_drag_proxy() -> Control:
+	return _drag_proxy
+
+func handle_slot_drop(data: Dictionary, target_box: Control) -> void:
+	if floating_weapon == null or target_box == null or not (data is Dictionary):
+		return
+
+	var src_type = str(data.get("source", ""))
+	var src_w = int(data.get("weapon_idx", -1))
+	var src_s = int(data.get("slot_idx", -1))
+
+	var tgt_type = _get_box_slot_type(target_box)
+	var tgt_w = _get_box_weapon_idx(target_box)
+	var tgt_s = _get_box_slot_idx(target_box)
+
+	var item_type = str(data.get("item_type", ""))
+	if item_type == "":
+		if data.has("weapon") and data.get("weapon") != null:
+			item_type = "weapon"
+		elif data.has("card") and data.get("card") != null:
+			item_type = "card"
+
+	if item_type == "weapon" or src_type in ["quickbar", "accordion_weapon"]:
+		if tgt_type in ["quickbar", "accordion_weapon"]:
+			var resolved_src_w = src_w if src_w >= 0 else src_s
+			var resolved_tgt_w = tgt_w if tgt_w >= 0 else tgt_s
+			floating_weapon.swap_weapons(resolved_src_w, resolved_tgt_w)
+			_clear_selection()
+			_update_ui_state()
+		return
+
+	if not data.has("card"):
+		return
+
+	var src_is_weapon_socket = src_type in ["weapon", "weapon_socket"]
+	var tgt_is_weapon_socket = tgt_type in ["weapon", "weapon_socket"]
 
 	if src_type == "inventory" and tgt_type == "inventory":
 		floating_weapon.swap_inventory_slots(src_s, tgt_s)
-	elif src_type == "weapon" and tgt_type == "inventory":
+	elif src_is_weapon_socket and tgt_type == "inventory":
 		floating_weapon.swap_weapon_and_inventory(src_w, src_s, tgt_s)
-	elif src_type == "inventory" and tgt_type == "weapon":
+	elif src_type == "inventory" and tgt_is_weapon_socket:
 		floating_weapon.swap_weapon_and_inventory(tgt_w, tgt_s, src_s)
-	elif src_type == "weapon" and tgt_type == "weapon":
-		if src_w == tgt_w:
+	elif src_is_weapon_socket and tgt_is_weapon_socket:
+		if src_w == tgt_w and src_w == floating_weapon.active_weapon_index:
 			floating_weapon.swap_weapon_sockets(src_s, tgt_s)
 		else:
 			floating_weapon.swap_between_weapons(src_w, src_s, tgt_w, tgt_s)
@@ -634,6 +1051,63 @@ func handle_slot_drop(data: Dictionary, target_box: Control) -> void:
 ## -----------------------------------------------------------------------------
 ## INPUT & INVENTORY TOGGLING
 ## -----------------------------------------------------------------------------
+func _input(event: InputEvent) -> void:
+	if not _is_inventory_open:
+		return
+
+	if event is InputEventMouseMotion and _is_dragging:
+		update_slot_drag(get_global_mouse_position())
+		_mark_handled()
+		return
+
+	if event is InputEventMouseButton:
+		var mouse_pos = get_global_mouse_position()
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				if _is_flying_back:
+					_complete_fly_back()
+				var box = _get_slot_at_position(mouse_pos)
+				if box != null:
+					if _can_drag_from_box(box):
+						if start_slot_drag(box, mouse_pos):
+							_drag_from_mouse_input = true
+							_mark_handled()
+							return
+					else:
+						_handle_empty_slot_click(box)
+						_mark_handled()
+						return
+				else:
+					if _selected_source != "":
+						_clear_selection()
+						_rebuild_inventory_ui()
+			else:
+				if _is_dragging:
+					end_slot_drag(mouse_pos)
+					_mark_handled()
+					return
+		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+			if _is_dragging:
+				_set_hovered_drop_box(null)
+				_fly_back_to_origin()
+				_mark_handled()
+				return
+			var box = _get_slot_at_position(mouse_pos)
+			if box != null:
+				var stype = _get_box_slot_type(box)
+				if stype == "inventory":
+					floating_weapon.quick_slot_card(_get_box_slot_idx(box))
+					_clear_selection()
+					_rebuild_inventory_ui()
+					_mark_handled()
+					return
+				elif stype == "weapon_socket" or stype == "weapon":
+					floating_weapon.quick_unslot_card(_get_box_weapon_idx(box), _get_box_slot_idx(box))
+					_clear_selection()
+					_rebuild_inventory_ui()
+					_mark_handled()
+					return
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.physical_keycode == KEY_I or event.keycode == KEY_I:
@@ -684,6 +1158,7 @@ func open_inventory() -> void:
 	_rebuild_inventory_ui()
 
 func close_inventory() -> void:
+	_cancel_drag_and_restore()
 	_is_inventory_open = false
 	_inventory_overlay.visible = false
 	_weapon_label.visible = false
@@ -706,7 +1181,7 @@ func close_inventory() -> void:
 ## -----------------------------------------------------------------------------
 ## PROCESS & COOLDOWN RENDERING
 ## -----------------------------------------------------------------------------
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not _initial_ui_synced:
 		if floating_weapon == null and player_motor != null and player_motor.floating_weapon != null:
 			floating_weapon = player_motor.floating_weapon
@@ -714,11 +1189,30 @@ func _process(_delta: float) -> void:
 			_update_ui_state()
 			_initial_ui_synced = true
 
+	if _is_dragging and _drag_from_mouse_input and is_inside_tree():
+		var mouse_pos = get_global_mouse_position()
+		update_slot_drag(mouse_pos)
+		if not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+			end_slot_drag(mouse_pos)
+
+	if _is_flying_back:
+		_fly_back_elapsed += delta
+		var t = clampf(_fly_back_elapsed / FLY_BACK_DURATION, 0.0, 1.0)
+		var eased_t = 1.0 - pow(1.0 - t, 3.0)
+		_fly_back_target_pos = _get_origin_target_pos()
+		if _drag_proxy != null:
+			_drag_proxy.global_position = _fly_back_start_pos.lerp(_fly_back_target_pos, eased_t)
+		if t >= 1.0:
+			_complete_fly_back()
+
 	_update_quickbar_cooldowns()
 
 	if _tooltip_panel != null and _tooltip_panel.visible:
-		var mouse_pos = get_viewport().get_mouse_position()
-		_tooltip_panel.position = mouse_pos + Vector2(16, 16)
+		if _is_dragging or _is_flying_back:
+			_hide_tooltip()
+		else:
+			var mouse_pos = get_viewport().get_mouse_position()
+			_tooltip_panel.position = mouse_pos + Vector2(16, 16)
 
 func _update_quickbar_cooldowns() -> void:
 	if floating_weapon == null:
@@ -749,6 +1243,9 @@ func _update_quickbar_cooldowns() -> void:
 			if style != null:
 				style.border_color = COLOR_SLOT_BORDER
 
+		if box == _hovered_drop_box and style != null:
+			style.border_color = COLOR_SLOT_HOVER
+
 ## -----------------------------------------------------------------------------
 ## STATE SYNCHRONIZATION
 ## -----------------------------------------------------------------------------
@@ -770,6 +1267,11 @@ func _update_ui_state() -> void:
 		var lbl = box.get_node_or_null("CenterContainer/SlotLabel") as Label
 		var style = box.get_theme_stylebox("panel") as StyleBoxFlat
 
+		box.set_meta("weapon_idx", i)
+		box.set("weapon_idx", i)
+		box.set_meta("slot_idx", i)
+		box.set("slot_idx", i)
+
 		if i < _active_marker_labels.size():
 			_active_marker_labels[i].text = ""
 
@@ -778,9 +1280,12 @@ func _update_ui_state() -> void:
 			var icon_tex = w.icon if (w != null and "icon" in w and w.icon != null) else WeaponIconFactory.get_weapon_icon(w.weapon_id)
 			if icon_rect != null:
 				icon_rect.texture = icon_tex
-				icon_rect.visible = true
+				icon_rect.visible = not ((_is_dragging or _is_flying_back) and (_drag_data.get("origin_box") == box or _fly_back_origin_box == box))
 			if lbl != null:
 				lbl.text = ""
+
+			box.set_meta("weapon", w)
+			box.set("weapon", w)
 
 			if style != null:
 				if i == active_idx:
@@ -795,6 +1300,8 @@ func _update_ui_state() -> void:
 				icon_rect.visible = false
 			if lbl != null:
 				lbl.text = ""
+			box.set_meta("weapon", null)
+			box.set("weapon", null)
 			if style != null:
 				style.border_color = Color(0.22, 0.17, 0.13, 0.6)
 				style.bg_color = Color(0.06, 0.05, 0.04, 0.8)
@@ -804,7 +1311,7 @@ func _update_ui_state() -> void:
 		if lbl != null:
 			lbl.text = ""
 
-	if _is_inventory_open:
+	if _is_inventory_open and not _is_dragging and not _is_flying_back:
 		_rebuild_inventory_ui()
 
 ## -----------------------------------------------------------------------------
@@ -815,6 +1322,8 @@ func _rebuild_inventory_ui() -> void:
 		return
 
 	# 1. Rebuild Weapon Accordions
+	_accordion_weapon_boxes.clear()
+	_accordion_socket_boxes.clear()
 	for c in _accordion_container.get_children():
 		c.queue_free()
 
@@ -892,50 +1401,43 @@ func _create_weapon_accordion_card(w: MeleeWeaponDef, w_idx: int, is_active: boo
 	margin.add_theme_constant_override("margin_top", 6)
 	margin.add_theme_constant_override("margin_right", 6)
 	margin.add_theme_constant_override("margin_bottom", 6)
+	margin.mouse_filter = MOUSE_FILTER_IGNORE
 	panel.add_child(margin)
 
 	var vbox = VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 5)
+	vbox.mouse_filter = MOUSE_FILTER_IGNORE
 	margin.add_child(vbox)
 
 	# Top Row: Weapon Icon on Left + White Text Stats Table on Right
 	var top_hbox = HBoxContainer.new()
 	top_hbox.add_theme_constant_override("separation", 8)
+	top_hbox.mouse_filter = MOUSE_FILTER_IGNORE
 	vbox.add_child(top_hbox)
 
-	var w_icon_box = PanelContainer.new()
-	w_icon_box.custom_minimum_size = Vector2(36, 36)
-	var w_style = StyleBoxFlat.new()
-	w_style.bg_color = Color(0.14, 0.10, 0.07, 0.9)
-	w_style.border_width_left = 1
-	w_style.border_width_top = 1
-	w_style.border_width_right = 1
-	w_style.border_width_bottom = 1
-	w_style.border_color = COLOR_ACCORDION_ACTIVE_BORDER if is_active else COLOR_SLOT_BORDER
-	w_icon_box.add_theme_stylebox_override("panel", w_style)
+	var w_icon_box = _create_slot_box(Vector2(36, 36), "accordion_weapon", w_idx, w_idx)
+	w_icon_box.name = "AccordionWeaponIcon_%d" % w_idx
+	var w_style = w_icon_box.get_theme_stylebox("panel") as StyleBoxFlat
+	if w_style != null:
+		w_style.bg_color = Color(0.14, 0.10, 0.07, 0.9)
+		w_style.border_color = COLOR_ACCORDION_ACTIVE_BORDER if is_active else COLOR_SLOT_BORDER
 
-	var w_center = CenterContainer.new()
-	w_center.set_anchors_preset(PRESET_FULL_RECT)
-	w_icon_box.add_child(w_center)
+	var w_icon_rect = w_icon_box.get_node_or_null("CenterContainer/IconRect") as TextureRect
+	if w_icon_rect != null:
+		w_icon_rect.custom_minimum_size = Vector2(30, 30)
+		w_icon_rect.texture = w.icon if (w != null and "icon" in w and w.icon != null) else WeaponIconFactory.get_weapon_icon(w.weapon_id)
+		w_icon_rect.visible = true
 
-	var w_icon_rect = TextureRect.new()
-	w_icon_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	w_icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	w_icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	w_icon_rect.custom_minimum_size = Vector2(30, 30)
-	w_icon_rect.texture = w.icon if (w != null and "icon" in w and w.icon != null) else WeaponIconFactory.get_weapon_icon(w.weapon_id)
-	w_center.add_child(w_icon_rect)
-
-	w_icon_box.mouse_filter = MOUSE_FILTER_STOP
-	w_icon_box.gui_input.connect(func(ev):
-		if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT and ev.pressed:
-			floating_weapon.equip_weapon_index(w_idx)
-	)
+	_setup_drag_and_drop(w_icon_box, "accordion_weapon", w_idx, w_idx)
+	w_icon_box.set_meta("weapon", w)
+	w_icon_box.set("weapon", w)
 	top_hbox.add_child(w_icon_box)
+	_accordion_weapon_boxes.append(w_icon_box)
 
 	# Stats Table (Clear white text with Capacity)
 	var stats_vbox = VBoxContainer.new()
 	stats_vbox.add_theme_constant_override("separation", 1)
+	stats_vbox.mouse_filter = MOUSE_FILTER_IGNORE
 	top_hbox.add_child(stats_vbox)
 
 	var s_shuffle = "Yes" if w.is_shuffle else "No"
@@ -943,18 +1445,21 @@ func _create_weapon_accordion_card(w: MeleeWeaponDef, w_idx: int, is_active: boo
 	row1.text = "%-12s %s" % ["Shuffle", s_shuffle]
 	row1.add_theme_font_size_override("font_size", 9)
 	row1.add_theme_color_override("font_color", Color.WHITE)
+	row1.mouse_filter = MOUSE_FILTER_IGNORE
 	stats_vbox.add_child(row1)
 
 	var row2 = Label.new()
 	row2.text = "%-12s %d" % ["Spells/Cast", 1]
 	row2.add_theme_font_size_override("font_size", 9)
 	row2.add_theme_color_override("font_color", Color(0.92, 0.92, 0.92))
+	row2.mouse_filter = MOUSE_FILTER_IGNORE
 	stats_vbox.add_child(row2)
 
 	var row3 = Label.new()
 	row3.text = "%-12s %.2fs" % ["Rechg. Time", w.deck_recharge_time]
 	row3.add_theme_font_size_override("font_size", 9)
 	row3.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85))
+	row3.mouse_filter = MOUSE_FILTER_IGNORE
 	stats_vbox.add_child(row3)
 
 	# Bottom Row: Weapon Technique Sockets (GridContainer: breaks every 10 slots!)
@@ -1006,6 +1511,7 @@ func _create_weapon_accordion_card(w: MeleeWeaponDef, w_idx: int, is_active: boo
 		socket_box.gui_input.connect(_on_weapon_socket_clicked.bind(w_idx, s_idx))
 		_setup_drag_and_drop(socket_box, "weapon_socket", w_idx, s_idx)
 		sockets_grid.add_child(socket_box)
+		_accordion_socket_boxes.append(socket_box)
 
 	return panel
 
@@ -1035,27 +1541,14 @@ func _disconnect_mouse_signals(box: PanelContainer) -> void:
 ## -----------------------------------------------------------------------------
 ## 5. CLICK & SELECTION HANDLERS
 ## -----------------------------------------------------------------------------
-func _on_hud_box_clicked(event: InputEvent, box_idx: int) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		if floating_weapon != null:
-			floating_weapon.equip_weapon_index(box_idx)
-			_update_ui_state()
-
-func _on_inventory_slot_clicked(event: InputEvent, slot_idx: int) -> void:
-	if not (event is InputEventMouseButton and event.pressed):
+func _handle_card_slot_click(box: Control) -> void:
+	if floating_weapon == null or box == null or not is_instance_valid(box):
 		return
-	if floating_weapon == null:
-		return
-
-	if event.button_index == MOUSE_BUTTON_RIGHT:
-		floating_weapon.quick_slot_card(slot_idx)
-		_clear_selection()
-		_rebuild_inventory_ui()
-		return
-
-	if event.button_index == MOUSE_BUTTON_LEFT:
+	var stype = _get_box_slot_type(box)
+	if stype == "inventory":
+		var slot_idx = _get_box_slot_idx(box)
 		if _selected_source == "":
-			if slot_idx < floating_weapon.inventory_cards.size() and floating_weapon.inventory_cards[slot_idx] != null:
+			if slot_idx >= 0 and slot_idx < floating_weapon.inventory_cards.size() and floating_weapon.inventory_cards[slot_idx] != null:
 				_selected_source = "inventory"
 				_selected_slot_idx = slot_idx
 				_selected_card = floating_weapon.inventory_cards[slot_idx]
@@ -1072,26 +1565,12 @@ func _on_inventory_slot_clicked(event: InputEvent, slot_idx: int) -> void:
 			floating_weapon.swap_weapon_and_inventory(_selected_weapon_idx, _selected_slot_idx, slot_idx)
 			_clear_selection()
 			_rebuild_inventory_ui()
-
-func _on_weapon_socket_clicked(event: InputEvent, w_idx: int, s_idx: int) -> void:
-	if not (event is InputEventMouseButton and event.pressed):
-		return
-	if floating_weapon == null:
-		return
-
-	if floating_weapon.active_weapon_index != w_idx:
-		floating_weapon.equip_weapon_index(w_idx)
-
-	if event.button_index == MOUSE_BUTTON_RIGHT:
-		floating_weapon.quick_unslot_card(w_idx, s_idx)
-		_clear_selection()
-		_rebuild_inventory_ui()
-		return
-
-	if event.button_index == MOUSE_BUTTON_LEFT:
-		var w = floating_weapon.weapons[w_idx] if w_idx < floating_weapon.weapons.size() else null
+	elif stype == "weapon_socket" or stype == "weapon":
+		var w_idx = _get_box_weapon_idx(box)
+		var s_idx = _get_box_slot_idx(box)
+		var w = floating_weapon.weapons[w_idx] if (w_idx >= 0 and w_idx < floating_weapon.weapons.size()) else null
 		if _selected_source == "":
-			if w != null and s_idx < w.slotted_techniques.size() and w.slotted_techniques[s_idx] != null:
+			if w != null and s_idx >= 0 and s_idx < w.slotted_techniques.size() and w.slotted_techniques[s_idx] != null:
 				_selected_source = "weapon"
 				_selected_weapon_idx = w_idx
 				_selected_slot_idx = s_idx
@@ -1105,7 +1584,7 @@ func _on_weapon_socket_clicked(event: InputEvent, w_idx: int, s_idx: int) -> voi
 			if _selected_weapon_idx == w_idx and _selected_slot_idx == s_idx:
 				_clear_selection()
 				_rebuild_inventory_ui()
-			elif _selected_weapon_idx == w_idx:
+			elif _selected_weapon_idx == w_idx and w_idx == floating_weapon.active_weapon_index:
 				floating_weapon.swap_weapon_sockets(_selected_slot_idx, s_idx)
 				_clear_selection()
 				_rebuild_inventory_ui()
@@ -1113,6 +1592,46 @@ func _on_weapon_socket_clicked(event: InputEvent, w_idx: int, s_idx: int) -> voi
 				floating_weapon.swap_between_weapons(_selected_weapon_idx, _selected_slot_idx, w_idx, s_idx)
 				_clear_selection()
 				_rebuild_inventory_ui()
+
+func _handle_empty_slot_click(box: Control) -> void:
+	if _selected_source != "":
+		_handle_card_slot_click(box)
+
+func _on_hud_box_clicked(event: InputEvent, box_idx: int) -> void:
+	if _is_inventory_open:
+		return
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		if floating_weapon != null:
+			floating_weapon.equip_weapon_index(box_idx)
+			_update_ui_state()
+
+func _on_inventory_slot_clicked(event: InputEvent, slot_idx: int) -> void:
+	if _is_inventory_open:
+		return
+	if not (event is InputEventMouseButton and event.pressed):
+		return
+	if floating_weapon == null:
+		return
+
+	if event.button_index == MOUSE_BUTTON_RIGHT:
+		floating_weapon.quick_slot_card(slot_idx)
+		_clear_selection()
+		_rebuild_inventory_ui()
+		return
+
+func _on_weapon_socket_clicked(event: InputEvent, w_idx: int, s_idx: int) -> void:
+	if _is_inventory_open:
+		return
+	if not (event is InputEventMouseButton and event.pressed):
+		return
+	if floating_weapon == null:
+		return
+
+	if event.button_index == MOUSE_BUTTON_RIGHT:
+		floating_weapon.quick_unslot_card(w_idx, s_idx)
+		_clear_selection()
+		_rebuild_inventory_ui()
+		return
 
 func _clear_selection() -> void:
 	_selected_source = ""

@@ -295,3 +295,144 @@ func test_long_weapon_slot_wrapping_and_item_col_stability() -> void:
 	ui.close_inventory()
 	ui.free()
 	sword_ctrl.free()
+
+func test_card_drag_drop_on_valid_slots_and_fly_back_on_invalid() -> void:
+	var sword_ctrl = FloatingSwordController.new()
+	sword_ctrl._ready()
+
+	var ui = WeaponDeckUI.new()
+	ui.floating_sword = sword_ctrl
+	ui._ready()
+	ui.open_inventory()
+
+	var inv_card = sword_ctrl.inventory_cards[0]
+	assert_not_null(inv_card)
+
+	var origin_box = ui._inventory_boxes[0]
+	var started = ui.start_slot_drag(origin_box, Vector2(300, 40))
+	assert_true(started)
+	assert_true(ui.is_dragging())
+	assert_true(ui.get_drag_proxy().visible)
+
+	# Move drag across screen
+	ui.update_slot_drag(Vector2(500, 300))
+	assert_almost_eq(ui.get_drag_proxy().global_position.x, 500.0 - ui.get_drag_proxy().size.x * 0.5, 0.01)
+	assert_almost_eq(ui.get_drag_proxy().global_position.y, 300.0 - ui.get_drag_proxy().size.y * 0.5, 0.01)
+
+	# Drop onto an INVALID slot (e.g. a quickbar weapon slot or null) -> should fly back toward origin slot
+	var dropped_valid = ui.end_slot_drag_on_target(ui._hud_weapon_boxes[0], Vector2(500, 300))
+	assert_false(dropped_valid)
+	assert_false(ui.is_dragging())
+	assert_true(ui.is_flying_back())
+	assert_true(ui.get_drag_proxy().visible)
+	assert_eq(sword_ctrl.inventory_cards[0], inv_card)
+
+	# Advance fly-back animation halfway
+	ui._process(0.10)
+	assert_true(ui.is_flying_back())
+	assert_true(ui.get_drag_proxy().visible)
+
+	# Complete fly-back animation
+	ui._process(0.15)
+	assert_false(ui.is_flying_back())
+	assert_false(ui.get_drag_proxy().visible)
+	var origin_icon = origin_box.get_node_or_null("CenterContainer/IconRect") as TextureRect
+	assert_true(origin_icon.visible)
+
+	# Now drag card from inventory slot 0 onto a VALID empty weapon socket (weapon 0, socket 3)
+	var started2 = ui.start_slot_drag(ui._inventory_boxes[0], Vector2(300, 40))
+	assert_true(started2)
+	ui.update_slot_drag(Vector2(150, 160))
+
+	var target_socket = ui._accordion_socket_boxes[3]
+	var dropped_ok = ui.end_slot_drag_on_target(target_socket, Vector2(150, 160))
+	assert_true(dropped_ok)
+	assert_false(ui.is_dragging())
+	assert_false(ui.is_flying_back())
+	assert_eq(sword_ctrl.weapons[0].slotted_techniques[3], inv_card)
+	assert_null(sword_ctrl.inventory_cards[0])
+
+	ui.close_inventory()
+	ui.free()
+	sword_ctrl.free()
+
+func test_weapon_icon_drag_drop_and_fly_back() -> void:
+	var sword_ctrl = FloatingSwordController.new()
+	sword_ctrl._ready()
+
+	var ui = WeaponDeckUI.new()
+	ui.floating_sword = sword_ctrl
+	ui._ready()
+	ui.open_inventory()
+
+	var w0 = sword_ctrl.weapons[0]
+	var w1 = sword_ctrl.weapons[1]
+	assert_not_null(w0)
+	assert_not_null(w1)
+
+	# Grab weapon 0 from top-bar quickbar slot 0 and drop onto invalid card slot -> flies back!
+	var started = ui.start_slot_drag(ui._hud_weapon_boxes[0], Vector2(30, 40))
+	assert_true(started)
+	assert_true(ui.is_dragging())
+	ui.update_slot_drag(Vector2(420, 200))
+
+	var invalid_drop = ui.end_slot_drag_on_target(ui._inventory_boxes[0], Vector2(420, 200))
+	assert_false(invalid_drop)
+	assert_true(ui.is_flying_back())
+	ui._process(0.25)
+	assert_false(ui.is_flying_back())
+	assert_eq(sword_ctrl.weapons[0], w0)
+	assert_eq(sword_ctrl.weapons[1], w1)
+
+	# Grab weapon 0 from accordion weapon icon box and drop onto top-bar weapon slot 2 (empty weapon slot!)
+	var acc_w0_box = ui._accordion_weapon_boxes[0]
+	var started_valid = ui.start_slot_drag(acc_w0_box, Vector2(40, 120))
+	assert_true(started_valid)
+	ui.update_slot_drag(Vector2(100, 40))
+
+	var valid_drop = ui.end_slot_drag_on_target(ui._hud_weapon_boxes[2], Vector2(100, 40))
+	assert_true(valid_drop)
+	assert_false(ui.is_flying_back())
+	assert_null(sword_ctrl.weapons[0])
+	assert_eq(sword_ctrl.weapons[1], w1)
+	assert_eq(sword_ctrl.weapons[2], w0)
+	assert_eq(sword_ctrl.active_weapon_index, 2)
+
+	ui.close_inventory()
+	ui.free()
+	sword_ctrl.free()
+
+func test_scene_instantiated_weapon_deck_ui_drag_and_fly_back() -> void:
+	var sword_ctrl = FloatingSwordController.new()
+	sword_ctrl._ready()
+
+	var packed = load("res://scenes/ui/weapon_deck_ui.tscn") as PackedScene
+	assert_not_null(packed)
+	var ui = packed.instantiate() as WeaponDeckUI
+	ui.floating_weapon = sword_ctrl
+	ui._ready()
+	ui.open_inventory()
+
+	# Drag card from weapon 0 socket 0 onto inventory slot 15
+	var w0_card0 = sword_ctrl.weapons[0].slotted_techniques[0]
+	assert_not_null(w0_card0)
+	var socket0 = ui._accordion_socket_boxes[0]
+	assert_true(ui.start_slot_drag(socket0, Vector2(40, 150)))
+	ui.update_slot_drag(Vector2(450, 120))
+	assert_true(ui.end_slot_drag_on_target(ui._inventory_boxes[15], Vector2(450, 120)))
+	assert_eq(sword_ctrl.inventory_cards[15], w0_card0)
+	assert_null(sword_ctrl.weapons[0].slotted_techniques[0])
+
+	# Drag weapon 1 from quickbar slot 1 onto empty space (null target) -> flies back!
+	var w1 = sword_ctrl.weapons[1]
+	assert_true(ui.start_slot_drag(ui._hud_weapon_boxes[1], Vector2(60, 40)))
+	ui.update_slot_drag(Vector2(600, 400))
+	assert_false(ui.end_slot_drag_on_target(null, Vector2(600, 400)))
+	assert_true(ui.is_flying_back())
+	ui._process(0.25)
+	assert_false(ui.is_flying_back())
+	assert_eq(sword_ctrl.weapons[1], w1)
+
+	ui.close_inventory()
+	ui.free()
+	sword_ctrl.free()

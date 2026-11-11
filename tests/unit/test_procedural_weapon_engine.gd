@@ -46,7 +46,7 @@ func test_procedural_weapon_generation_basic() -> void:
 	assert_true(weapon.icon is Texture2D)
 	assert_eq(weapon.mesh_builder, ProceduralWeaponEngine)
 
-func test_1_block_height_voxel_bounds() -> void:
+func test_colossal_monster_hunter_voxel_bounds() -> void:
 	var weapon = ProceduralWeaponEngine.generate_weapon(42)
 	var data = weapon.procedural_data
 	assert_not_null(data)
@@ -56,17 +56,18 @@ func test_1_block_height_voxel_bounds() -> void:
 	var d = data["depth"] as int
 	var voxel_size = ProceduralWeaponEngine.DEFAULT_VOXEL_SIZE
 
-	# Height verification: Target is ~1 world block height (0.9m to 1.25m)
+	# Height verification: Monster Hunter colossal weapon scale (~1.8m to 2.25m, ~2 world blocks)
 	var physical_height = float(h) * voxel_size
-	assert_almost_eq(physical_height, 1.08, 0.05)
-	assert_true(physical_height >= 0.95 and physical_height <= 1.25, "Physical height must be approximately 1 world block (~1.0m)")
+	assert_almost_eq(physical_height, 2.00, 0.10)
+	assert_true(physical_height >= 1.80 and physical_height <= 2.25, "Physical height must match Monster Hunter scale (~2.0m)")
 
-	# Elongated aspect ratio verification (imitating weapon or tool)
+	# Elongated aspect ratio verification (colossal weapon frame)
 	var physical_width = float(w) * voxel_size
 	var physical_depth = float(d) * voxel_size
 	var aspect_ratio = physical_height / physical_width
 	assert_true(aspect_ratio >= 3.0, "Weapon must be elongated along primary axis (aspect ratio >= 3.0)")
-	assert_true(physical_depth <= 0.20, "Weapon depth must be slim / micro-voxel thickness")
+	# Volumetric presence (thick 3D heft: 0.20m to 0.35m)
+	assert_true(physical_depth >= 0.20 and physical_depth <= 0.35, "Weapon depth must exhibit heavy 3D volumetric presence")
 
 	# Check presence of structural voxel layers
 	var grid_3d = data["grid_3d"] as Array
@@ -133,9 +134,9 @@ func test_voxel_face_culling_and_mesh_generation() -> void:
 	assert_eq(verts.size(), colors.size())
 
 	# Ensure internal face culling: solid voxels don't blow up triangle budget
-	# A 24-height voxel weapon with culling should easily stay under 1500 triangles
+	# A colossal 40-height x 11-width x 5-depth voxel weapon with culling stays well-optimized under 4000 triangles
 	var triangle_count = verts.size() / 3
-	assert_true(triangle_count > 20 and triangle_count < 1500, "Mesh should be well-optimized via face culling")
+	assert_true(triangle_count > 50 and triangle_count < 4000, "Mesh should be well-optimized via face culling")
 
 func test_2d_icon_for_ui_and_hud() -> void:
 	var weapon = ProceduralWeaponEngine.generate_weapon(999, {"icon_size": Vector2i(28, 28)})
@@ -280,3 +281,191 @@ func test_attack_pattern_dictated_by_technique_cards() -> void:
 	assert_eq(ctx2.source_card_id, "motion_test_thrust")
 	# 40 * 1.5 (mod) * 1.2 (weapon) = 72.0
 	assert_almost_eq(ctx2.damage, 40.0 * 1.5 * 1.2, 0.01)
+
+func test_exotic_topologies_generation() -> void:
+	var topologies = [
+		ProceduralWeaponEngine.TopologyType.VOLUMETRIC_EROSION,
+		ProceduralWeaponEngine.TopologyType.PARAMETRIC_HELIX,
+		ProceduralWeaponEngine.TopologyType.BRANCHING_FRACTAL,
+		ProceduralWeaponEngine.TopologyType.NOISE_SHATTERED,
+		ProceduralWeaponEngine.TopologyType.KALEIDOSCOPIC
+	]
+
+	for topo in topologies:
+		var weapon = ProceduralWeaponEngine.generate_weapon(2026, {"topology": topo})
+		assert_not_null(weapon, "Weapon must generate for topology %d" % int(topo))
+		assert_eq(weapon.get_meta("topology"), topo)
+
+		var data = weapon.procedural_data
+		var grid_3d = data["grid_3d"] as Array
+		var w = data["width"] as int
+		var h = data["height"] as int
+		var d = data["depth"] as int
+		var cx = data["center_x"] as int
+		var cz = data["center_z"] as int
+
+		var jy = data["junction_y"] as int
+
+		# Handle (y = 1..jy-1) and collar (y = jy) check
+		var has_handle = false
+		for y in range(1, jy):
+			if grid_3d[cx][y][cz] == ProceduralWeaponEngine.VoxelType.HANDLE:
+				has_handle = true
+		assert_true(has_handle, "Topology %d must have handle voxels" % int(topo))
+		assert_eq(grid_3d[cx][jy][cz], ProceduralWeaponEngine.VoxelType.JUNCTION, "Junction collar must be present")
+
+		# Readable locked central spine check: y = jy+1..h-1 must never be empty at central core
+		for sy in range(jy + 1, h):
+			var spine_voxel = grid_3d[cx][sy][cz]
+			assert_true(spine_voxel != ProceduralWeaponEngine.VoxelType.EMPTY,
+				"Topology %d spine voxel at y=%d must not be empty" % [int(topo), sy])
+
+		# Check presence of structural components: BODY, EDGE, ENERGY
+		var has_body = false
+		var has_edge = false
+		var has_energy = false
+		for x in range(w):
+			for y in range(h):
+				for z in range(d):
+					var v = grid_3d[x][y][z]
+					if v == ProceduralWeaponEngine.VoxelType.BODY:
+						has_body = true
+					elif v == ProceduralWeaponEngine.VoxelType.EDGE:
+						has_edge = true
+					elif v == ProceduralWeaponEngine.VoxelType.ENERGY:
+						has_energy = true
+
+		assert_true(has_body, "Topology %d must contain BODY voxels" % int(topo))
+		assert_true(has_edge, "Topology %d must contain EDGE voxels" % int(topo))
+		assert_true(has_energy, "Topology %d must contain ENERGY voxels" % int(topo))
+
+		# Mesh & Icon generation for this topology
+		var mesh = ProceduralWeaponEngine.build_weapon_mesh(data)
+		assert_not_null(mesh)
+		assert_true(mesh.get_surface_count() >= 1)
+
+		var icon = ProceduralWeaponEngine.generate_weapon_icon(data, Vector2i(28, 28))
+		assert_not_null(icon)
+		assert_eq(icon.get_width(), 28)
+
+func test_exotic_topology_string_and_param_overrides() -> void:
+	var string_names = ["erosion", "helix", "fractal", "shattered", "kaleidoscopic"]
+	var expected_types = [
+		ProceduralWeaponEngine.TopologyType.VOLUMETRIC_EROSION,
+		ProceduralWeaponEngine.TopologyType.PARAMETRIC_HELIX,
+		ProceduralWeaponEngine.TopologyType.BRANCHING_FRACTAL,
+		ProceduralWeaponEngine.TopologyType.NOISE_SHATTERED,
+		ProceduralWeaponEngine.TopologyType.KALEIDOSCOPIC
+	]
+
+	for i in range(string_names.size()):
+		var name_str = string_names[i]
+		var expected = expected_types[i]
+		var w = ProceduralWeaponEngine.generate_weapon(123 + i, {"topology": name_str})
+		assert_eq(w.get_meta("topology"), expected, "String '%s' should resolve to topology %d" % [name_str, int(expected)])
+
+	# Test extra wide grid orbital parameters for parametric helix
+	var wide_weapon = ProceduralWeaponEngine.generate_weapon(999, {
+		"topology": "helix",
+		"grid_width": 15,
+		"grid_depth": 7,
+		"helix_rx": 5.8,
+		"helix_rz": 2.6
+	})
+	var data = wide_weapon.procedural_data
+	assert_eq(data["width"], 15)
+	assert_eq(data["depth"], 7)
+	assert_eq(data["center_x"], 7)
+	assert_eq(data["center_z"], 3)
+
+	# Verify wide voxels exist in outer grid coordinates
+	var grid_3d = data["grid_3d"] as Array
+	var has_wide_voxel = false
+	for x in range(15):
+		for y in range(8, 40):
+			for z in range(7):
+				if (x <= 1 or x >= 13 or z == 0 or z == 6) and grid_3d[x][y][z] != ProceduralWeaponEngine.VoxelType.EMPTY:
+					has_wide_voxel = true
+					break
+	assert_true(has_wide_voxel, "Wide helix must plot voxels in outer grid coordinates")
+
+func test_structural_spine_locking_invariance() -> void:
+	# Across multiple seeds and all topologies, spine is invariant and always unbroken
+	var topologies = [
+		ProceduralWeaponEngine.TopologyType.VOLUMETRIC_EROSION,
+		ProceduralWeaponEngine.TopologyType.PARAMETRIC_HELIX,
+		ProceduralWeaponEngine.TopologyType.BRANCHING_FRACTAL,
+		ProceduralWeaponEngine.TopologyType.NOISE_SHATTERED,
+		ProceduralWeaponEngine.TopologyType.KALEIDOSCOPIC
+	]
+
+	var test_seeds = [1, 42, 101, 777, 9999]
+	for s in test_seeds:
+		for topo in topologies:
+			var weapon = ProceduralWeaponEngine.generate_weapon(s, {"topology": topo})
+			var grid = weapon.procedural_data["grid_3d"] as Array
+			var cx = weapon.procedural_data["center_x"] as int
+			var cz = weapon.procedural_data["center_z"] as int
+			var h = weapon.procedural_data["height"] as int
+
+			# Spine from y = 1 to h - 1 is never empty
+			for y in range(1, h):
+				var v = grid[cx][y][cz]
+				assert_true(v != ProceduralWeaponEngine.VoxelType.EMPTY,
+					"Spine invariant violated at y=%d for seed %d, topology %d" % [y, s, int(topo)])
+
+func test_no_hollow_cavities_in_kaleidoscopic_weapons() -> void:
+	# Verifies that kaleidoscopic procedural weapons do not have missing interior voxels / cavities
+	# cutting through the blade body, and that mesh materials use CULL_DISABLED to prevent visual artifacts.
+	var test_seeds = [101, 202, 303, 777]
+	for seed_val in test_seeds:
+		var weapon = ProceduralWeaponEngine.generate_weapon(seed_val, {
+			"topology": ProceduralWeaponEngine.TopologyType.KALEIDOSCOPIC
+		})
+		var data = weapon.procedural_data
+		var grid_3d = data["grid_3d"] as Array
+		var w = data["width"] as int
+		var h = data["height"] as int
+		var d = data["depth"] as int
+		var jy = data["junction_y"] as int
+
+		# Count interior cavities: an EMPTY voxel fully bounded by solid voxels in the same Z slice
+		var interior_cavities = 0
+		for y in range(jy + 1, h - 1):
+			for x in range(w):
+				for z in range(d):
+					if grid_3d[x][y][z] == ProceduralWeaponEngine.VoxelType.EMPTY:
+						var has_left = false
+						var has_right = false
+						for lx in range(0, x):
+							if grid_3d[lx][y][z] != ProceduralWeaponEngine.VoxelType.EMPTY:
+								has_left = true
+								break
+						for rx in range(x + 1, w):
+							if grid_3d[rx][y][z] != ProceduralWeaponEngine.VoxelType.EMPTY:
+								has_right = true
+								break
+						var has_down = false
+						var has_up = false
+						for dy_down in range(jy + 1, y):
+							if grid_3d[x][dy_down][z] != ProceduralWeaponEngine.VoxelType.EMPTY:
+								has_down = true
+								break
+						for dy_up in range(y + 1, h):
+							if grid_3d[x][dy_up][z] != ProceduralWeaponEngine.VoxelType.EMPTY:
+								has_up = true
+								break
+						if has_left and has_right and has_down and has_up:
+							interior_cavities += 1
+
+		assert_eq(interior_cavities, 0, "Kaleidoscopic weapon seed %d must have 0 interior cavities, got %d" % [seed_val, interior_cavities])
+
+		# Verify mesh material cull mode
+		var mesh = ProceduralWeaponEngine.build_weapon_mesh(data)
+		assert_not_null(mesh)
+		for s in range(mesh.get_surface_count()):
+			var mat = mesh.surface_get_material(s) as BaseMaterial3D
+			if mat != null:
+				assert_eq(mat.cull_mode, BaseMaterial3D.CULL_DISABLED, "Weapon mesh material surface %d must use CULL_DISABLED" % s)
+
+

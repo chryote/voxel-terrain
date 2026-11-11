@@ -17,7 +17,20 @@ const TriggerCard = preload("res://src/combat/techniques/triggers/trigger_card.g
 const MeleeDeckEvaluator = preload("res://src/combat/core/melee_deck_evaluator.gd")
 const WeaponIconFactory = preload("res://src/combat/ui/weapon_icon_factory.gd")
 
-@export var floating_weapon: FloatingWeaponController
+@export var floating_weapon: FloatingWeaponController:
+	set(val):
+		if floating_weapon != null:
+			if floating_weapon.inventory_updated.is_connected(_on_inventory_data_changed):
+				floating_weapon.inventory_updated.disconnect(_on_inventory_data_changed)
+			if floating_weapon.weapon_equipped.is_connected(_on_weapon_equipped):
+				floating_weapon.weapon_equipped.disconnect(_on_weapon_equipped)
+		floating_weapon = val
+		if floating_weapon != null:
+			if not floating_weapon.inventory_updated.is_connected(_on_inventory_data_changed):
+				floating_weapon.inventory_updated.connect(_on_inventory_data_changed)
+			if not floating_weapon.weapon_equipped.is_connected(_on_weapon_equipped):
+				floating_weapon.weapon_equipped.connect(_on_weapon_equipped)
+			_update_ui_state()
 
 ## Compatibility alias for code checking floating_sword
 var floating_sword: FloatingWeaponController:
@@ -31,6 +44,7 @@ var floating_sword: FloatingWeaponController:
 # UI Modes
 var _is_inventory_open: bool = false
 var _previous_mouse_mode: Input.MouseMode = Input.MOUSE_MODE_CAPTURED
+var _initial_ui_synced: bool = false
 
 # Selected card for click-to-swap
 var _selected_source: String = "" # "weapon" or "inventory"
@@ -106,9 +120,14 @@ func _ready() -> void:
 		_setup_accordion_section()
 		_setup_tooltip()
 
+	if player_motor != null and floating_weapon == null and player_motor.floating_weapon != null:
+		floating_weapon = player_motor.floating_weapon
+
 	if floating_weapon != null:
-		floating_weapon.inventory_updated.connect(_on_inventory_data_changed)
-		floating_weapon.weapon_equipped.connect(_on_weapon_equipped)
+		if not floating_weapon.inventory_updated.is_connected(_on_inventory_data_changed):
+			floating_weapon.inventory_updated.connect(_on_inventory_data_changed)
+		if not floating_weapon.weapon_equipped.is_connected(_on_weapon_equipped):
+			floating_weapon.weapon_equipped.connect(_on_weapon_equipped)
 
 	_update_ui_state()
 
@@ -124,6 +143,7 @@ func _bind_scene_nodes() -> void:
 	_active_marker_labels.clear()
 	for child in _top_indicator_hbox.get_children():
 		if child is Label:
+			child.text = ""
 			_active_marker_labels.append(child)
 
 	_weapon_label = get_node("TopBarContainer/WeaponColumn/WeaponLabel") as Label
@@ -267,7 +287,7 @@ func _setup_top_bar() -> void:
 	_weapon_label.visible = false
 	_weapon_col.add_child(_weapon_label)
 
-	# Active indicator marker ("1" directly above equipped slot)
+	# Top indicator spacer/container (no numbers shown)
 	_top_indicator_hbox = HBoxContainer.new()
 	_top_indicator_hbox.name = "TopIndicatorHBox"
 	_top_indicator_hbox.mouse_filter = MOUSE_FILTER_IGNORE
@@ -284,7 +304,7 @@ func _setup_top_bar() -> void:
 		num_lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 		num_lbl.add_theme_constant_override("shadow_offset_x", 1)
 		num_lbl.add_theme_constant_override("shadow_offset_y", 1)
-		num_lbl.text = "1" if i == 0 else ""
+		num_lbl.text = ""
 		_top_indicator_hbox.add_child(num_lbl)
 		_active_marker_labels.append(num_lbl)
 
@@ -687,9 +707,16 @@ func close_inventory() -> void:
 ## PROCESS & COOLDOWN RENDERING
 ## -----------------------------------------------------------------------------
 func _process(_delta: float) -> void:
+	if not _initial_ui_synced:
+		if floating_weapon == null and player_motor != null and player_motor.floating_weapon != null:
+			floating_weapon = player_motor.floating_weapon
+		if floating_weapon != null and not floating_weapon.weapons.is_empty():
+			_update_ui_state()
+			_initial_ui_synced = true
+
 	_update_quickbar_cooldowns()
 
-	if _tooltip_panel.visible:
+	if _tooltip_panel != null and _tooltip_panel.visible:
 		var mouse_pos = get_viewport().get_mouse_position()
 		_tooltip_panel.position = mouse_pos + Vector2(16, 16)
 
@@ -725,8 +752,13 @@ func _update_quickbar_cooldowns() -> void:
 ## -----------------------------------------------------------------------------
 ## STATE SYNCHRONIZATION
 ## -----------------------------------------------------------------------------
+func update_ui_state() -> void:
+	_update_ui_state()
+
 func _update_ui_state() -> void:
 	if floating_weapon == null:
+		return
+	if _hud_weapon_boxes.is_empty():
 		return
 
 	var weapons = floating_weapon.weapons
@@ -739,7 +771,7 @@ func _update_ui_state() -> void:
 		var style = box.get_theme_stylebox("panel") as StyleBoxFlat
 
 		if i < _active_marker_labels.size():
-			_active_marker_labels[i].text = str(i + 1) if i == active_idx else ""
+			_active_marker_labels[i].text = ""
 
 		if i < weapons.size() and weapons[i] != null:
 			var w = weapons[i]
@@ -766,6 +798,11 @@ func _update_ui_state() -> void:
 			if style != null:
 				style.border_color = Color(0.22, 0.17, 0.13, 0.6)
 				style.bg_color = Color(0.06, 0.05, 0.04, 0.8)
+
+	for box in _hud_item_boxes:
+		var lbl = box.get_node_or_null("CenterContainer/SlotLabel") as Label
+		if lbl != null:
+			lbl.text = ""
 
 	if _is_inventory_open:
 		_rebuild_inventory_ui()

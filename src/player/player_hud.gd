@@ -99,6 +99,7 @@ func _ready() -> void:
 	_weapon_deck_ui.player_motor = player_motor
 	if player_motor != null:
 		_weapon_deck_ui.floating_weapon = player_motor.floating_weapon
+		_weapon_deck_ui.update_ui_state()
 
 	if player_motor != null:
 		player_motor.fired.connect(_on_player_fired)
@@ -112,6 +113,7 @@ func _process(delta: float) -> void:
 			_weapon_deck_ui.player_motor = player_motor
 		if _weapon_deck_ui.floating_weapon == null and player_motor != null:
 			_weapon_deck_ui.floating_weapon = player_motor.floating_weapon
+			_weapon_deck_ui.update_ui_state()
 
 	if _hit_marker_time > 0.0:
 		_hit_marker_time -= delta

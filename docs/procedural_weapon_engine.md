@@ -53,16 +53,16 @@ Every discrete point in the 3D grid is assigned a semantic voxel role:
 | `5` | `ENERGY` | Mana conduits, glowing power cores, plasma tips | **Emissive Material** (`multiplier = 3.5`) |
 | `6` | `ACCENT` | Gold trim, pommel rings, magnetic stabilization coils | Highlighting specular tone |
 
-### 2.2 Weapon Profiles (`WeaponProfile`)
-Profiles dictate the silhouette, 3D volume, emitter head geometry, and deck archetype:
+### 2.2 Weapon Profiles (`WeaponProfile`) & Exotic Topologies (`TopologyType`)
+Profiles dictate the deck archetype and default exotic topology. The engine locks the structural handle ($y=1\dots4$), collar ($y=5$), and central spine core ($(cx, y, cz)$ for $y=6\dots23$) while driving the outer bounds through advanced generative algorithms:
 
-| Profile | ID | Silhouette / Archetype | Deck Capacity | Recharge Time | Damage Mult | Stamina Mult | Special Features |
-|:---|:---:|:---|:---:|:---:|:---:|:---:|:---|
-| **BALANCED** | `0` | Standard longsword / saber | 5 – 7 | 0.45 – 0.55s | 1.00 – 1.10x | 1.00x | Alternating central energy core |
-| **SLENDER** | `1` | Rapier / needle / stiletto | 6 – 9 | 0.28 – 0.40s | 0.88 – 1.00x | 0.82 – 0.92x | High capacity, rapid recharge, needle tip |
-| **HEAVY** | `2` | Greatsword / warhammer | 4 – 6 | 0.62 – 0.78s | 1.25 – 1.45x | 1.15 – 1.30x | True 3D volume (`depth = 3`), devastating hits |
-| **SEGMENTED** | `3` | Floating modular sci-fi frame | 5 – 8 | 0.42 – 0.55s | 1.02 – 1.15x | 1.00x | 3 floating segments separated by energy gaps, 45% shuffle chance |
-| **FLANGED** | `4` | Spiked mace / kinetic war-pick | 5 – 7 | 0.45 – 0.58s | 1.10 – 1.22x | 0.95 – 1.05x | Stepped lateral teeth and heavy pommel |
+| Profile | Topology | ID | Topology Archetype | Deck Capacity | Recharge Time | Damage Mult | Stamina Mult | Exotic Topological Features |
+|:---|:---|:---:|:---|:---:|:---:|:---:|:---:|:---|
+| **BALANCED** / **KALEIDOSCOPIC** | `KALEIDOSCOPIC` | `0` / `9` | Sacred Geometry Mandala | 5 – 7 | 0.45 – 0.55s | 1.00 – 1.10x | 1.00x | 4/8-axis multi-mirroring, concentric energy rings, faceted diamond snowflake stars |
+| **SLENDER** / **PARAMETRIC_HELIX** | `PARAMETRIC_HELIX` | `1` / `6` | Helical Caduceus / Arcane Staff | 6 – 9 | 0.28 – 0.40s | 0.88 – 1.00x | 0.82 – 0.92x | Double-helix $\sin/\cos$ orbital strands wrapping central spine, tuning fork emitter, stabilizer rungs |
+| **HEAVY** / **VOLUMETRIC_EROSION** | `VOLUMETRIC_EROSION` | `2` / `5` | Porous Cellular Hive Relic | 4 – 6 | 0.62 – 0.78s | 1.25 – 1.45x | 1.15 – 1.30x | 3D Cellular Automata 26-neighbor erosion, Swiss-cheese cavities with glowing energy nodules |
+| **SEGMENTED** / **NOISE_SHATTERED** | `NOISE_SHATTERED` | `3` / `8` | Shattered Floating Shards | 5 – 8 | 0.42 – 0.55s | 1.02 – 1.15x | 1.00x | 3D Simplex noise slicing, telekinetic tether energy spine, molten energy-lined fracture faces |
+| **FLANGED** / **BRANCHING_FRACTAL** | `BRANCHING_FRACTAL` | `4` / `7` | Crystalline / Fractal Growth | 5 – 7 | 0.45 – 0.58s | 1.10 – 1.22x | 0.95 – 1.05x | L-System recursive branching from spine anchors, crystalline facet clusters, frozen lightning |
 
 ### 2.3 Curated Color Palettes (`PALETTES`)
 The engine defines 6 distinct aesthetic themes that map colors to all voxel roles:
@@ -75,72 +75,79 @@ The engine defines 6 distinct aesthetic themes that map colors to all voxel role
 
 ---
 
-## 3. Spatial Grid & Voxel Dimensions
+## 3. Spatial Grid & Voxel Dimensions (Monster Hunter Colossal Scale)
 
-The weapon is forged inside a 3-dimensional discrete matrix:
+The weapon is forged inside a 3-dimensional discrete matrix sized for imposing Monster Hunter colossal proportions:
 
 ```
-                  +Y (Top: Height = 24 voxels, ~1.08m)
+                  +Y (Top: Height = 40 voxels, ~2.00m)
                    ^
-                   |    [Tip / Emitter Layer: y = 19..23]
-                   |    [Blade / Shaft Layer: y = 6..18]
-                   |    [Crossguard / Junction: y = 5] <-- Pivot Origin (0,0,0)
-                   |    [Handle / Grip Layer: y = 1..4]
-                   |    [Pommel Cap: y = 0]
-                   +----------------------------------> +X (Width = 7 voxels)
+                   |    [Apex Emitter & Crest: y = 37..39]
+                   |    [Colossal Blade & Generative Topologies: y = 8..36]
+                   |    [Crossguard / Junction: y = 7] <-- Pivot Origin (0,0,0)
+                   |    [Two-Handed Grip Layer: y = 1..6]
+                   |    [Pommel Counterweight: y = 0]
+                   +----------------------------------> +X (Width = 11 voxels, ~0.55m)
                   /
                  /
                 v
-               +Z (Depth = 3 voxels)
+               +Z (Depth = 5 voxels, ~0.25m thickness)
 ```
 
-- **Voxel Size**: `DEFAULT_VOXEL_SIZE = 0.045m` (4.5 cm).
-- **Total Height**: $24 \text{ voxels} \times 0.045\text{m} = 1.08\text{m}$ (matches Godot world block height).
-- **Grid Dimensions**: `X = 7` (width), `Y = 24` (height), `Z = 3` (depth).
-- **Centers**: `cx = 3` (horizontal center), `cz = 1` (depth center).
-- **Pivot Origin (`JUNCTION_Y = 5`)**: The crossguard at $y=5$ is translated to local $(0,0,0)$ in 3D mesh space. This ensures the weapon pivots naturally around the player's hand or floating orbit point rather than its base.
+- **Voxel Size**: `DEFAULT_VOXEL_SIZE = 0.05m` (5 cm per voxel).
+- **Total Height / Length**: $40 \text{ voxels} \times 0.05\text{m} = 2.00\text{m}$ (matches 2 world blocks in height; towers over the hunter).
+- **Grid Dimensions**: `X = 11` (width), `Y = 40` (height), `Z = 5` (depth) — totaling **2,200 voxel cells** (over $4.3\times$ previous volume).
+- **Centers**: `cx = 5` (horizontal center), `cz = 2` (depth center).
+- **Pivot Origin (`JUNCTION_Y = 7`)**: The crossguard at $y=7$ is translated to local $(0,0,0)$ in 3D mesh space. Below $y=7$, a $0.35\text{m}$ two-handed grip extends backward; above $y=7$, a massive $1.60\text{m}$ blade extends upward over the player's shoulder.
 
 ---
 
-## 4. Procedural Generation Pipeline
+## 4. Procedural Generation Pipeline (Exotic Topologies)
 
-### Step 1: Matrix Construction & Symmetry
-`generate_voxel_matrix()` initializes a 3D matrix (`grid_3d[x][y][z]`) and a 2D projection buffer (`grid_2d[y][x]`).
+Moving away from traditional layer-by-layer blade extrusion, the engine locks the structural core and handle while pushing the outer grid bounds toward abstract, chaotic, and cosmic topologies.
 
-It utilizes an axial bilateral symmetry function:
-```gdscript
-var set_symmetric = func(dx: int, y: int, z: int, v_type: int) -> void:
-    set_voxel.call(cx + dx, y, z, v_type)
-    if dx != 0:
-        set_voxel.call(cx - dx, y, z, v_type)
-```
-This guarantees perfect bilateral balance across the weapon's central spine while allowing $dx$ displacement for crossguards, flanges, and blades.
+### Step 1: Locked Structural Core & Handle
+1. **Pommel Counterweight ($y = 0$)**:
+   - Central accent voxel at $(cx, 0, cz)$ reinforced with flanking junction voxels and 3D depth counterweights at $z = cz \pm 1$.
+2. **Two-Handed Handle Grip ($y = 1 \dots 6$)**:
+   - Central handle column $(cx, y, cz)$ locked to `VoxelType.HANDLE` with alternating `VoxelType.ACCENT` wire wraps and full 3D grip depth thickness ($z = cz \pm 1$).
+3. **Collar & Junction ($y = 7$)**:
+   - Heavy bracket crossguard socket locked to `VoxelType.JUNCTION` at width $\pm 2$ to $\pm 5$ with dual-depth reinforcement ($z \in [0, 4]$).
+4. **Readable Central Spine ($y = 8 \dots 39$)**:
+   - The central axis $(cx, y, cz)$ is locked with `VoxelType.BODY` and rhythmic `VoxelType.ENERGY` conduits. Even when chaotic slicing or erosion is applied, the spine is permanently safeguarded to guarantee structural connectivity.
+   - Crossguard socket bracket locked to `VoxelType.JUNCTION` at width $\pm 1$ to $\pm 3$.
+4. **Readable Central Spine ($y = 6 \dots 23$)**:
+   - The central axis $(cx, y, cz)$ is locked with `VoxelType.BODY` and rhythmic `VoxelType.ENERGY` conduits. Even when chaotic slicing or erosion is applied, the spine is permanently safeguarded to guarantee structural connectivity.
 
-### Step 2: Layered Structural Assembly
-The weapon is assembled from base to tip across 5 vertical strata:
+### Step 2: Advanced Exotic Topology Algorithms
 
-1. **Pommel & Counterweight ($y = 0$)**:
-   - Central accent voxel at $(cx, 0, cz)$.
-   - Expanded with flanking junction voxels for `HEAVY` and `FLANGED` profiles to visually counterbalance larger heads.
-2. **Grip / Hilt ($y = 1 \dots 4$)**:
-   - Central handle column at $(cx, y, cz)$.
-   - Alternates between `VoxelType.HANDLE` and `VoxelType.ACCENT` every even step to simulate hilt wrapping or wire grip coils.
-3. **Collar & Crossguard ($y = 5$)**:
-   - Generates a protective crossguard with width scaled to profile:
-     - `SLENDER`: Guard width = 1 voxel ($\pm 1$ from center).
-     - `BALANCED` / `FLANGED` / `SEGMENTED`: Guard width = 2 voxels ($\pm 2$).
-     - `HEAVY`: Guard width = 3 voxels ($\pm 3$), with 3D depth reinforcement at $z = cz \pm 1$.
-4. **Shaft / Blade Spine ($y = 6 \dots 18$)**:
-   - `SLENDER`: Needle-thin spine with high-taper edge and periodic energy nodes.
-   - `HEAVY`: Solid multi-voxel thick blade with reinforced front and back depth ($z = 0, 1, 2$) and periodic energy cores.
-   - `SEGMENTED`: Three physically separated modules with pure energy gaps at $y = 9$ and $y = 14$ to mimic suspended floating levitation.
-   - `FLANGED`: Spiked lateral ribs with accent tips at $y \in \{8, 11, 14, 17\}$.
-   - `BALANCED`: Central alloy core flanked by cutting edges with internal glowing mana conduits.
-5. **Head / Emitter Point ($y = 19 \dots 23$)**:
-   - `SLENDER`: Tapers to a single energy needle emitter at $y = 23$.
-   - `HEAVY`: Expands into a massive hammer/axe block strike head with edge perimeter.
-   - `SEGMENTED`: Splits into a forked tuning-fork dual emitter with a suspended central plasma core.
-   - `FLANGED` / `BALANCED`: Crowned cutting head capped with an accent apex gem.
+#### 1. Volumetric Erosion (3D Cellular Automata)
+- **Concept**: Fills $y = 6 \dots 23$ with a solid geometric block seeded with 20% initial cavity vacuoles and 24% glowing energy nodules around the locked spine.
+- **Simulation**: Runs 3 iterations of 3D Cellular Automata using 26-neighborhood survival ($6 \le neighbors \le 18$) and birth ($11 \le neighbors \le 14$) rules.
+- **Visual Result**: An ancient, porous, Swiss-cheese/hive relic. Surviving exterior body voxels receive polished `EDGE` bevels, revealing inner glowing `ENERGY` cores peeking through irregular cavities.
+
+#### 2. Parametric Helices & Orbitals
+- **Concept**: Abandons axial symmetry for the blade and uses mathematical sine/cosine winding around the central spine.
+- **Implementation**: Two orbital strands 180° out of phase:
+  $$\theta_1 = y \cdot \text{freq} + \phi, \quad \theta_2 = \theta_1 + \pi$$
+  Strand 1 plots `ENERGY` plasma conduits; Strand 2 plots `EDGE` striking perimeter rails. Stabilizing horizontal `ACCENT` rungs bridge to the spine every 4 steps, flaring into a cosmic tuning fork at the apex.
+- **Customizable Grid**: Supports widened grid bounds (`grid_width = 11`, `grid_depth = 5`) for expansive celestial orbits.
+
+#### 3. L-System Branching (Fractal & Crystalline Growth)
+- **Concept**: Grows recursive crystalline clusters, coral formations, or frozen lightning bolts outward from spine anchors ($y \in \{6, 9, 13, 17, 21\}$).
+- **Implementation**: Recursive branching functions step along 3D diagonal vectors with stochastic bifurcations (55% fork chance), terminating at grid borders or recursion limits with faceted `EDGE` crystals and `ENERGY` spark veins.
+
+#### 4. Noise-Sliced Fracturing (The "Shattered" Matrix)
+- **Concept**: Synthesizes a solid heavy blade silhouette, then shatters it into floating shards using 3D Simplex noise (`FastNoiseLite.TYPE_SIMPLEX`).
+- **Implementation**: Voxels falling within a narrow noise band ($|n| \le 0.12$) are cleaved into empty space. Along the central spine $(cx, y, cz)$, the fault cut is replaced with glowing `ENERGY`, creating telekinetic tether conduits that suspend floating shards. Exposed fracture surfaces are lined with molten `ENERGY`.
+
+#### 5. Multi-Axis Mirroring (Kaleidoscopic / Sacred Geometry)
+- **Concept**: Generates a sacred geometric cluster in one quadrant around midpoint $mid\_y = 14$ and mirrors it simultaneously across $X$, $Y$, and $Z$ axes.
+- **Implementation**: Evaluates Manhattan and Euclidean harmonics ($dx + 0.45 dy$) to forge concentric glowing arcane rings, radial structural spokes, and faceted snowflake perimeters.
+- **Visual Result**: Hyper-symmetrical "biblically accurate" geometric mandalas and star matrices orbiting the player's stance.
+
+### Step 3: 2D Matrix Projection & Synchronization
+Following 3D generation, `_update_grid_2d()` evaluates the depth columns along $Z$, ensuring that internal cavities, energy veins, and orbital strands project accurately into the $28 \times 28$ UI pixel-art icon without ghost voxels.
 
 ---
 

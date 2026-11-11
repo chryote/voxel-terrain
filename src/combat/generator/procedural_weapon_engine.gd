@@ -25,14 +25,27 @@ enum WeaponProfile {
 	SLENDER = 1,
 	HEAVY = 2,
 	SEGMENTED = 3,
-	FLANGED = 4
+	FLANGED = 4,
+	VOLUMETRIC_EROSION = 5,
+	PARAMETRIC_HELIX = 6,
+	BRANCHING_FRACTAL = 7,
+	NOISE_SHATTERED = 8,
+	KALEIDOSCOPIC = 9
 }
 
-const DEFAULT_VOXEL_SIZE: float = 0.045 # 24 voxels * 0.045m = 1.08m (~1 world block height)
-const TARGET_WEAPON_HEIGHT_VOXELS: int = 24
-const DEFAULT_GRID_WIDTH: int = 7
-const DEFAULT_GRID_DEPTH: int = 3
-const JUNCTION_Y: int = 5
+enum TopologyType {
+	VOLUMETRIC_EROSION = 0,
+	PARAMETRIC_HELIX = 1,
+	BRANCHING_FRACTAL = 2,
+	NOISE_SHATTERED = 3,
+	KALEIDOSCOPIC = 4
+}
+
+const DEFAULT_VOXEL_SIZE: float = 0.05 # 40 voxels * 0.05m = 2.00m (~2 world blocks height, Monster Hunter scale)
+const TARGET_WEAPON_HEIGHT_VOXELS: int = 40
+const DEFAULT_GRID_WIDTH: int = 11
+const DEFAULT_GRID_DEPTH: int = 5
+const JUNCTION_Y: int = 7
 
 const NAME_PREFIXES: Array[String] = [
 	"Tempered", "Resonant", "Voxel", "Kinetic", "Prismatic",
@@ -108,14 +121,15 @@ static func generate_weapon(seed_val: int = -1, params: Dictionary = {}) -> Mele
 
 	var profile_val = params.get("profile", rng.randi_range(0, 4))
 	var profile: WeaponProfile = profile_val as WeaponProfile
+	var topology: TopologyType = resolve_topology(profile_val, params) as TopologyType
 
 	var palette: Dictionary = params.get("palette", _pick_palette(rng))
-	var voxel_data: Dictionary = generate_voxel_matrix(rng, profile, palette)
+	var voxel_data: Dictionary = generate_voxel_matrix(rng, profile, palette, params)
 
 	var icon_size: Vector2i = params.get("icon_size", Vector2i(28, 28))
 	var icon_tex: ImageTexture = generate_weapon_icon(voxel_data, icon_size)
 
-	var weapon_name: String = params.get("name", _generate_name(rng, profile, seed_val))
+	var weapon_name: String = params.get("name", _generate_name(rng, profile, seed_val, topology))
 	var weapon_desc: String = params.get("description", _generate_description(profile, palette, voxel_data, seed_val))
 	var stats: Dictionary = _generate_deck_stats(rng, profile, params)
 
@@ -138,6 +152,7 @@ static func generate_weapon(seed_val: int = -1, params: Dictionary = {}) -> Mele
 	weapon_def.set_meta("voxel_data", voxel_data)
 	weapon_def.set_meta("seed", seed_val)
 	weapon_def.set_meta("profile", profile)
+	weapon_def.set_meta("topology", topology)
 
 	if params.has("slotted_techniques"):
 		weapon_def.slotted_techniques = params["slotted_techniques"].duplicate()
@@ -145,11 +160,44 @@ static func generate_weapon(seed_val: int = -1, params: Dictionary = {}) -> Mele
 	WeaponIconFactory.register_weapon_icon(weapon_def.weapon_id, icon_tex)
 	return weapon_def
 
+## Resolves the exotic generative topology based on profile or explicit parameters.
+static func resolve_topology(profile_val: int, params: Dictionary = {}) -> int:
+	if params.has("topology"):
+		var t = params["topology"]
+		if t is int:
+			return clampi(t, 0, 4)
+		elif t is String:
+			match t.to_lower():
+				"erosion", "volumetric_erosion", "cellular_automata", "hive":
+					return TopologyType.VOLUMETRIC_EROSION
+				"helix", "parametric_helix", "orbital", "caduceus":
+					return TopologyType.PARAMETRIC_HELIX
+				"fractal", "branching_fractal", "lsystem", "crystalline":
+					return TopologyType.BRANCHING_FRACTAL
+				"shattered", "noise_shattered", "fractured", "segmented":
+					return TopologyType.NOISE_SHATTERED
+				"kaleidoscopic", "sacred_geometry", "mandala", "geometric":
+					return TopologyType.KALEIDOSCOPIC
+
+	match profile_val:
+		WeaponProfile.SLENDER, WeaponProfile.PARAMETRIC_HELIX:
+			return TopologyType.PARAMETRIC_HELIX
+		WeaponProfile.HEAVY, WeaponProfile.VOLUMETRIC_EROSION:
+			return TopologyType.VOLUMETRIC_EROSION
+		WeaponProfile.SEGMENTED, WeaponProfile.NOISE_SHATTERED:
+			return TopologyType.NOISE_SHATTERED
+		WeaponProfile.FLANGED, WeaponProfile.BRANCHING_FRACTAL:
+			return TopologyType.BRANCHING_FRACTAL
+		_: # BALANCED, KALEIDOSCOPIC
+			return TopologyType.KALEIDOSCOPIC
+
 ## Generates the discrete 3D voxel structure and 2D projection matrix.
-static func generate_voxel_matrix(rng: RandomNumberGenerator, profile: WeaponProfile, palette: Dictionary) -> Dictionary:
+## Abandons traditional layer-by-layer blade silhouettes: locks the structural handle
+## and spine while applying advanced generative algorithms to outer bounds.
+static func generate_voxel_matrix(rng: RandomNumberGenerator, profile: WeaponProfile, palette: Dictionary, params: Dictionary = {}) -> Dictionary:
 	var h = TARGET_WEAPON_HEIGHT_VOXELS
-	var w = DEFAULT_GRID_WIDTH
-	var d = DEFAULT_GRID_DEPTH
+	var w = params.get("grid_width", DEFAULT_GRID_WIDTH)
+	var d = params.get("grid_depth", DEFAULT_GRID_DEPTH)
 	var cx = w / 2
 	var cz = d / 2
 
@@ -173,8 +221,6 @@ static func generate_voxel_matrix(rng: RandomNumberGenerator, profile: WeaponPro
 	var set_voxel = func(x: int, y: int, z: int, v_type: int) -> void:
 		if x >= 0 and x < w and y >= 0 and y < h and z >= 0 and z < d:
 			grid_3d[x][y][z] = v_type
-			if z == cz or grid_2d[y][x] == VoxelType.EMPTY or v_type == VoxelType.ENERGY:
-				grid_2d[y][x] = v_type
 
 	var set_symmetric = func(dx: int, y: int, z: int, v_type: int) -> void:
 		set_voxel.call(cx + dx, y, z, v_type)
@@ -183,120 +229,70 @@ static func generate_voxel_matrix(rng: RandomNumberGenerator, profile: WeaponPro
 
 	# --- 1. Base and Pommel (y = 0) ---
 	set_symmetric.call(0, 0, cz, VoxelType.ACCENT)
-	if profile == WeaponProfile.HEAVY or profile == WeaponProfile.FLANGED:
-		set_symmetric.call(1, 0, cz, VoxelType.JUNCTION)
+	set_symmetric.call(1, 0, cz, VoxelType.JUNCTION)
+	if cz > 0:
+		set_symmetric.call(0, 0, cz - 1, VoxelType.JUNCTION)
+		set_symmetric.call(0, 0, cz + 1, VoxelType.JUNCTION)
+	if profile == WeaponProfile.HEAVY or profile == WeaponProfile.VOLUMETRIC_EROSION or profile == WeaponProfile.FLANGED:
+		set_symmetric.call(2, 0, cz, VoxelType.JUNCTION)
 
-	# --- 2. Handle / Grip (y = 1 to 4) ---
+	# --- 2. Handle / Grip (y = 1 to JUNCTION_Y - 1) ---
 	for gy in range(1, JUNCTION_Y):
 		set_symmetric.call(0, gy, cz, VoxelType.HANDLE)
 		if gy % 2 == 0:
 			set_symmetric.call(0, gy, cz, VoxelType.ACCENT)
+		if cz > 0:
+			set_symmetric.call(0, gy, cz - 1, VoxelType.HANDLE)
+			set_symmetric.call(0, gy, cz + 1, VoxelType.HANDLE)
 
-	# --- 3. Collar / Junction (y = 5) ---
-	var guard_w = 2
-	if profile == WeaponProfile.SLENDER:
-		guard_w = 1
-	elif profile == WeaponProfile.HEAVY:
-		guard_w = 3
+	# --- 3. Collar / Junction (y = JUNCTION_Y) ---
+	var guard_w = 3
+	if profile == WeaponProfile.SLENDER or profile == WeaponProfile.PARAMETRIC_HELIX:
+		guard_w = 2
+	elif profile == WeaponProfile.HEAVY or profile == WeaponProfile.VOLUMETRIC_EROSION:
+		guard_w = 5
 
 	for gx in range(guard_w + 1):
 		set_symmetric.call(gx, JUNCTION_Y, cz, VoxelType.JUNCTION)
 		if cz > 0:
 			set_symmetric.call(gx, JUNCTION_Y, cz - 1, VoxelType.JUNCTION)
 			set_symmetric.call(gx, JUNCTION_Y, cz + 1, VoxelType.JUNCTION)
+		if cz > 1:
+			set_symmetric.call(gx, JUNCTION_Y, cz - 2, VoxelType.JUNCTION)
+			set_symmetric.call(gx, JUNCTION_Y, cz + 2, VoxelType.JUNCTION)
 
-	# --- 4. Shaft / Body (y = 6 to 18) ---
-	match profile:
-		WeaponProfile.SLENDER:
-			for sy in range(6, 19):
-				set_symmetric.call(0, sy, cz, VoxelType.BODY)
-				if sy <= 10:
-					set_symmetric.call(1, sy, cz, VoxelType.EDGE)
-				elif sy % 3 == 0:
-					set_symmetric.call(0, sy, cz, VoxelType.ENERGY)
+	# --- 4. Lock Central Spine Core (y = JUNCTION_Y + 1 to h - 1) ---
+	# The central axis (cx, y, cz) serves as an unbroken structural backbone.
+	for sy in range(JUNCTION_Y + 1, h):
+		if sy % 4 == 0:
+			set_voxel.call(cx, sy, cz, VoxelType.ENERGY)
+		else:
+			set_voxel.call(cx, sy, cz, VoxelType.BODY)
+		if cz > 0 and (sy % 2 == 0):
+			set_voxel.call(cx, sy, cz - 1, VoxelType.BODY)
+			set_voxel.call(cx, sy, cz + 1, VoxelType.BODY)
 
-		WeaponProfile.HEAVY:
-			for sy in range(6, 19):
-				set_symmetric.call(0, sy, cz, VoxelType.BODY)
-				set_symmetric.call(1, sy, cz, VoxelType.BODY)
-				set_symmetric.call(2, sy, cz, VoxelType.EDGE)
-				# 3D reinforcement depth
-				if cz > 0:
-					set_symmetric.call(0, sy, cz - 1, VoxelType.BODY)
-					set_symmetric.call(0, sy, cz + 1, VoxelType.BODY)
-				if sy % 4 == 0:
-					set_symmetric.call(0, sy, cz, VoxelType.ENERGY)
+	# --- 5. Apply Exotic Generative Topologies Exclusively to Outer Bounds ---
+	var topology: TopologyType = resolve_topology(profile, params) as TopologyType
+	match topology:
+		TopologyType.VOLUMETRIC_EROSION:
+			_apply_volumetric_erosion(grid_3d, rng, w, h, d, cx, cz, params)
+		TopologyType.PARAMETRIC_HELIX:
+			_apply_parametric_helix(grid_3d, rng, w, h, d, cx, cz, params)
+		TopologyType.BRANCHING_FRACTAL:
+			_apply_branching_fractal(grid_3d, rng, w, h, d, cx, cz, params)
+		TopologyType.NOISE_SHATTERED:
+			_apply_noise_shattered(grid_3d, rng, w, h, d, cx, cz, params)
+		_: # TopologyType.KALEIDOSCOPIC
+			_apply_kaleidoscopic(grid_3d, rng, w, h, d, cx, cz, params)
 
-		WeaponProfile.SEGMENTED:
-			# 3 distinct voxel modules separated by floating energy conduits
-			for sy in range(6, 19):
-				if sy == 9 or sy == 14:
-					# Pure energy gap
-					set_symmetric.call(0, sy, cz, VoxelType.ENERGY)
-				else:
-					set_symmetric.call(0, sy, cz, VoxelType.BODY)
-					set_symmetric.call(1, sy, cz, VoxelType.EDGE)
+	# Lock verification: Ensure spine core remains unbroken from handle to emitter
+	for sy in range(JUNCTION_Y + 1, h):
+		if grid_3d[cx][sy][cz] == VoxelType.EMPTY:
+			grid_3d[cx][sy][cz] = VoxelType.ENERGY if (sy % 3 == 0) else VoxelType.BODY
 
-		WeaponProfile.FLANGED:
-			for sy in range(6, 19):
-				set_symmetric.call(0, sy, cz, VoxelType.BODY)
-				set_symmetric.call(1, sy, cz, VoxelType.EDGE)
-				if sy == 8 or sy == 11 or sy == 14 or sy == 17:
-					set_symmetric.call(2, sy, cz, VoxelType.ACCENT)
-
-		_: # BALANCED
-			for sy in range(6, 19):
-				set_symmetric.call(0, sy, cz, VoxelType.BODY)
-				set_symmetric.call(1, sy, cz, VoxelType.EDGE)
-				if sy >= 8 and sy <= 15 and sy % 2 == 1:
-					set_symmetric.call(0, sy, cz, VoxelType.ENERGY)
-
-	# --- 5. Head / Emitter / Tip (y = 19 to 23) ---
-	match profile:
-		WeaponProfile.SLENDER:
-			for hy in range(19, 23):
-				set_symmetric.call(0, hy, cz, VoxelType.BODY)
-			set_symmetric.call(0, 23, cz, VoxelType.ENERGY) # Needle emitter point
-
-		WeaponProfile.HEAVY:
-			# Broad hammer/block strike head
-			for hy in range(19, 23):
-				for hx in range(3):
-					set_symmetric.call(hx, hy, cz, VoxelType.BODY)
-					if cz > 0:
-						set_symmetric.call(hx, hy, cz - 1, VoxelType.BODY)
-						set_symmetric.call(hx, hy, cz + 1, VoxelType.BODY)
-				set_symmetric.call(0, hy, cz, VoxelType.ENERGY)
-			for hx in range(2):
-				set_symmetric.call(hx, 23, cz, VoxelType.EDGE)
-
-		WeaponProfile.SEGMENTED:
-			# Forked dual emitter head
-			set_symmetric.call(0, 19, cz, VoxelType.ENERGY)
-			set_symmetric.call(1, 19, cz, VoxelType.JUNCTION)
-			set_symmetric.call(1, 20, cz, VoxelType.EDGE)
-			set_symmetric.call(1, 21, cz, VoxelType.EDGE)
-			set_symmetric.call(1, 22, cz, VoxelType.ACCENT)
-			set_symmetric.call(0, 21, cz, VoxelType.ENERGY) # Suspended energy core
-
-		WeaponProfile.FLANGED:
-			set_symmetric.call(0, 19, cz, VoxelType.BODY)
-			set_symmetric.call(1, 19, cz, VoxelType.EDGE)
-			set_symmetric.call(0, 20, cz, VoxelType.BODY)
-			set_symmetric.call(1, 20, cz, VoxelType.EDGE)
-			set_symmetric.call(0, 21, cz, VoxelType.EDGE)
-			set_symmetric.call(0, 22, cz, VoxelType.EDGE)
-			set_symmetric.call(0, 23, cz, VoxelType.ACCENT)
-
-		_: # BALANCED
-			set_symmetric.call(0, 19, cz, VoxelType.ENERGY)
-			set_symmetric.call(1, 19, cz, VoxelType.EDGE)
-			set_symmetric.call(0, 20, cz, VoxelType.ENERGY)
-			set_symmetric.call(1, 20, cz, VoxelType.EDGE)
-			set_symmetric.call(0, 21, cz, VoxelType.EDGE)
-			set_symmetric.call(1, 21, cz, VoxelType.EDGE)
-			set_symmetric.call(0, 22, cz, VoxelType.EDGE)
-			set_symmetric.call(0, 23, cz, VoxelType.ACCENT)
+	# Update 2D projection matrix from final 3D voxel structure
+	_update_grid_2d(grid_3d, grid_2d, w, h, d, cx, cz)
 
 	return {
 		"grid_3d": grid_3d,
@@ -308,8 +304,373 @@ static func generate_voxel_matrix(rng: RandomNumberGenerator, profile: WeaponPro
 		"center_z": cz,
 		"junction_y": JUNCTION_Y,
 		"profile": profile,
+		"topology": topology,
 		"palette": palette
 	}
+
+## 1. Volumetric Erosion (3D Cellular Automata)
+## Generates a massive solid geometric block around the spine, then uses Cellular
+## Automata to eat away at it, producing an ancient, porous hive/relic relic.
+static func _apply_volumetric_erosion(grid_3d: Array, rng: RandomNumberGenerator, w: int, h: int, d: int, cx: int, cz: int, params: Dictionary) -> void:
+	var iterations: int = params.get("ca_iterations", 3)
+	var max_half_w: int = maxi(3, cx)
+
+	# Initial solid volume fill around central spine
+	for y in range(JUNCTION_Y + 1, h):
+		var taper: float = 1.0 - (float(y - (JUNCTION_Y + 1)) / float(maxi(1, h - (JUNCTION_Y + 1)))) * 0.20
+		var cur_half_w = maxi(2, int(round(float(max_half_w) * taper)))
+		for x in range(cx - cur_half_w, cx + cur_half_w + 1):
+			if x < 0 or x >= w:
+				continue
+			for z in range(d):
+				if x == cx and z == cz:
+					continue # Spine locked
+				var roll = rng.randf()
+				if roll < 0.18:
+					grid_3d[x][y][z] = VoxelType.EMPTY # Initial cavity seed
+				elif roll < 0.42:
+					grid_3d[x][y][z] = VoxelType.ENERGY # Glowing energy nodules
+				else:
+					grid_3d[x][y][z] = VoxelType.BODY
+
+	# 3D Cellular Automata simulation
+	for it in range(iterations):
+		var copy: Array = []
+		for x in range(w):
+			var y_arr: Array = []
+			for y in range(h):
+				var z_arr: Array = []
+				for z in range(d):
+					z_arr.append(grid_3d[x][y][z])
+				y_arr.append(z_arr)
+			copy.append(y_arr)
+
+		for y in range(JUNCTION_Y + 1, h):
+			for x in range(w):
+				for z in range(d):
+					if x == cx and z == cz:
+						continue # Spine is locked
+					var solid_neighbors = 0
+					for dx in range(-1, 2):
+						for dy in range(-1, 2):
+							for dz in range(-1, 2):
+								if dx == 0 and dy == 0 and dz == 0:
+									continue
+								var nx = x + dx
+								var ny = y + dy
+								var nz = z + dz
+								if nx >= 0 and nx < w and ny >= (JUNCTION_Y + 1) and ny < h and nz >= 0 and nz < d:
+									if copy[nx][ny][nz] != VoxelType.EMPTY:
+										solid_neighbors += 1
+
+					var cur = copy[x][y][z]
+					if cur != VoxelType.EMPTY:
+						if solid_neighbors < 8 or solid_neighbors > 20:
+							grid_3d[x][y][z] = VoxelType.EMPTY
+					else:
+						if solid_neighbors >= 12 and solid_neighbors <= 16:
+							grid_3d[x][y][z] = VoxelType.BODY
+
+	# Perimeter boundary pass: turn exposed outer surface into EDGE
+	var edge_placed = false
+	for y in range(JUNCTION_Y + 1, h):
+		for x in range(w):
+			for z in range(d):
+				if x == cx and z == cz:
+					continue
+				if grid_3d[x][y][z] == VoxelType.BODY:
+					var has_empty_adj = false
+					var dirs = [Vector3i(1,0,0), Vector3i(-1,0,0), Vector3i(0,1,0), Vector3i(0,-1,0), Vector3i(0,0,1), Vector3i(0,0,-1)]
+					for dir in dirs:
+						var nx = x + dir.x
+						var ny = y + dir.y
+						var nz = z + dir.z
+						if nx < 0 or nx >= w or ny < 0 or ny >= h or nz < 0 or nz >= d or grid_3d[nx][ny][nz] == VoxelType.EMPTY:
+							has_empty_adj = true
+							break
+					if has_empty_adj and rng.randf() < 0.70:
+						grid_3d[x][y][z] = VoxelType.EDGE
+						edge_placed = true
+
+	if not edge_placed:
+		grid_3d[mini(cx + 1, w - 1)][JUNCTION_Y + 2][cz] = VoxelType.EDGE
+		grid_3d[maxi(cx - 1, 0)][JUNCTION_Y + 2][cz] = VoxelType.EDGE
+
+	grid_3d[cx][h - 1][cz] = VoxelType.ENERGY
+
+## 2. Parametric Helices & Orbitals
+## Loops through Y = JUNCTION_Y+1..h-1 using sin and cos to wind ENERGY and EDGE voxels
+## in a 3D double-helix around the protected central spine.
+static func _apply_parametric_helix(grid_3d: Array, rng: RandomNumberGenerator, w: int, h: int, d: int, cx: int, cz: int, params: Dictionary) -> void:
+	var freq: float = params.get("helix_frequency", 0.38)
+	var phase: float = params.get("helix_phase", rng.randf() * TAU)
+	var max_rx: float = params.get("helix_rx", float(maxi(1, cx)) * 0.88)
+	var max_rz: float = params.get("helix_rz", float(maxi(1, cz)) * 0.88 if d > 1 else 0.0)
+
+	for y in range(JUNCTION_Y + 1, h):
+		var t: float = float(y - (JUNCTION_Y + 1)) / float(maxi(1, h - (JUNCTION_Y + 1)))
+		var r_mult: float = 0.75 + 0.35 * sin(t * PI)
+		if y >= h - 4:
+			r_mult = 1.10 # Tuning fork flare
+
+		# Strand 1: ENERGY orbital conduit
+		var a1 = float(y) * freq + phase
+		var ox1 = int(round(sin(a1) * max_rx * r_mult))
+		var oz1 = int(round(cos(a1) * max_rz * r_mult))
+		var x1 = clampi(cx + ox1, 0, w - 1)
+		var z1 = clampi(cz + oz1, 0, d - 1)
+		if x1 != cx or z1 != cz:
+			grid_3d[x1][y][z1] = VoxelType.ENERGY
+			if d > 1 and cz > 0:
+				if z1 - 1 >= 0 and rng.randf() < 0.40:
+					grid_3d[x1][y][z1 - 1] = VoxelType.ENERGY
+				if z1 + 1 < d and rng.randf() < 0.40:
+					grid_3d[x1][y][z1 + 1] = VoxelType.ENERGY
+
+		# Strand 2: EDGE striking perimeter (180 deg offset)
+		var a2 = a1 + PI
+		var ox2 = int(round(sin(a2) * max_rx * r_mult))
+		var oz2 = int(round(cos(a2) * max_rz * r_mult))
+		var x2 = clampi(cx + ox2, 0, w - 1)
+		var z2 = clampi(cz + oz2, 0, d - 1)
+		if x2 != cx or z2 != cz:
+			grid_3d[x2][y][z2] = VoxelType.EDGE
+			if d > 1 and cz > 0:
+				if z2 - 1 >= 0 and rng.randf() < 0.40:
+					grid_3d[x2][y][z2 - 1] = VoxelType.EDGE
+				if z2 + 1 < d and rng.randf() < 0.40:
+					grid_3d[x2][y][z2 + 1] = VoxelType.EDGE
+
+		# Caduceus stabilizer rungs / horizontal bridges
+		if y % 4 == 0:
+			var step_dir1 = signi(cx - x1)
+			if step_dir1 != 0:
+				var bx = x1 + step_dir1
+				while bx != cx and bx >= 0 and bx < w:
+					grid_3d[bx][y][z1] = VoxelType.ACCENT
+					bx += step_dir1
+			var step_dir2 = signi(cx - x2)
+			if step_dir2 != 0:
+				var bx2 = x2 + step_dir2
+				while bx2 != cx and bx2 >= 0 and bx2 < w:
+					grid_3d[bx2][y][z2] = VoxelType.ACCENT
+					bx2 += step_dir2
+
+	# Forked tuning fork tips
+	var tip_y = h - 1
+	for ox in range(1, 3):
+		if cx + ox < w:
+			grid_3d[cx + ox][tip_y][cz] = VoxelType.EDGE
+			grid_3d[cx + ox][tip_y - 1][cz] = VoxelType.EDGE
+		if cx - ox >= 0:
+			grid_3d[cx - ox][tip_y][cz] = VoxelType.EDGE
+			grid_3d[cx - ox][tip_y - 1][cz] = VoxelType.EDGE
+	grid_3d[cx][tip_y][cz] = VoxelType.ENERGY
+
+## 3. L-System Branching (Fractal & Crystalline Growth)
+## Grows crystalline clusters, coral formations, or fractal lightning bolts outward
+## from anchor points along the protected spine using recursive branching paths.
+static func _apply_branching_fractal(grid_3d: Array, rng: RandomNumberGenerator, w: int, h: int, d: int, cx: int, cz: int, params: Dictionary) -> void:
+	var anchors = [
+		JUNCTION_Y + 1,
+		JUNCTION_Y + 6,
+		JUNCTION_Y + 13,
+		JUNCTION_Y + 20,
+		JUNCTION_Y + 26,
+		h - 3
+	]
+	var max_depth = params.get("fractal_depth", 6)
+
+	for anchor_y in anchors:
+		if anchor_y >= h:
+			continue
+		grid_3d[cx][anchor_y][cz] = VoxelType.ACCENT
+		var dir_left = Vector3i(-1, 1 if rng.randf() < 0.65 else 0, 1 if (d > 1 and rng.randf() < 0.5) else (-1 if d > 1 else 0))
+		var dir_right = Vector3i(1, 1 if rng.randf() < 0.65 else 0, -dir_left.z)
+		_branch_recurse(grid_3d, rng, Vector3i(cx + dir_left.x, anchor_y + dir_left.y, cz + dir_left.z), dir_left, 1, max_depth, w, h, d, cx, cz)
+		_branch_recurse(grid_3d, rng, Vector3i(cx + dir_right.x, anchor_y + dir_right.y, cz + dir_right.z), dir_right, 1, max_depth, w, h, d, cx, cz)
+
+	var edge_found = false
+	for y in range(JUNCTION_Y + 1, h):
+		for x in range(w):
+			for z in range(d):
+				if grid_3d[x][y][z] == VoxelType.EDGE:
+					edge_found = true
+					break
+	if not edge_found:
+		grid_3d[mini(cx + 1, w - 1)][h - 2][cz] = VoxelType.EDGE
+		grid_3d[maxi(cx - 1, 0)][h - 2][cz] = VoxelType.EDGE
+
+	grid_3d[cx][h - 1][cz] = VoxelType.ENERGY
+
+static func _branch_recurse(grid_3d: Array, rng: RandomNumberGenerator, pos: Vector3i, dir: Vector3i, depth: int, max_depth: int, w: int, h: int, d: int, cx: int, cz: int) -> void:
+	if pos.x < 0 or pos.x >= w or pos.y <= JUNCTION_Y or pos.y >= h or pos.z < 0 or pos.z >= d:
+		return
+	if pos.x == cx and pos.z == cz:
+		return
+
+	if depth >= max_depth:
+		grid_3d[pos.x][pos.y][pos.z] = VoxelType.EDGE if (rng.randf() < 0.65) else VoxelType.ENERGY
+		return
+	else:
+		var v_type = VoxelType.BODY
+		if depth % 2 == 1 and rng.randf() < 0.35:
+			v_type = VoxelType.ENERGY
+		elif rng.randf() < 0.35:
+			v_type = VoxelType.EDGE
+		grid_3d[pos.x][pos.y][pos.z] = v_type
+
+	var dy1 = 1 if rng.randf() < 0.70 else 0
+	var d1 = Vector3i(dir.x, dy1, dir.z)
+	_branch_recurse(grid_3d, rng, pos + d1, d1, depth + 1, max_depth, w, h, d, cx, cz)
+
+	if rng.randf() < 0.55:
+		var dx2 = -dir.x if (rng.randf() < 0.35) else dir.x
+		var dz2 = -dir.z if (d > 1 and rng.randf() < 0.5) else 0
+		var d2 = Vector3i(dx2, 1, dz2)
+		_branch_recurse(grid_3d, rng, pos + d2, d2, depth + 1, max_depth, w, h, d, cx, cz)
+
+## 4. Noise-Sliced Fracturing (The "Shattered" Matrix)
+## Slices a solid heavy silhouette into chaotic floating shards via 3D Simplex noise.
+## Sliced faces are lined with glowing ENERGY, while shards are held together by telekinetic conduits.
+static func _apply_noise_shattered(grid_3d: Array, rng: RandomNumberGenerator, w: int, h: int, d: int, cx: int, cz: int, params: Dictionary) -> void:
+	var max_half_w = maxi(3, cx)
+	for y in range(JUNCTION_Y + 1, h):
+		var t = float(y - (JUNCTION_Y + 1)) / float(maxi(1, h - (JUNCTION_Y + 1)))
+		var cur_half_w = maxi(2, int(round(float(max_half_w) * (1.0 - t * 0.20))))
+		for dx in range(-cur_half_w, cur_half_w + 1):
+			var x = cx + dx
+			if x < 0 or x >= w:
+				continue
+			for z in range(d):
+				if dx == 0 and z == cz:
+					continue # Spine locked
+				if absi(dx) == cur_half_w or z == 0 or z == d - 1:
+					grid_3d[x][y][z] = VoxelType.EDGE if (absi(dx) == cur_half_w) else VoxelType.BODY
+				else:
+					grid_3d[x][y][z] = VoxelType.BODY
+
+	var noise = FastNoiseLite.new()
+	noise.seed = rng.randi()
+	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
+	noise.frequency = params.get("noise_freq", 0.16)
+	var slice_band: float = params.get("slice_band", 0.11)
+
+	var sliced_voxels: Array = []
+	for y in range(JUNCTION_Y + 1, h):
+		for x in range(w):
+			for z in range(d):
+				if grid_3d[x][y][z] == VoxelType.EMPTY:
+					continue
+				var n = noise.get_noise_3d(float(x) * 2.0, float(y) * 0.8, float(z) * 2.5)
+				if absf(n) <= slice_band:
+					if x == cx and z == cz:
+						grid_3d[x][y][z] = VoxelType.ENERGY
+					else:
+						grid_3d[x][y][z] = VoxelType.EMPTY
+						sliced_voxels.append(Vector3i(x, y, z))
+
+	# Inner exposed fracture faces lined with ENERGY
+	for sv in sliced_voxels:
+		var neighbors = [
+			Vector3i(sv.x + 1, sv.y, sv.z), Vector3i(sv.x - 1, sv.y, sv.z),
+			Vector3i(sv.x, sv.y + 1, sv.z), Vector3i(sv.x, sv.y - 1, sv.z),
+			Vector3i(sv.x, sv.y, sv.z + 1), Vector3i(sv.x, sv.y, sv.z - 1)
+		]
+		for nb in neighbors:
+			if nb.x >= 0 and nb.x < w and nb.y > JUNCTION_Y and nb.y < h and nb.z >= 0 and nb.z < d:
+				if grid_3d[nb.x][nb.y][nb.z] == VoxelType.BODY and rng.randf() < 0.75:
+					grid_3d[nb.x][nb.y][nb.z] = VoxelType.ENERGY
+
+	var has_edge = false
+	var has_body = false
+	for y in range(JUNCTION_Y + 1, h):
+		for x in range(w):
+			for z in range(d):
+				if grid_3d[x][y][z] == VoxelType.EDGE:
+					has_edge = true
+				elif grid_3d[x][y][z] == VoxelType.BODY:
+					has_body = true
+
+	if not has_edge:
+		grid_3d[mini(cx + 1, w - 1)][JUNCTION_Y + 2][cz] = VoxelType.EDGE
+	if not has_body:
+		grid_3d[cx][JUNCTION_Y + 2][cz] = VoxelType.BODY
+
+## 5. Multi-Axis Mirroring (Kaleidoscopic / Sacred Geometry)
+## Generates a geometric mandala or snowflake star in one quadrant and mirrors it
+## across X, Y (around a midpoint), and Z axes simultaneously.
+static func _apply_kaleidoscopic(grid_3d: Array, rng: RandomNumberGenerator, w: int, h: int, d: int, cx: int, cz: int, params: Dictionary) -> void:
+	var blade_span = h - 1 - (JUNCTION_Y + 1)
+	var mid_y: int = params.get("kaleido_mid_y", (JUNCTION_Y + 1) + blade_span / 2)
+	var max_dx: int = maxi(2, cx)
+	var max_dy: int = mini(mid_y - (JUNCTION_Y + 1), (h - 1) - mid_y)
+	var max_radius: int = params.get("kaleido_max_radius", maxi(5, max_dx + 1))
+
+	for dx in range(max_dx + 1):
+		for dy in range(max_dy + 1):
+			var v_type = VoxelType.EMPTY
+			var r_manhattan = dx + int(float(dy) * 0.35)
+
+			if dx == 0 and dy == 0:
+				v_type = VoxelType.ENERGY
+			elif dx == 0:
+				v_type = VoxelType.ENERGY if (dy % 3 == 0) else VoxelType.BODY
+			elif dy == 0:
+				v_type = VoxelType.EDGE if (dx == max_dx) else VoxelType.BODY
+			elif r_manhattan == max_radius or (dx == max_dx and dy <= 3):
+				v_type = VoxelType.EDGE
+			elif r_manhattan == max_radius - 1 or r_manhattan == max_radius - 3:
+				v_type = VoxelType.ENERGY
+			elif dx == dy and dx <= 3:
+				v_type = VoxelType.ACCENT
+			elif r_manhattan < max_radius:
+				v_type = VoxelType.BODY
+
+			if v_type == VoxelType.EMPTY:
+				continue
+
+			var x_offsets = [dx, -dx] if dx != 0 else [0]
+			var y_offsets = [dy, -dy] if dy != 0 else [0]
+
+			for ox in x_offsets:
+				for oy in y_offsets:
+					var px = cx + ox
+					var py = mid_y + oy
+					if px >= 0 and px < w and py > JUNCTION_Y and py < h:
+						grid_3d[px][py][cz] = v_type
+						if d > 1:
+							for dz in range(1, cz + 1):
+								var z_val = v_type if (v_type != VoxelType.EDGE or dz == 1) else VoxelType.BODY
+								if cz - dz >= 0:
+									grid_3d[px][py][cz - dz] = z_val
+								if cz + dz < d:
+									grid_3d[px][py][cz + dz] = z_val
+
+	# Top crown tip
+	grid_3d[cx][h - 1][cz] = VoxelType.ENERGY
+	if cx + 1 < w:
+		grid_3d[cx + 1][h - 1][cz] = VoxelType.EDGE
+	if cx - 1 >= 0:
+		grid_3d[cx - 1][h - 1][cz] = VoxelType.EDGE
+
+## Projects the 3D voxel matrix into a 2D layer for pixel-art icon generation.
+static func _update_grid_2d(grid_3d: Array, grid_2d: Array, w: int, h: int, d: int, cx: int, cz: int) -> void:
+	for y in range(h):
+		for x in range(w):
+			var center_val = grid_3d[x][y][cz]
+			if center_val != VoxelType.EMPTY:
+				grid_2d[y][x] = center_val
+			else:
+				var found = VoxelType.EMPTY
+				for z in range(d):
+					var v = grid_3d[x][y][z]
+					if v == VoxelType.ENERGY:
+						found = VoxelType.ENERGY
+						break
+					elif v != VoxelType.EMPTY and found == VoxelType.EMPTY:
+						found = v
+				grid_2d[y][x] = found
 
 ## Builds the 3D voxel ArrayMesh with face culling between adjacent voxels.
 static func build_weapon_mesh(voxel_data: Dictionary, voxel_size: float = DEFAULT_VOXEL_SIZE) -> ArrayMesh:
@@ -444,7 +805,7 @@ static func build_weapon_mesh(voxel_data: Dictionary, voxel_size: float = DEFAUL
 		mat_opaque.vertex_color_use_as_albedo = true
 		mat_opaque.metallic = 0.78
 		mat_opaque.roughness = 0.32
-		mat_opaque.cull_mode = BaseMaterial3D.CULL_BACK
+		mat_opaque.cull_mode = BaseMaterial3D.CULL_DISABLED
 		st_opaque.set_material(mat_opaque)
 		st_opaque.commit(mesh)
 
@@ -454,7 +815,7 @@ static func build_weapon_mesh(voxel_data: Dictionary, voxel_size: float = DEFAUL
 		mat_energy.emission_enabled = true
 		mat_energy.emission = palette["energy"]
 		mat_energy.emission_energy_multiplier = 3.5
-		mat_energy.cull_mode = BaseMaterial3D.CULL_BACK
+		mat_energy.cull_mode = BaseMaterial3D.CULL_DISABLED
 		st_energy.set_material(mat_energy)
 		st_energy.commit(mesh)
 
@@ -531,9 +892,10 @@ static func generate_weapon_icon(voxel_data: Dictionary, icon_size: Vector2i = V
 	}
 
 	if diagonal:
-		var p_start = Vector2(5.0, float(ih - 5))
-		var p_end = Vector2(float(iw - 5), 5.0)
+		var p_start = Vector2(4.0, float(ih - 4))
+		var p_end = Vector2(float(iw - 4), 4.0)
 		var u_perp = Vector2(0.7071, 0.7071)
+		var perp_scale: float = minf(1.0, 7.0 / float(maxi(7, w)))
 
 		for y in range(h):
 			var t = float(y) / float(maxi(1, h - 1))
@@ -544,7 +906,7 @@ static func generate_weapon_icon(voxel_data: Dictionary, icon_size: Vector2i = V
 				if v_type == VoxelType.EMPTY:
 					continue
 
-				var dx = float(x - cx)
+				var dx = float(x - cx) * perp_scale
 				var px_pos = p_axis + u_perp * dx
 				var px = int(round(px_pos.x))
 				var py = int(round(px_pos.y))
@@ -590,26 +952,27 @@ static func _set_pixel_safe(img: Image, x: int, y: int, color: Color) -> void:
 
 static func _create_weapon_aura_particles(color: Color) -> CPUParticles3D:
 	var parts = CPUParticles3D.new()
-	parts.amount = 14
-	parts.lifetime = 1.1
+	parts.amount = 20
+	parts.lifetime = 1.3
 	parts.preprocess = 0.5
 	parts.speed_scale = 0.8
 	parts.randomness = 0.4
 	parts.local_coords = false
 
 	parts.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
-	parts.emission_box_extents = Vector3(0.045, 0.45, 0.035)
-	parts.position = Vector3(0.0, 0.50, 0.0)
+	# Sized for colossal ~2.0m weapon (blade span ~1.6m above junction)
+	parts.emission_box_extents = Vector3(0.08, 0.75, 0.06)
+	parts.position = Vector3(0.0, 0.75, 0.0)
 
 	parts.direction = Vector3(0.0, 1.0, 0.0)
 	parts.spread = 22.0
 	parts.gravity = Vector3(0.0, 0.2, 0.0)
 	parts.initial_velocity_min = 0.04
-	parts.initial_velocity_max = 0.15
+	parts.initial_velocity_max = 0.18
 
 	parts.color = color
-	parts.scale_amount_min = 0.015
-	parts.scale_amount_max = 0.035
+	parts.scale_amount_min = 0.02
+	parts.scale_amount_max = 0.045
 
 	var mat = StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -630,18 +993,21 @@ static func _pick_palette(rng: RandomNumberGenerator) -> Dictionary:
 	var idx = rng.randi_range(0, PALETTES.size() - 1)
 	return PALETTES[idx]
 
-static func _generate_name(rng: RandomNumberGenerator, profile: WeaponProfile, seed_val: int) -> String:
+static func _generate_name(rng: RandomNumberGenerator, profile: WeaponProfile, seed_val: int, topology: int = -1) -> String:
 	var prefix = NAME_PREFIXES[rng.randi_range(0, NAME_PREFIXES.size() - 1)]
 	var descriptor = "Weapon"
-	match profile:
-		WeaponProfile.SLENDER:
-			descriptor = "Needle Weapon"
-		WeaponProfile.HEAVY:
-			descriptor = "Heavy Weapon"
-		WeaponProfile.SEGMENTED:
-			descriptor = "Modular Weapon"
-		WeaponProfile.FLANGED:
-			descriptor = "Kinetic Weapon"
+	var topo = topology if topology >= 0 else resolve_topology(profile)
+	match topo:
+		TopologyType.VOLUMETRIC_EROSION:
+			descriptor = "Eroded Weapon"
+		TopologyType.PARAMETRIC_HELIX:
+			descriptor = "Helical Weapon"
+		TopologyType.BRANCHING_FRACTAL:
+			descriptor = "Fractal Weapon"
+		TopologyType.NOISE_SHATTERED:
+			descriptor = "Shattered Weapon"
+		TopologyType.KALEIDOSCOPIC:
+			descriptor = "Geometric Weapon"
 		_:
 			descriptor = "Weapon Frame"
 
@@ -650,7 +1016,21 @@ static func _generate_name(rng: RandomNumberGenerator, profile: WeaponProfile, s
 static func _generate_description(profile: WeaponProfile, palette: Dictionary, voxel_data: Dictionary, seed_val: int) -> String:
 	var h = voxel_data.get("height", TARGET_WEAPON_HEIGHT_VOXELS)
 	var pal_name = palette.get("name", "Voxel")
-	return "A %d-voxel forged %s frame resonating with %s energy. Attack patterns are governed by slotted cards." % [h, "weapon", pal_name]
+	var topo = voxel_data.get("topology", resolve_topology(profile))
+	var topo_desc = "exotic"
+	match topo:
+		TopologyType.VOLUMETRIC_EROSION:
+			topo_desc = "porous eroded"
+		TopologyType.PARAMETRIC_HELIX:
+			topo_desc = "orbital helical"
+		TopologyType.BRANCHING_FRACTAL:
+			topo_desc = "branching fractal"
+		TopologyType.NOISE_SHATTERED:
+			topo_desc = "shattered shard"
+		TopologyType.KALEIDOSCOPIC:
+			topo_desc = "kaleidoscopic geometric"
+
+	return "A %d-voxel %s weapon forged with %s topology, resonating with %s energy. Attack patterns are governed by slotted cards." % [h, "weapon", topo_desc, pal_name]
 
 static func _generate_deck_stats(rng: RandomNumberGenerator, profile: WeaponProfile, params: Dictionary) -> Dictionary:
 	var slot_capacity = 5
@@ -660,35 +1040,35 @@ static func _generate_deck_stats(rng: RandomNumberGenerator, profile: WeaponProf
 	var stam_mult = 1.0
 
 	match profile:
-		WeaponProfile.SLENDER:
+		WeaponProfile.SLENDER, WeaponProfile.PARAMETRIC_HELIX:
 			slot_capacity = rng.randi_range(6, 9)
 			is_shuffle = false
 			deck_recharge = rng.randf_range(0.28, 0.40)
 			dmg_mult = rng.randf_range(0.88, 1.00)
 			stam_mult = rng.randf_range(0.82, 0.92)
 
-		WeaponProfile.HEAVY:
+		WeaponProfile.HEAVY, WeaponProfile.VOLUMETRIC_EROSION:
 			slot_capacity = rng.randi_range(4, 6)
 			is_shuffle = false
 			deck_recharge = rng.randf_range(0.62, 0.78)
 			dmg_mult = rng.randf_range(1.25, 1.45)
 			stam_mult = rng.randf_range(1.15, 1.30)
 
-		WeaponProfile.SEGMENTED:
+		WeaponProfile.SEGMENTED, WeaponProfile.NOISE_SHATTERED:
 			slot_capacity = rng.randi_range(5, 8)
 			is_shuffle = rng.randf() < 0.45
 			deck_recharge = rng.randf_range(0.42, 0.55)
 			dmg_mult = rng.randf_range(1.02, 1.15)
 			stam_mult = 1.0
 
-		WeaponProfile.FLANGED:
+		WeaponProfile.FLANGED, WeaponProfile.BRANCHING_FRACTAL:
 			slot_capacity = rng.randi_range(5, 7)
 			is_shuffle = false
 			deck_recharge = rng.randf_range(0.45, 0.58)
 			dmg_mult = rng.randf_range(1.10, 1.22)
 			stam_mult = rng.randf_range(0.95, 1.05)
 
-		_: # BALANCED
+		_: # BALANCED, KALEIDOSCOPIC
 			slot_capacity = rng.randi_range(5, 7)
 			is_shuffle = false
 			deck_recharge = rng.randf_range(0.45, 0.55)

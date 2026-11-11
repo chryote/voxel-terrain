@@ -68,6 +68,9 @@ func _ready() -> void:
 	_evaluator = MeleeDeckEvaluator.new(weapon_def)
 	_apply_weapon_profile()
 	_create_weapon()
+	if weapon_def != null:
+		weapon_equipped.emit(weapon_def)
+	inventory_updated.emit()
 
 func _init_weapons_and_inventory() -> void:
 	# Default procedurally generated weapons list

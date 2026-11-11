@@ -142,15 +142,62 @@ func test_top_bar_hud_and_item_boxes() -> void:
 	assert_eq(ui._hud_weapon_boxes.size(), 4)
 	assert_eq(ui._hud_item_boxes.size(), 4)
 	assert_eq(ui._active_marker_labels.size(), 4)
-	assert_eq(ui._active_marker_labels[0].text, "1")
+	assert_eq(ui._active_marker_labels[0].text, "")
 	assert_eq(ui._active_marker_labels[1].text, "")
 
-	# Switching weapon changes active indicator
+	# Switching weapon keeps indicator numbers clear
 	sword_ctrl.equip_weapon_index(1)
-	assert_eq(ui._active_marker_labels[1].text, "2")
+	assert_eq(ui._active_marker_labels[1].text, "")
 	assert_eq(ui._active_marker_labels[0].text, "")
 
 	ui.free()
+	sword_ctrl.free()
+
+func test_weapon_icons_auto_loaded_on_start() -> void:
+	var sword_ctrl = FloatingSwordController.new()
+	sword_ctrl._ready()
+
+	var ui = WeaponDeckUI.new()
+	ui.floating_sword = sword_ctrl
+	ui._ready()
+
+	# Without opening inventory, weapon icons must be populated immediately on start
+	var box0 = ui._hud_weapon_boxes[0]
+	var icon_rect0 = box0.get_node_or_null("CenterContainer/IconRect") as TextureRect
+	assert_not_null(icon_rect0)
+	assert_not_null(icon_rect0.texture)
+	assert_true(icon_rect0.visible)
+
+	var box1 = ui._hud_weapon_boxes[1]
+	var icon_rect1 = box1.get_node_or_null("CenterContainer/IconRect") as TextureRect
+	assert_not_null(icon_rect1)
+	assert_not_null(icon_rect1.texture)
+	assert_true(icon_rect1.visible)
+
+	# Verify no numbers are displayed on weapon or item slots
+	for lbl in ui._active_marker_labels:
+		assert_eq(lbl.text, "")
+	for w_box in ui._hud_weapon_boxes:
+		var slot_lbl = w_box.get_node_or_null("CenterContainer/SlotLabel") as Label
+		if slot_lbl != null:
+			assert_eq(slot_lbl.text, "")
+	for i_box in ui._hud_item_boxes:
+		var slot_lbl = i_box.get_node_or_null("CenterContainer/SlotLabel") as Label
+		if slot_lbl != null:
+			assert_eq(slot_lbl.text, "")
+
+	ui.free()
+
+	# Also verify assigning floating_weapon after _ready() auto updates without pressing I
+	var ui2 = WeaponDeckUI.new()
+	ui2._ready()
+	var box_unloaded = ui2._hud_weapon_boxes[0].get_node_or_null("CenterContainer/IconRect") as TextureRect
+	assert_null(box_unloaded.texture)
+	ui2.floating_weapon = sword_ctrl
+	assert_not_null(box_unloaded.texture)
+	assert_true(box_unloaded.visible)
+
+	ui2.free()
 	sword_ctrl.free()
 
 func test_drag_and_drop_slot_swap() -> void:

@@ -15,6 +15,11 @@ This directory contains the procedural synthesis engine for modular melee weapon
    - **L-System Branching**: Recursive fractal and crystalline growth outward from spine anchor nodes.
    - **Noise-Sliced Fracturing**: 3D Simplex noise slicing heavy frames into floating shards with telekinetic energy lines.
    - **Multi-Axis Mirroring**: Hyper-symmetrical biblically accurate kaleidoscopic mandalas and sacred geometry stars.
+   - **Fungal Bracket & Mycelial Rot**: Asymmetrical unilateral shelf bracket fungi, decaying host spine, and creeping mycelium random walks.
+   - **The Osteological Cage**: Vertebral column spine, curving rib-like arches, and an untouched floating massive energy core.
+   - **Insectoid Hive**: Bulky teardrop chitinous mass with 3D modulo honeycomb cavities and glowing volatile nectar.
+   - **Abyssal Marine**: Branching staghorn coral random walk capped by an apex umbrella jellyfish dome and venomous trailing tentacles.
+   - **Carnivorous Botanical**: Stalk spine wrapped in a strangling thorny vine helix, flaring into a bulbous pitcher plant with inward predatory teeth.
    - **Core Locking**: Two-handed functional handle ($y=1\dots6$), collar ($y=7$), and central spine ($y=8\dots39$) are strictly locked for anatomical structural integrity.
 3. **2D Pixel-Art HUD Icons (`ImageTexture`)**: $28 \times 28$ directional pixel-shaded icons for UI and quickbars, with width auto-scaling.
 4. **Deckbuilding Combat Definitions (`MeleeWeaponDef`)**: Configures slot capacity, recharge times, shuffle behavior, and damage multipliers. Attack motions and combos are driven separately by slotted `TechniqueCard`s.

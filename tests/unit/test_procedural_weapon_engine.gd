@@ -468,4 +468,79 @@ func test_no_hollow_cavities_in_kaleidoscopic_weapons() -> void:
 			if mat != null:
 				assert_eq(mat.cull_mode, BaseMaterial3D.CULL_DISABLED, "Weapon mesh material surface %d must use CULL_DISABLED" % s)
 
+func test_stylized_topologies_generation() -> void:
+	# Tests the 5 stylized topologies:
+	# Fungal Bracket, Osteological Cage, Insectoid Hive, Abyssal Marine, Carnivorous Botanical
+	var stylized_topos = [
+		ProceduralWeaponEngine.TopologyType.FUNGAL_BRACKET,
+		ProceduralWeaponEngine.TopologyType.OSTEOLOGICAL_CAGE,
+		ProceduralWeaponEngine.TopologyType.INSECTOID_HIVE,
+		ProceduralWeaponEngine.TopologyType.ABYSSAL_MARINE,
+		ProceduralWeaponEngine.TopologyType.CARNIVOROUS_BOTANICAL
+	]
+
+	for topo in stylized_topos:
+		var seed_val = 5000 + int(topo)
+		var weapon = ProceduralWeaponEngine.generate_weapon(seed_val, {"topology": topo})
+		assert_not_null(weapon, "Stylized topology %d must generate weapon" % int(topo))
+		assert_eq(weapon.get_meta("topology"), topo)
+
+		# Strict terminology verification: generic "weapon"
+		var lower_name = weapon.display_name.to_lower()
+		assert_true(lower_name.contains("weapon"), "Stylized weapon name must contain 'weapon': %s" % weapon.display_name)
+		assert_false(lower_name.contains("sword"), "Must not contain 'sword'")
+
+		var data = weapon.procedural_data
+		assert_not_null(data)
+		var grid_3d = data["grid_3d"] as Array
+		var w = data["width"] as int
+		var h = data["height"] as int
+		var d = data["depth"] as int
+		var cx = data["center_x"] as int
+		var cz = data["center_z"] as int
+		var jy = data["junction_y"] as int
+
+		# Handle verification
+		var has_handle = false
+		for y in range(1, jy):
+			if grid_3d[cx][y][cz] == ProceduralWeaponEngine.VoxelType.HANDLE:
+				has_handle = true
+		assert_true(has_handle, "Stylized topology %d must have handle" % int(topo))
+
+		# Spine verification
+		for sy in range(jy + 1, h):
+			assert_true(grid_3d[cx][sy][cz] != ProceduralWeaponEngine.VoxelType.EMPTY,
+				"Topology %d spine at y=%d must not be empty" % [int(topo), sy])
+
+		# Mesh generation & surfaces
+		var mesh = ProceduralWeaponEngine.build_weapon_mesh(data)
+		assert_not_null(mesh)
+		assert_true(mesh.get_surface_count() >= 1, "Must generate at least 1 mesh surface")
+
+		# 2D Icon generation
+		var icon = weapon.icon
+		assert_not_null(icon)
+		assert_eq(icon.get_width(), 28)
+		assert_eq(icon.get_height(), 28)
+
+func test_stylized_topology_string_resolution() -> void:
+	var string_cases = {
+		"fungal": ProceduralWeaponEngine.TopologyType.FUNGAL_BRACKET,
+		"mycelial_rot": ProceduralWeaponEngine.TopologyType.FUNGAL_BRACKET,
+		"osteological": ProceduralWeaponEngine.TopologyType.OSTEOLOGICAL_CAGE,
+		"ribcage": ProceduralWeaponEngine.TopologyType.OSTEOLOGICAL_CAGE,
+		"insectoid": ProceduralWeaponEngine.TopologyType.INSECTOID_HIVE,
+		"honeycomb": ProceduralWeaponEngine.TopologyType.INSECTOID_HIVE,
+		"abyssal": ProceduralWeaponEngine.TopologyType.ABYSSAL_MARINE,
+		"coral": ProceduralWeaponEngine.TopologyType.ABYSSAL_MARINE,
+		"carnivorous": ProceduralWeaponEngine.TopologyType.CARNIVOROUS_BOTANICAL,
+		"pitcher_plant": ProceduralWeaponEngine.TopologyType.CARNIVOROUS_BOTANICAL
+	}
+
+	for str_key in string_cases:
+		var expected = string_cases[str_key]
+		var w = ProceduralWeaponEngine.generate_weapon(700, {"topology": str_key})
+		assert_eq(w.get_meta("topology"), expected, "String '%s' should resolve to topology %d" % [str_key, int(expected)])
+
+
 

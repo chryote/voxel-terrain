@@ -165,3 +165,37 @@ func test_compatibility_layer() -> void:
 	assert_eq(legacy_ctrl._sword_root, legacy_ctrl._weapon_root)
 	legacy_ctrl.free()
 
+func test_f7_debug_generate_weapons() -> void:
+	var ctrl = FloatingWeaponController.new()
+	ctrl._ready()
+
+	var state = {"equipped": false, "inv_updated": false}
+	ctrl.weapon_equipped.connect(func(_w): state["equipped"] = true)
+	ctrl.inventory_updated.connect(func(): state["inv_updated"] = true)
+
+	var generated = ctrl.generate_debug_weapons()
+	assert_eq(generated.size(), 4, "F7 must generate exactly 4 weapons")
+	assert_eq(ctrl.weapons.size(), 4, "Player weapon slots must hold 4 weapons")
+	assert_true(state["equipped"], "weapon_equipped must be emitted")
+	assert_true(state["inv_updated"], "inventory_updated must be emitted")
+
+	assert_eq(ctrl.active_weapon_index, 0)
+	assert_eq(ctrl.weapon_def, ctrl.weapons[0])
+	assert_not_null(ctrl._weapon_root)
+	assert_true(ctrl._weapon_root.visible)
+
+	for i in range(4):
+		var w = ctrl.weapons[i]
+		assert_not_null(w, "Weapon slot %d must not be null" % i)
+		assert_not_null(w.icon, "Weapon slot %d must have valid icon" % i)
+		assert_true(w.display_name.to_lower().contains("weapon"))
+
+	# Test InputEventKey simulation
+	var event = InputEventKey.new()
+	event.pressed = true
+	event.physical_keycode = KEY_F7
+	ctrl._unhandled_input(event)
+	assert_eq(ctrl.weapons.size(), 4)
+
+	ctrl.free()
+

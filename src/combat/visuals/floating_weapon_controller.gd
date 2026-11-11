@@ -549,3 +549,52 @@ func reset_card_sequence() -> void:
 	if _evaluator != null:
 		_evaluator.reset_sequence()
 
+## Debug method (F7): Generates 4 new stylized weapons and populates the player's weapon slots.
+func generate_debug_weapons() -> Array[MeleeWeaponDef]:
+	var new_weapons: Array[MeleeWeaponDef] = []
+	var stylized_topos = [
+		ProceduralWeaponEngine.TopologyType.VOLUMETRIC_EROSION,
+		ProceduralWeaponEngine.TopologyType.PARAMETRIC_HELIX,
+		ProceduralWeaponEngine.TopologyType.BRANCHING_FRACTAL,
+		ProceduralWeaponEngine.TopologyType.NOISE_SHATTERED,
+		ProceduralWeaponEngine.TopologyType.KALEIDOSCOPIC,
+		ProceduralWeaponEngine.TopologyType.FUNGAL_BRACKET,
+		ProceduralWeaponEngine.TopologyType.OSTEOLOGICAL_CAGE,
+		ProceduralWeaponEngine.TopologyType.INSECTOID_HIVE,
+		ProceduralWeaponEngine.TopologyType.ABYSSAL_MARINE,
+		ProceduralWeaponEngine.TopologyType.CARNIVOROUS_BOTANICAL
+	]
+	stylized_topos.shuffle()
+
+	for i in range(4):
+		var topo = stylized_topos[i % stylized_topos.size()]
+		var seed_val = int(Time.get_ticks_usec()) + i * 1337 + (randi() % 9999)
+		var w = ProceduralWeaponEngine.generate_weapon(seed_val, {
+			"topology": topo
+		})
+		# Populate starter slotted technique cards on primary weapon if needed
+		if i == 0:
+			var default_motion_paths = [
+				"res://assets/combat/cards/motion_horizontal_sweep.tres",
+				"res://assets/combat/cards/motion_upswing.tres",
+				"res://assets/combat/cards/motion_downcleave.tres"
+			]
+			for m_path in default_motion_paths:
+				if ResourceLoader.exists(m_path):
+					w.slotted_techniques.append(load(m_path))
+		new_weapons.append(w)
+
+	weapons = new_weapons
+	active_weapon_index = 0
+	weapon_def = weapons[0]
+	_apply_weapon_profile()
+	_create_weapon()
+	weapon_equipped.emit(weapon_def)
+	inventory_updated.emit()
+	return new_weapons
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.physical_keycode == KEY_F7 or event.keycode == KEY_F7 or event.is_action_pressed("debug_generate_weapons"):
+			generate_debug_weapons()
+

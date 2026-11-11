@@ -30,7 +30,12 @@ enum WeaponProfile {
 	PARAMETRIC_HELIX = 6,
 	BRANCHING_FRACTAL = 7,
 	NOISE_SHATTERED = 8,
-	KALEIDOSCOPIC = 9
+	KALEIDOSCOPIC = 9,
+	FUNGAL_BRACKET = 10,
+	OSTEOLOGICAL_CAGE = 11,
+	INSECTOID_HIVE = 12,
+	ABYSSAL_MARINE = 13,
+	CARNIVOROUS_BOTANICAL = 14
 }
 
 enum TopologyType {
@@ -38,7 +43,12 @@ enum TopologyType {
 	PARAMETRIC_HELIX = 1,
 	BRANCHING_FRACTAL = 2,
 	NOISE_SHATTERED = 3,
-	KALEIDOSCOPIC = 4
+	KALEIDOSCOPIC = 4,
+	FUNGAL_BRACKET = 5,
+	OSTEOLOGICAL_CAGE = 6,
+	INSECTOID_HIVE = 7,
+	ABYSSAL_MARINE = 8,
+	CARNIVOROUS_BOTANICAL = 9
 }
 
 const DEFAULT_VOXEL_SIZE: float = 0.05 # 40 voxels * 0.05m = 2.00m (~2 world blocks height, Monster Hunter scale)
@@ -108,6 +118,51 @@ const PALETTES: Array[Dictionary] = [
 		"edge": Color(0.88, 0.76, 0.40),
 		"energy": Color(1.0, 0.82, 0.22),
 		"accent": Color(0.82, 0.46, 0.28)
+	},
+	{
+		"name": "Mycelial Spore",
+		"handle": Color(0.18, 0.13, 0.08),
+		"junction": Color(0.28, 0.22, 0.14),
+		"body": Color(0.72, 0.64, 0.50),
+		"edge": Color(0.48, 0.58, 0.32),
+		"energy": Color(0.40, 0.95, 0.25),
+		"accent": Color(0.85, 0.78, 0.25)
+	},
+	{
+		"name": "Ossuary Bleached",
+		"handle": Color(0.24, 0.22, 0.20),
+		"junction": Color(0.38, 0.35, 0.32),
+		"body": Color(0.88, 0.86, 0.80),
+		"edge": Color(0.96, 0.95, 0.90),
+		"energy": Color(0.30, 0.85, 1.0),
+		"accent": Color(0.75, 0.18, 0.22)
+	},
+	{
+		"name": "Vespoid Amber",
+		"handle": Color(0.12, 0.10, 0.08),
+		"junction": Color(0.22, 0.18, 0.12),
+		"body": Color(0.68, 0.52, 0.32),
+		"edge": Color(0.90, 0.70, 0.20),
+		"energy": Color(1.0, 0.65, 0.08),
+		"accent": Color(0.95, 0.85, 0.15)
+	},
+	{
+		"name": "Abyssal Biolume",
+		"handle": Color(0.08, 0.12, 0.16),
+		"junction": Color(0.15, 0.25, 0.32),
+		"body": Color(0.55, 0.70, 0.78),
+		"edge": Color(0.78, 0.92, 0.98),
+		"energy": Color(0.10, 0.92, 0.88),
+		"accent": Color(0.92, 0.28, 0.75)
+	},
+	{
+		"name": "Predatory Flora",
+		"handle": Color(0.16, 0.12, 0.08),
+		"junction": Color(0.25, 0.32, 0.18),
+		"body": Color(0.35, 0.58, 0.28),
+		"edge": Color(0.92, 0.88, 0.75),
+		"energy": Color(0.65, 1.0, 0.15),
+		"accent": Color(0.85, 0.20, 0.28)
 	}
 ]
 
@@ -165,10 +220,10 @@ static func resolve_topology(profile_val: int, params: Dictionary = {}) -> int:
 	if params.has("topology"):
 		var t = params["topology"]
 		if t is int:
-			return clampi(t, 0, 4)
+			return clampi(t, 0, 9)
 		elif t is String:
 			match t.to_lower():
-				"erosion", "volumetric_erosion", "cellular_automata", "hive":
+				"erosion", "volumetric_erosion", "cellular_automata", "erosion_hive":
 					return TopologyType.VOLUMETRIC_EROSION
 				"helix", "parametric_helix", "orbital", "caduceus":
 					return TopologyType.PARAMETRIC_HELIX
@@ -178,6 +233,16 @@ static func resolve_topology(profile_val: int, params: Dictionary = {}) -> int:
 					return TopologyType.NOISE_SHATTERED
 				"kaleidoscopic", "sacred_geometry", "mandala", "geometric":
 					return TopologyType.KALEIDOSCOPIC
+				"fungal", "fungal_bracket", "mycelial", "mycelial_rot", "rot", "bracket", "fungus":
+					return TopologyType.FUNGAL_BRACKET
+				"osteological", "osteological_cage", "skeletal", "cage", "ribcage", "vertebra", "bone":
+					return TopologyType.OSTEOLOGICAL_CAGE
+				"insectoid", "insectoid_hive", "hive", "honeycomb", "wasp", "hexagonal", "nectar":
+					return TopologyType.INSECTOID_HIVE
+				"abyssal", "abyssal_marine", "marine", "coral", "jellyfish", "bioluminescence", "ocean":
+					return TopologyType.ABYSSAL_MARINE
+				"carnivorous", "carnivorous_botanical", "botanical", "pitcher", "pitcher_plant", "overgrowth", "flora":
+					return TopologyType.CARNIVOROUS_BOTANICAL
 
 	match profile_val:
 		WeaponProfile.SLENDER, WeaponProfile.PARAMETRIC_HELIX:
@@ -188,6 +253,16 @@ static func resolve_topology(profile_val: int, params: Dictionary = {}) -> int:
 			return TopologyType.NOISE_SHATTERED
 		WeaponProfile.FLANGED, WeaponProfile.BRANCHING_FRACTAL:
 			return TopologyType.BRANCHING_FRACTAL
+		WeaponProfile.FUNGAL_BRACKET:
+			return TopologyType.FUNGAL_BRACKET
+		WeaponProfile.OSTEOLOGICAL_CAGE:
+			return TopologyType.OSTEOLOGICAL_CAGE
+		WeaponProfile.INSECTOID_HIVE:
+			return TopologyType.INSECTOID_HIVE
+		WeaponProfile.ABYSSAL_MARINE:
+			return TopologyType.ABYSSAL_MARINE
+		WeaponProfile.CARNIVOROUS_BOTANICAL:
+			return TopologyType.CARNIVOROUS_BOTANICAL
 		_: # BALANCED, KALEIDOSCOPIC
 			return TopologyType.KALEIDOSCOPIC
 
@@ -283,6 +358,16 @@ static func generate_voxel_matrix(rng: RandomNumberGenerator, profile: WeaponPro
 			_apply_branching_fractal(grid_3d, rng, w, h, d, cx, cz, params)
 		TopologyType.NOISE_SHATTERED:
 			_apply_noise_shattered(grid_3d, rng, w, h, d, cx, cz, params)
+		TopologyType.FUNGAL_BRACKET:
+			_apply_fungal_bracket(grid_3d, rng, w, h, d, cx, cz, params)
+		TopologyType.OSTEOLOGICAL_CAGE:
+			_apply_osteological_cage(grid_3d, rng, w, h, d, cx, cz, params)
+		TopologyType.INSECTOID_HIVE:
+			_apply_insectoid_hive(grid_3d, rng, w, h, d, cx, cz, params)
+		TopologyType.ABYSSAL_MARINE:
+			_apply_abyssal_marine(grid_3d, rng, w, h, d, cx, cz, params)
+		TopologyType.CARNIVOROUS_BOTANICAL:
+			_apply_carnivorous_botanical(grid_3d, rng, w, h, d, cx, cz, params)
 		_: # TopologyType.KALEIDOSCOPIC
 			_apply_kaleidoscopic(grid_3d, rng, w, h, d, cx, cz, params)
 
@@ -654,6 +739,387 @@ static func _apply_kaleidoscopic(grid_3d: Array, rng: RandomNumberGenerator, w: 
 	if cx - 1 >= 0:
 		grid_3d[cx - 1][h - 1][cz] = VoxelType.EDGE
 
+## 6. Fungal Bracket & Mycelial Rot
+## Abandons bilateral symmetry for parasitic growth. Treats the spine as a decaying host,
+## generating BODY voxels that shelf outward unilaterally along the X-axis like bracket fungi,
+## woven with a random-walk algorithm of creeping mycelial ENERGY filaments around the base.
+static func _apply_fungal_bracket(grid_3d: Array, rng: RandomNumberGenerator, w: int, h: int, d: int, cx: int, cz: int, params: Dictionary) -> void:
+	var blade_span = h - 1 - (JUNCTION_Y + 1)
+	var max_shelf_w = maxi(2, cx)
+
+	# Gnarly decaying host trunk around spine
+	for y in range(JUNCTION_Y + 1, h):
+		var trunk_r = 1.0 + 0.35 * sin(float(y) * 0.45)
+		for ox in range(-1, 2):
+			for oz in range(-1, 2):
+				var px = cx + ox
+				var pz = cz + oz
+				if px >= 0 and px < w and pz >= 0 and pz < d:
+					if ox * ox + oz * oz <= int(trunk_r * trunk_r) or (ox == 0 and oz == 0):
+						var v = VoxelType.BODY
+						if rng.randf() < 0.15:
+							v = VoxelType.ACCENT
+						grid_3d[px][y][pz] = v
+
+	# Bracket fungi shelves placed unilaterally at tiered heights
+	var shelf_heights = [
+		JUNCTION_Y + 4,
+		JUNCTION_Y + 10,
+		JUNCTION_Y + 17,
+		JUNCTION_Y + 24,
+		JUNCTION_Y + 30
+	]
+
+	# Choose dominant shelf side (unilateral growth along X)
+	var primary_dir = 1 if rng.randf() < 0.60 else -1
+
+	for sh_y in shelf_heights:
+		if sh_y >= h - 3:
+			continue
+		var side_dir = primary_dir if (rng.randf() < 0.80) else -primary_dir
+		var shelf_w = rng.randi_range(2, max_shelf_w)
+		var shelf_thick = rng.randi_range(2, 3)
+
+		for ty in range(sh_y, mini(h - 1, sh_y + shelf_thick)):
+			for sx in range(1, shelf_w + 1):
+				var px = cx + sx * side_dir
+				if px < 0 or px >= w:
+					continue
+				var max_dz = maxi(1, int(round(float(shelf_w - sx + 1) * 0.75)))
+				for dz in range(-max_dz, max_dz + 1):
+					var pz = cz + dz
+					if pz < 0 or pz >= d:
+						continue
+
+					var is_outer_rim = (sx == shelf_w or absi(dz) == max_dz)
+					var is_spore_underside = (ty == sh_y and sx >= 2)
+
+					if is_outer_rim:
+						grid_3d[px][ty][pz] = VoxelType.EDGE if (ty > sh_y) else VoxelType.ACCENT
+					elif is_spore_underside and rng.randf() < 0.40:
+						grid_3d[px][ty][pz] = VoxelType.ENERGY
+					else:
+						grid_3d[px][ty][pz] = VoxelType.BODY
+
+	# Creeping mycelium random-walk tendrils around base
+	var filament_count = params.get("mycelium_filaments", 4)
+	for f in range(filament_count):
+		var cur_pos = Vector3i(
+			clampi(cx + rng.randi_range(-1, 1), 0, w - 1),
+			JUNCTION_Y + 1,
+			clampi(cz + rng.randi_range(-1, 1), 0, d - 1)
+		)
+		var steps = rng.randi_range(14, 22)
+		for s in range(steps):
+			grid_3d[cur_pos.x][cur_pos.y][cur_pos.z] = VoxelType.ENERGY
+			var next_y = cur_pos.y + (1 if rng.randf() < 0.65 else (0 if rng.randf() < 0.75 else -1))
+			next_y = clampi(next_y, JUNCTION_Y + 1, JUNCTION_Y + 12)
+			var next_x = clampi(cur_pos.x + rng.randi_range(-1, 1), 0, w - 1)
+			var next_z = clampi(cur_pos.z + rng.randi_range(-1, 1), 0, d - 1)
+			cur_pos = Vector3i(next_x, next_y, next_z)
+
+	# Heavy asymmetrical club apex
+	for y in range(h - 4, h):
+		for dx in range(-1, maxi(2, max_shelf_w - 1)):
+			var px = cx + dx * primary_dir
+			if px >= 0 and px < w:
+				for dz in range(-1, 2):
+					var pz = cz + dz
+					if pz >= 0 and pz < d:
+						if y == h - 1 and dx == 0 and dz == 0:
+							grid_3d[px][y][pz] = VoxelType.ENERGY
+						elif absi(dx) >= 2 or absi(dz) >= 1:
+							grid_3d[px][y][pz] = VoxelType.EDGE if (rng.randf() < 0.5) else VoxelType.BODY
+						else:
+							grid_3d[px][y][pz] = VoxelType.BODY
+
+## 7. The Osteological Cage
+## Replaces a solid blade with an exposed skeletal cavity. Treats the central spine as a
+## vertebral column. Projects curved rib-like arches outward in X and Z, enclosing an untouched,
+## floating massive ENERGY core suspended inside the cage.
+static func _apply_osteological_cage(grid_3d: Array, rng: RandomNumberGenerator, w: int, h: int, d: int, cx: int, cz: int, params: Dictionary) -> void:
+	var blade_span = h - 1 - (JUNCTION_Y + 1)
+	var mid_y = (JUNCTION_Y + 1) + blade_span / 2
+	var rib_w = maxi(2, mini(4, cx - 1))
+
+	# Clear out the blade area around spine to leave room for the cage cavity
+	for y in range(JUNCTION_Y + 1, h):
+		for x in range(w):
+			for z in range(d):
+				if x != cx or z != cz:
+					grid_3d[x][y][z] = VoxelType.EMPTY
+
+	# Vertebral column spine (alternating centrum and cartilage)
+	for y in range(JUNCTION_Y + 1, h):
+		if (y - (JUNCTION_Y + 1)) % 4 == 0:
+			grid_3d[cx][y][cz] = VoxelType.ACCENT
+		else:
+			grid_3d[cx][y][cz] = VoxelType.BODY
+		if cz > 0 and (y % 2 == 0):
+			grid_3d[cx][y][cz - 1] = VoxelType.EDGE
+
+	# Massive, floating ENERGY core suspended completely untouched in center of cage
+	var core_radius_y = 3
+	for cy in range(mid_y - core_radius_y, mid_y + core_radius_y + 1):
+		if cy > JUNCTION_Y and cy < h:
+			grid_3d[cx][cy][cz] = VoxelType.ENERGY
+			if cz > 0:
+				grid_3d[cx][cy][cz - 1] = VoxelType.ENERGY
+			if cz + 1 < d:
+				grid_3d[cx][cy][cz + 1] = VoxelType.ENERGY
+			if absi(cy - mid_y) <= 1:
+				if cx - 1 >= 0:
+					grid_3d[cx - 1][cy][cz] = VoxelType.ENERGY
+				if cx + 1 < w:
+					grid_3d[cx + 1][cy][cz] = VoxelType.ENERGY
+
+	# Rib-like arches projected at set intervals
+	var rib_step = params.get("rib_interval", 4)
+	for ry in range(JUNCTION_Y + 2, h - 5, rib_step):
+		for rx in range(1, rib_w + 1):
+			var t = float(rx) / float(rib_w)
+			var y_arch = ry + int(round(sin(t * PI) * 1.5))
+			var z_arch = cz + int(round(sin(t * PI) * float(maxi(1, cz))))
+			z_arch = clampi(z_arch, 0, d - 1)
+			y_arch = clampi(y_arch, JUNCTION_Y + 1, h - 2)
+
+			if cx - rx >= 0:
+				grid_3d[cx - rx][y_arch][z_arch] = VoxelType.BODY
+				if rx == rib_w:
+					grid_3d[cx - rx][y_arch][z_arch] = VoxelType.EDGE
+			if cx + rx < w:
+				grid_3d[cx + rx][y_arch][z_arch] = VoxelType.BODY
+				if rx == rib_w:
+					grid_3d[cx + rx][y_arch][z_arch] = VoxelType.EDGE
+
+		# Inward costal cartilage tip reaching toward ventral sternum
+		var sternum_y = clampi(ry + 1, JUNCTION_Y + 1, h - 2)
+		var sternum_z = clampi(cz + 1, 0, d - 1)
+		if cx - 1 >= 0 and (sternum_y < mid_y - core_radius_y or sternum_y > mid_y + core_radius_y):
+			grid_3d[cx - 1][sternum_y][sternum_z] = VoxelType.ACCENT
+		if cx + 1 < w and (sternum_y < mid_y - core_radius_y or sternum_y > mid_y + core_radius_y):
+			grid_3d[cx + 1][sternum_y][sternum_z] = VoxelType.ACCENT
+
+	# Cervical spear / skull crest apex
+	for y in range(h - 4, h):
+		grid_3d[cx][y][cz] = VoxelType.ENERGY if (y == h - 1) else VoxelType.BODY
+		if cx - 1 >= 0:
+			grid_3d[cx - 1][y][cz] = VoxelType.EDGE
+		if cx + 1 < w:
+			grid_3d[cx + 1][y][cz] = VoxelType.EDGE
+
+## 8. Insectoid Hive (Hexagonal Porosity)
+## Generates a bulky, teardrop-shaped mass of BODY voxels around the upper shaft.
+## Applies a 3D modulo operation to carve repeating, honeycomb-like EMPTY cavities,
+## filling deepest internal recesses with glowing volatile nectar (ENERGY).
+static func _apply_insectoid_hive(grid_3d: Array, rng: RandomNumberGenerator, w: int, h: int, d: int, cx: int, cz: int, params: Dictionary) -> void:
+	var blade_span = h - 1 - (JUNCTION_Y + 1)
+	var max_r = maxi(3, cx)
+
+	# 1. Generate bulky teardrop mass of BODY voxels
+	for y in range(JUNCTION_Y + 1, h - 1):
+		var t = float(y - (JUNCTION_Y + 1)) / float(maxi(1, blade_span))
+		var shape = sin(t * PI) * (0.8 + 0.5 * sin(t * PI * 0.5))
+		var cur_rx = maxi(1, int(round(float(max_r) * shape)))
+		var cur_rz = maxi(1, int(round(float(cz) * shape)))
+
+		for dx in range(-cur_rx, cur_rx + 1):
+			var px = cx + dx
+			if px < 0 or px >= w:
+				continue
+			for dz in range(-cur_rz, cur_rz + 1):
+				var pz = cz + dz
+				if pz < 0 or pz >= d:
+					continue
+
+				var norm_dist = (float(dx * dx) / float(cur_rx * cur_rx)) + (float(dz * dz) / float(cur_rz * cur_rz))
+				if norm_dist <= 1.05:
+					if norm_dist >= 0.85:
+						grid_3d[px][y][pz] = VoxelType.EDGE
+					else:
+						grid_3d[px][y][pz] = VoxelType.BODY
+
+	# 2. 3D Modulo Hexagonal Honeycomb Cavity Carving & Deep Nectar Pools
+	for y in range(JUNCTION_Y + 3, h - 3):
+		for x in range(w):
+			for z in range(d):
+				if x == cx and z == cz:
+					continue # Backbone core
+				if grid_3d[x][y][z] == VoxelType.EMPTY:
+					continue
+
+				var hex_shift = (x % 2) * 1
+				var mod_x = (x + 100) % 3
+				var mod_y = (y + hex_shift + 100) % 3
+
+				if mod_x == 0 and mod_y == 0:
+					if absi(z - cz) <= 0:
+						grid_3d[x][y][z] = VoxelType.ENERGY
+					else:
+						grid_3d[x][y][z] = VoxelType.EMPTY
+
+	# 3. Razor-sharp stinger apex
+	for y in range(h - 3, h):
+		grid_3d[cx][y][cz] = VoxelType.ENERGY if (y == h - 1) else VoxelType.EDGE
+		if cx - 1 >= 0:
+			grid_3d[cx - 1][y][cz] = VoxelType.EDGE
+		if cx + 1 < w:
+			grid_3d[cx + 1][y][cz] = VoxelType.EDGE
+
+## 9. Abyssal Marine (Coral & Bioluminescence)
+## Mixes branching staghorn coral with jellyfish anatomy. Grows outward from junction
+## using an upward-biased random walk, capped at the apex with an umbrella-like dome
+## of ENERGY voxels and trailing venomous ACCENT tentacles.
+static func _apply_abyssal_marine(grid_3d: Array, rng: RandomNumberGenerator, w: int, h: int, d: int, cx: int, cz: int, params: Dictionary) -> void:
+	var dome_apex_y = h - 6
+	var max_r = maxi(3, cx)
+
+	# 1. Branching staghorn coral from junction
+	var branch_count = params.get("coral_branches", 4)
+	for b in range(branch_count):
+		var cur = Vector3i(cx, JUNCTION_Y + 1, cz)
+		var target_x = cx + (1 if b % 2 == 0 else -1) * rng.randi_range(1, maxi(1, cx - 1))
+		var target_z = cz + (1 if b >= 2 else -1) * rng.randi_range(0, maxi(0, cz - 1))
+
+		while cur.y < dome_apex_y - 2:
+			grid_3d[cur.x][cur.y][cur.z] = VoxelType.BODY
+			if rng.randf() < 0.20:
+				grid_3d[cur.x][cur.y][cur.z] = VoxelType.ENERGY
+
+			var step_y = rng.randi_range(1, 2)
+			var step_x = signi(target_x - cur.x) if (rng.randf() < 0.65) else rng.randi_range(-1, 1)
+			var step_z = signi(target_z - cur.z) if (rng.randf() < 0.65) else rng.randi_range(-1, 1)
+			cur = Vector3i(
+				clampi(cur.x + step_x, 0, w - 1),
+				mini(cur.y + step_y, dome_apex_y - 2),
+				clampi(cur.z + step_z, 0, d - 1)
+			)
+
+	# 2. Jellyfish umbrella bell dome at apex
+	var bell_r = max_r
+	var tentacle_origins: Array[Vector3i] = []
+
+	for dx in range(-bell_r, bell_r + 1):
+		var px = cx + dx
+		if px < 0 or px >= w:
+			continue
+		for dz in range(-cz, cz + 1):
+			var pz = cz + dz
+			if pz < 0 or pz >= d:
+				continue
+
+			var dist = sqrt(float(dx * dx) + float(dz * dz) * 1.8)
+			if dist <= float(bell_r):
+				var curve = int(round(dist * 0.55))
+				var bell_y = dome_apex_y - curve
+				if bell_y > JUNCTION_Y and bell_y < h:
+					grid_3d[px][bell_y][pz] = VoxelType.ENERGY
+					if bell_y + 1 < h:
+						grid_3d[px][bell_y + 1][pz] = VoxelType.ENERGY
+					if dist >= float(bell_r) - 0.95:
+						grid_3d[px][bell_y][pz] = VoxelType.ACCENT
+						if rng.randf() < 0.65:
+							tentacle_origins.append(Vector3i(px, bell_y - 1, pz))
+
+	# 3. Trailing venomous tentacles dropping downward
+	for t_orig in tentacle_origins:
+		var t_len = rng.randi_range(5, 9)
+		var tx = t_orig.x
+		var tz = t_orig.z
+		for ty in range(t_orig.y, maxi(JUNCTION_Y + 2, t_orig.y - t_len), -1):
+			if tx >= 0 and tx < w and tz >= 0 and tz < d:
+				if ty == t_orig.y - t_len + 1:
+					grid_3d[tx][ty][tz] = VoxelType.ENERGY
+				else:
+					grid_3d[tx][ty][tz] = VoxelType.ACCENT
+				if rng.randf() < 0.30:
+					tx = clampi(tx + rng.randi_range(-1, 1), 0, w - 1)
+				if rng.randf() < 0.30:
+					tz = clampi(tz + rng.randi_range(-1, 1), 0, d - 1)
+
+	# Top crown
+	grid_3d[cx][h - 1][cz] = VoxelType.ENERGY
+	if cx - 1 >= 0:
+		grid_3d[cx - 1][h - 1][cz] = VoxelType.ACCENT
+	if cx + 1 < w:
+		grid_3d[cx + 1][h - 1][cz] = VoxelType.ACCENT
+
+## 10. Carnivorous Botanical
+## Hostile botanical overgrowth. Spine acts as thick central stalk wrapped in a secondary
+## mathematical helix of BODY voxels with sharp EDGE thorns. The emitter head flares into
+## a hollow bulbous pitcher-plant cavity lined with inward-facing EDGE teeth.
+static func _apply_carnivorous_botanical(grid_3d: Array, rng: RandomNumberGenerator, w: int, h: int, d: int, cx: int, cz: int, params: Dictionary) -> void:
+	var pitcher_base_y = h - 14
+
+	# 1. Thick central stalk spine
+	for y in range(JUNCTION_Y + 1, pitcher_base_y):
+		grid_3d[cx][y][cz] = VoxelType.BODY
+		if cx - 1 >= 0 and (y % 2 == 0):
+			grid_3d[cx - 1][y][cz] = VoxelType.BODY
+		if cx + 1 < w and (y % 2 == 1):
+			grid_3d[cx + 1][y][cz] = VoxelType.BODY
+		if cz > 0:
+			grid_3d[cx][y][cz - 1] = VoxelType.BODY
+		if cz + 1 < d:
+			grid_3d[cx][y][cz + 1] = VoxelType.BODY
+
+	# 2. Strangling thorny vine helix
+	var vine_freq = params.get("vine_frequency", 0.62)
+	var vine_phase = params.get("vine_phase", rng.randf() * TAU)
+	for y in range(JUNCTION_Y + 1, pitcher_base_y):
+		var a = float(y) * vine_freq + vine_phase
+		var vx = clampi(cx + int(round(sin(a) * float(maxi(1, cx - 1)))), 0, w - 1)
+		var vz = clampi(cz + int(round(cos(a) * float(maxi(1, cz)))), 0, d - 1)
+		grid_3d[vx][y][vz] = VoxelType.BODY
+
+		if y % 3 == 0:
+			var thorn_x = clampi(vx + signi(vx - cx), 0, w - 1)
+			var thorn_z = clampi(vz + signi(vz - cz), 0, d - 1)
+			if thorn_x != cx or thorn_z != cz:
+				grid_3d[thorn_x][y][thorn_z] = VoxelType.EDGE
+
+	# 3. Flared bulbous pitcher-plant cavity & inward-facing teeth
+	var max_pitcher_r = maxi(3, cx)
+	var rim_y = h - 4
+
+	for y in range(pitcher_base_y, h - 1):
+		var t = float(y - pitcher_base_y) / float(maxi(1, rim_y - pitcher_base_y))
+		var cur_r = 1.8 + (float(max_pitcher_r) - 1.8) * minf(1.0, t)
+
+		for dx in range(-max_pitcher_r, max_pitcher_r + 1):
+			var px = cx + dx
+			if px < 0 or px >= w:
+				continue
+			for dz in range(-cz, cz + 1):
+				var pz = cz + dz
+				if pz < 0 or pz >= d:
+					continue
+
+				var dist = sqrt(float(dx * dx) + float(dz * dz) * 1.6)
+				if dist <= cur_r:
+					var is_outer_wall = (dist >= cur_r - 1.1)
+					if is_outer_wall:
+						grid_3d[px][y][pz] = VoxelType.BODY
+					elif y <= pitcher_base_y + 2:
+						# Digestive acid pool at the bottom of the pitcher
+						grid_3d[px][y][pz] = VoxelType.ENERGY
+					elif y >= rim_y - 1 and y <= rim_y and dist >= cur_r - 1.8:
+						# Inward-facing predatory teeth lining the interior rim
+						grid_3d[px][y][pz] = VoxelType.EDGE
+					else:
+						# Hollow trap cavity
+						grid_3d[px][y][pz] = VoxelType.EMPTY
+
+	# Overhanging pitcher hood / operculum at apex
+	for dx in range(-2, 3):
+		var px = cx + dx
+		if px >= 0 and px < w:
+			for dz in range(-1, 2):
+				var pz = cz + dz
+				if pz >= 0 and pz < d:
+					grid_3d[px][h - 1][pz] = VoxelType.ACCENT if (dx == 0) else VoxelType.BODY
+	grid_3d[cx][h - 1][cz] = VoxelType.ENERGY
+
 ## Projects the 3D voxel matrix into a 2D layer for pixel-art icon generation.
 static func _update_grid_2d(grid_3d: Array, grid_2d: Array, w: int, h: int, d: int, cx: int, cz: int) -> void:
 	for y in range(h):
@@ -1008,6 +1474,16 @@ static func _generate_name(rng: RandomNumberGenerator, profile: WeaponProfile, s
 			descriptor = "Shattered Weapon"
 		TopologyType.KALEIDOSCOPIC:
 			descriptor = "Geometric Weapon"
+		TopologyType.FUNGAL_BRACKET:
+			descriptor = "Mycelial Weapon"
+		TopologyType.OSTEOLOGICAL_CAGE:
+			descriptor = "Osteo Weapon"
+		TopologyType.INSECTOID_HIVE:
+			descriptor = "Hive Weapon"
+		TopologyType.ABYSSAL_MARINE:
+			descriptor = "Abyssal Weapon"
+		TopologyType.CARNIVOROUS_BOTANICAL:
+			descriptor = "Botanical Weapon"
 		_:
 			descriptor = "Weapon Frame"
 
@@ -1029,6 +1505,16 @@ static func _generate_description(profile: WeaponProfile, palette: Dictionary, v
 			topo_desc = "shattered shard"
 		TopologyType.KALEIDOSCOPIC:
 			topo_desc = "kaleidoscopic geometric"
+		TopologyType.FUNGAL_BRACKET:
+			topo_desc = "parasitic fungal bracket"
+		TopologyType.OSTEOLOGICAL_CAGE:
+			topo_desc = "skeletal osteological cage"
+		TopologyType.INSECTOID_HIVE:
+			topo_desc = "porous insectoid hive"
+		TopologyType.ABYSSAL_MARINE:
+			topo_desc = "bioluminescent abyssal marine"
+		TopologyType.CARNIVOROUS_BOTANICAL:
+			topo_desc = "hostile carnivorous botanical"
 
 	return "A %d-voxel %s weapon forged with %s topology, resonating with %s energy. Attack patterns are governed by slotted cards." % [h, "weapon", topo_desc, pal_name]
 
@@ -1067,6 +1553,41 @@ static func _generate_deck_stats(rng: RandomNumberGenerator, profile: WeaponProf
 			deck_recharge = rng.randf_range(0.45, 0.58)
 			dmg_mult = rng.randf_range(1.10, 1.22)
 			stam_mult = rng.randf_range(0.95, 1.05)
+
+		WeaponProfile.FUNGAL_BRACKET:
+			slot_capacity = rng.randi_range(4, 6)
+			is_shuffle = false
+			deck_recharge = rng.randf_range(0.55, 0.70)
+			dmg_mult = rng.randf_range(1.20, 1.35)
+			stam_mult = rng.randf_range(1.10, 1.25)
+
+		WeaponProfile.OSTEOLOGICAL_CAGE:
+			slot_capacity = rng.randi_range(6, 8)
+			is_shuffle = false
+			deck_recharge = rng.randf_range(0.35, 0.48)
+			dmg_mult = rng.randf_range(1.05, 1.18)
+			stam_mult = rng.randf_range(0.90, 1.02)
+
+		WeaponProfile.INSECTOID_HIVE:
+			slot_capacity = rng.randi_range(5, 7)
+			is_shuffle = true
+			deck_recharge = rng.randf_range(0.40, 0.52)
+			dmg_mult = rng.randf_range(1.12, 1.28)
+			stam_mult = rng.randf_range(0.98, 1.10)
+
+		WeaponProfile.ABYSSAL_MARINE:
+			slot_capacity = rng.randi_range(6, 9)
+			is_shuffle = false
+			deck_recharge = rng.randf_range(0.32, 0.44)
+			dmg_mult = rng.randf_range(0.95, 1.10)
+			stam_mult = rng.randf_range(0.85, 0.95)
+
+		WeaponProfile.CARNIVOROUS_BOTANICAL:
+			slot_capacity = rng.randi_range(5, 8)
+			is_shuffle = false
+			deck_recharge = rng.randf_range(0.45, 0.58)
+			dmg_mult = rng.randf_range(1.15, 1.30)
+			stam_mult = rng.randf_range(1.05, 1.18)
 
 		_: # BALANCED, KALEIDOSCOPIC
 			slot_capacity = rng.randi_range(5, 7)

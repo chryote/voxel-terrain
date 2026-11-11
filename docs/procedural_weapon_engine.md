@@ -63,15 +63,25 @@ Profiles dictate the deck archetype and default exotic topology. The engine lock
 | **HEAVY** / **VOLUMETRIC_EROSION** | `VOLUMETRIC_EROSION` | `2` / `5` | Porous Cellular Hive Relic | 4 – 6 | 0.62 – 0.78s | 1.25 – 1.45x | 1.15 – 1.30x | 3D Cellular Automata 26-neighbor erosion, Swiss-cheese cavities with glowing energy nodules |
 | **SEGMENTED** / **NOISE_SHATTERED** | `NOISE_SHATTERED` | `3` / `8` | Shattered Floating Shards | 5 – 8 | 0.42 – 0.55s | 1.02 – 1.15x | 1.00x | 3D Simplex noise slicing, telekinetic tether energy spine, molten energy-lined fracture faces |
 | **FLANGED** / **BRANCHING_FRACTAL** | `BRANCHING_FRACTAL` | `4` / `7` | Crystalline / Fractal Growth | 5 – 7 | 0.45 – 0.58s | 1.10 – 1.22x | 0.95 – 1.05x | L-System recursive branching from spine anchors, crystalline facet clusters, frozen lightning |
+| **FUNGAL_BRACKET** | `FUNGAL_BRACKET` | `10` / `5` | Fungal Bracket & Mycelial Rot | 4 – 6 | 0.55 – 0.70s | 1.20 – 1.35x | 1.10 – 1.25x | Asymmetrical unilateral bracket shelves, decaying host spine, random-walk creeping mycelium filaments |
+| **OSTEOLOGICAL_CAGE** | `OSTEOLOGICAL_CAGE` | `11` / `6` | The Osteological Cage | 6 – 8 | 0.35 – 0.48s | 1.05 – 1.18x | 0.90 – 1.02x | Vertebral column spine, curving rib-like arches, suspended untouched floating massive energy core |
+| **INSECTOID_HIVE** | `INSECTOID_HIVE` | `12` / `7` | Insectoid Hive (Hexagonal Porosity) | 5 – 7 | 0.40 – 0.52s | 1.12 – 1.28x | 0.98 – 1.10x | Bulky teardrop chitinous mass, 3D modulo honeycomb cavities, glowing volatile nectar in deep recesses |
+| **ABYSSAL_MARINE** | `ABYSSAL_MARINE` | `13` / `8` | Abyssal Marine (Coral & Bioluminescence) | 6 – 9 | 0.32 – 0.44s | 0.95 – 1.10x | 0.85 – 0.95x | Branching staghorn coral random walk, apex umbrella jellyfish dome with trailing venomous tentacles |
+| **CARNIVOROUS_BOTANICAL** | `CARNIVOROUS_BOTANICAL` | `14` / `9` | Carnivorous Botanical Overgrowth | 5 – 8 | 0.45 – 0.58s | 1.15 – 1.30x | 1.05 – 1.18x | Thick central stalk, strangling thorny vine helix, flared bulbous pitcher cavity with inward predatory teeth |
 
 ### 2.3 Curated Color Palettes (`PALETTES`)
-The engine defines 6 distinct aesthetic themes that map colors to all voxel roles:
+The engine defines 11 distinct aesthetic themes that map colors to all voxel roles:
 1. **Aether Steel**: Polished steel body with cyan energy conduits and brass accent.
 2. **Molten Basalt**: Volcanic dark rock frame with fiery orange emission and copper edges.
 3. **Verdant Jade**: Deep jade and forest green alloy with emerald energy conduits.
 4. **Void Amethyst**: Shadowy purple alloy with vivid magenta energy and silver trim.
 5. **Frost Cobalt**: Glacial blue steel with electric ice-blue emission.
 6. **Brass Mechanum**: Steampunk brass and blackened iron with golden amber energy.
+7. **Mycelial Spore**: Decaying bark, bracket ivory, toxic bioluminescent spore green, and mold sulfur yellow.
+8. **Ossuary Bleached**: Weathered osteo ivory, cartilage gray, spectral soul cyan core, and marrow crimson.
+9. **Vespoid Amber**: Hardened black chitin, honeycomb tan, sharp amber stinger edge, and glowing royal nectar.
+10. **Abyssal Biolume**: Reef basalt, staghorn coral bone, siphonophore electric cyan, and venomous tentacle magenta.
+11. **Predatory Flora**: Thorny briar, pitcher plant mottled green, serrated trap teeth ivory, and acid lime digestive pool.
 
 ---
 
@@ -313,6 +323,17 @@ weapon_node.rotation_degrees = heavy_blade.float_tilt_degrees
 | `JUNCTION_Y` | `int` | `5` | Height index of collar/crossguard; aligns with mesh local origin. |
 | `float_offset_right` | `float` | `0.68` | Resting horizontal hover distance from player center. |
 | `float_offset_height` | `float` | `0.95` | Resting vertical hover height relative to player origin. |
+| `float_offset_forward` | `float` | `-0.12` | Resting forward/rearward offset relative to player camera. |
+
+---
+
+## 11. Debug Hotkeys & In-Game Prototyping
+
+- **`[F7]` Debug Generate Weapons**:
+  - Dynamically invokes `FloatingWeaponController.generate_debug_weapons()`.
+  - Instantly generates **4 new procedural weapons** spanning the new stylized topologies (`FUNGAL_BRACKET`, `OSTEOLOGICAL_CAGE`, `INSECTOID_HIVE`, `ABYSSAL_MARINE`, `CARNIVOROUS_BOTANICAL`).
+  - Automatically loads and equips them across all 4 player weapon slots and synchronizes the HUD Quickbar and Inventory UI.
+  - Displays an on-screen status banner with the equipped weapon's name.
 | `float_offset_forward` | `float` | `-0.12` | Resting forward/backward position relative to player facing. |
 | `float_tilt_degrees` | `Vector3` | `(18.0, -12.0, 10.0)` | Natural aesthetic 3-axis idle tilt angles. |
 

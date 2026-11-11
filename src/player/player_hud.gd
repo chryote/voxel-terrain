@@ -3,6 +3,8 @@ extends Control
 
 ## Third-person shooter interface: crosshair, hit markers, and debug overlay.
 
+const FloatingWeaponController = preload("res://src/combat/visuals/floating_weapon_controller.gd")
+
 @export var player_motor: PlayerMotor
 @export var voxel_world: VoxelWorld:
 	set(val):
@@ -140,6 +142,28 @@ func _unhandled_input(event: InputEvent) -> void:
 			var vp = get_viewport()
 			if vp != null:
 				vp.set_input_as_handled()
+		elif event.physical_keycode == KEY_F7 or event.keycode == KEY_F7 or event.is_action_pressed("debug_generate_weapons"):
+			_on_debug_generate_weapons_pressed()
+			var vp = get_viewport()
+			if vp != null:
+				vp.set_input_as_handled()
+
+func _on_debug_generate_weapons_pressed() -> void:
+	var fw: FloatingWeaponController = null
+	if player_motor != null:
+		fw = player_motor.floating_weapon
+	if fw == null and _weapon_deck_ui != null:
+		fw = _weapon_deck_ui.floating_weapon
+
+	if fw != null:
+		var generated = fw.generate_debug_weapons()
+		if _status_banner != null:
+			var w_name = generated[0].display_name if not generated.is_empty() else "Weapon"
+			_status_banner.text = "[F7] Generated 4 New Weapons! Equipped: %s" % w_name
+			_status_banner.visible = true
+			_status_timer = 3.0
+		if _weapon_deck_ui != null:
+			_weapon_deck_ui.update_ui_state()
 
 func _on_player_fired(hit: Dictionary) -> void:
 	if hit.get("hit", false):

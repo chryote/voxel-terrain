@@ -33,6 +33,12 @@ extends "res://src/combat/core/technique_card.gd"
 
 @export_group("Kinematics")
 @export var player_lunge_distance: float = 0.0
+@export var is_blink: bool = false
+@export var blink_distance: float = 0.0
+
+@export_group("Resource Cost / Inertia Mitigation")
+## Multiplier on stamina cost (e.g. 0.3 for Inertia Compensator or 0.0 for Zero-Point Flywheel)
+@export var stamina_multiplier: float = 1.0
 
 func get_card_kind() -> CardKind:
 	return CardKind.MODIFIER
@@ -50,7 +56,11 @@ func apply_to_context(ctx: MeleeAttackContext) -> void:
 	ctx.outer_radius *= radius_multiplier
 	ctx.arc_sweep_degrees *= arc_sweep_multiplier
 	ctx.volume_thickness *= thickness_multiplier
-	ctx.stamina_cost += stamina_cost
+	ctx.stamina_cost = (ctx.stamina_cost + stamina_cost) * stamina_multiplier
+
+	if is_blink:
+		ctx.is_blink = true
+		ctx.blink_distance = maxf(ctx.blink_distance, blink_distance)
 
 	if color_tint != Color.WHITE:
 		ctx.core_color = ctx.core_color.lerp(color_tint, 0.65)

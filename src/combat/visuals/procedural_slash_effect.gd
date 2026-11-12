@@ -19,8 +19,10 @@ var _is_active: bool = false
 var _progress: float = 0.0
 
 const SLASH_SHADER = preload("res://shaders/combat/slash_volume.gdshader")
+const SLASH_VOID_SHADER = preload("res://shaders/combat/slash_void_inversion.gdshader")
 const SlashArcMeshBuilder = preload("res://src/combat/visuals/slash_arc_mesh_builder.gd")
 const MeleeAttackContext = preload("res://src/combat/core/melee_attack_context.gd")
+const MachShockwaveRing = preload("res://src/combat/visuals/mach_shockwave_ring.gd")
 
 func _init() -> void:
 	top_level = true # In world space so it doesn't skew with subsequent player movements
@@ -44,10 +46,15 @@ func _setup_visuals() -> void:
 		36
 	)
 
-	# Shader material
+	# Shader material (defaults to additive plasma shader)
 	_slash_material = ShaderMaterial.new()
 	_slash_material.shader = SLASH_SHADER
 	_slash_material.set_shader_parameter("progress", 0.0)
+	_slash_material.set_shader_parameter("core_color", Color(0.9, 0.96, 1.0, 1.0))
+	_slash_material.set_shader_parameter("edge_color", Color(0.15, 0.75, 1.0, 1.0))
+	_slash_material.set_shader_parameter("deep_color", Color(0.02, 0.18, 0.75, 1.0))
+	_slash_material.set_shader_parameter("emission_intensity", 4.5)
+	_slash_material.set_shader_parameter("trail_length", 0.65)
 	_mesh_instance.material_override = _slash_material
 	add_child(_mesh_instance)
 
@@ -75,16 +82,32 @@ func play_context(start_transform: Transform3D, ctx: MeleeAttackContext) -> void
 		36
 	)
 
-	# Apply card-defined shader parameters
-	_slash_material.set_shader_parameter("core_color", ctx.core_color)
-	_slash_material.set_shader_parameter("edge_color", ctx.edge_color)
-	_slash_material.set_shader_parameter("deep_color", ctx.deep_color)
-	_slash_material.set_shader_parameter("emission_intensity", ctx.emission_intensity)
-	_slash_material.set_shader_parameter("trail_length", ctx.trail_dissolve_rate)
+	# Select shader based on whether this is a Void Inversion strike (Tier 3+)
+	if ctx.is_negative_space:
+		_slash_material.shader = SLASH_VOID_SHADER
+		_slash_material.set_shader_parameter("core_color", ctx.core_color)
+		_slash_material.set_shader_parameter("edge_color", ctx.edge_color)
+		_slash_material.set_shader_parameter("void_emission", 8.0)
+		_slash_material.set_shader_parameter("trail_length", ctx.trail_dissolve_rate)
+		if _spark_particles != null:
+			_spark_particles.color = Color(1.2, 1.2, 1.5, 1.0)
+	else:
+		_slash_material.shader = SLASH_SHADER
+		_slash_material.set_shader_parameter("core_color", ctx.core_color)
+		_slash_material.set_shader_parameter("edge_color", ctx.edge_color)
+		_slash_material.set_shader_parameter("deep_color", ctx.deep_color)
+		_slash_material.set_shader_parameter("emission_intensity", ctx.emission_intensity)
+		_slash_material.set_shader_parameter("trail_length", ctx.trail_dissolve_rate)
+		if _spark_particles != null:
+			_spark_particles.color = ctx.edge_color
 
-	# Tint spark particles to match card edge color
-	if _spark_particles != null:
-		_spark_particles.color = ctx.edge_color
+	# Kinetic Tier 2+ (Supersonic): Spawn Perpendicular Mach Ring (Prandtl-Glauert singularity)
+	if ctx.has_mach_ring and is_inside_tree():
+		var forward_dir = -start_transform.basis.z
+		var spawn_pos = start_transform.origin + forward_dir * (ctx.outer_radius * 0.65)
+		var p = get_parent()
+		if p != null:
+			MachShockwaveRing.spawn_mach_ring(p, spawn_pos, forward_dir, ctx.execution_duration * 0.9, 0.5, ctx.outer_radius * 1.35)
 
 	# Dispatch animation with card-defined execution_duration
 	play(start_transform, ctx.execution_duration, ctx.tilt_degrees, ctx.is_reversed_sweep)

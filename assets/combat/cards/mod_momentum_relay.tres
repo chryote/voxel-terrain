@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ModifierCard" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/combat/techniques/modifiers/modifier_card.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+card_id = "momentum_relay"
+card_name = "Momentum Relay"
+description = "Momentum Chaining: Retains 100% of the preceding attack's tip velocity, creating exponential kinetic acceleration."
+stamina_cost = 8.0
+momentum_retention = 1.0
+execution_duration_multiplier = 0.90
+recovery_delay_multiplier = 0.85
+damage_multiplier = 1.0
+poise_multiplier = 1.2
+color_tint = Color(0.9, 0.7, 1.0, 1.0)
+emission_multiplier = 1.4
+radius_multiplier = 1.0
+arc_sweep_multiplier = 1.0
+thickness_multiplier = 1.0
+player_lunge_distance = 0.0
+stamina_multiplier = 1.0
+

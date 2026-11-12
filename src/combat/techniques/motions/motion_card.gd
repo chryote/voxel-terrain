@@ -33,6 +33,10 @@ extends "res://src/combat/core/technique_card.gd"
 ## Forward kinetic lunge distance (meters) covered during execution duration.
 @export var player_lunge_distance: float = 0.0
 
+## Instantaneous translocation (Blink/Warp) flag and distance.
+@export var is_blink: bool = false
+@export var blink_distance: float = 0.0
+
 ## Kinetic energy transfer efficiency (1.0 = 100% conversion of 0.5*m*v^2 into damage).
 ## Thrusts and piercing motions can have higher efficiency (>1.0), wide sweeping cleaves ~1.0.
 @export var kinetic_efficiency: float = 1.0
@@ -57,6 +61,8 @@ func apply_to_context(ctx: MeleeAttackContext) -> void:
 	ctx.kinetic_efficiency = kinetic_efficiency
 	ctx.mass_multiplier = mass_multiplier
 	ctx.player_lunge_distance = player_lunge_distance
+	ctx.is_blink = is_blink
+	ctx.blink_distance = blink_distance
 	ctx.stamina_cost += stamina_cost
 
 	# If explicit base_damage is set (> 0.0), preserve for legacy test compatibility

@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="MotionCard" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/combat/techniques/motions/motion_card.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+card_id = "blink_strike"
+card_name = "Blink Strike"
+description = "Instantaneous Translocation: Vanishes into an inward particle implosion, flashes a laser vector ray, and reappears 8m ahead with a razor crescent cut."
+stamina_cost = 20.0
+execution_duration = 0.12
+recovery_delay = 0.10
+inner_radius = 0.75
+outer_radius = 2.85
+arc_sweep_degrees = 180.0
+volume_thickness = 0.22
+outer_height = 0.025
+tilt_degrees = -15.0
+is_reversed_sweep = false
+is_blink = true
+blink_distance = 8.0
+player_lunge_distance = 8.0
+core_color = Color(1.0, 1.0, 1.0, 1.0)
+edge_color = Color(0.3, 0.9, 1.0, 1.0)
+deep_color = Color(0.05, 0.1, 0.7, 1.0)
+emission_intensity = 5.0
+trail_dissolve_rate = 0.75
+kinetic_efficiency = 1.15
+mass_multiplier = 1.0
+base_damage = 0.0
+

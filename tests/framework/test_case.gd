@@ -71,6 +71,30 @@ func assert_almost_eq(actual: float, expected: float, tolerance: float = 0.0001,
 		var msg = message if message != "" else "Expected '%f' within %f of '%f'" % [actual, tolerance, expected]
 		_failures.append(msg)
 
+func assert_gt(actual: float, expected: float, message: String = "") -> void:
+	_assertions_count += 1
+	if actual <= expected:
+		var msg = message if message != "" else "Expected '%f' > '%f'" % [actual, expected]
+		_failures.append(msg)
+
+func assert_gte(actual: float, expected: float, message: String = "") -> void:
+	_assertions_count += 1
+	if actual < expected:
+		var msg = message if message != "" else "Expected '%f' >= '%f'" % [actual, expected]
+		_failures.append(msg)
+
+func assert_lt(actual: float, expected: float, message: String = "") -> void:
+	_assertions_count += 1
+	if actual >= expected:
+		var msg = message if message != "" else "Expected '%f' < '%f'" % [actual, expected]
+		_failures.append(msg)
+
+func assert_lte(actual: float, expected: float, message: String = "") -> void:
+	_assertions_count += 1
+	if actual > expected:
+		var msg = message if message != "" else "Expected '%f' <= '%f'" % [actual, expected]
+		_failures.append(msg)
+
 func assert_vec_almost_eq(actual: Vector3, expected: Vector3, tolerance: float = 0.0001, message: String = "") -> void:
 	_assertions_count += 1
 	if (actual - expected).length() > tolerance:

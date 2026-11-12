@@ -9,6 +9,10 @@ extends Node3D
 const ProceduralWeaponEngine = preload("res://src/combat/generator/procedural_weapon_engine.gd")
 const ProceduralSlashEffect = preload("res://src/combat/visuals/procedural_slash_effect.gd")
 const HitImpactSpawner = preload("res://src/combat/visuals/hit_impact_spawner.gd")
+const HitstopManager = preload("res://src/combat/visuals/hitstop_manager.gd")
+const VoxelAfterimageSpawner = preload("res://src/combat/visuals/voxel_afterimage_spawner.gd")
+const BlinkEffectSpawner = preload("res://src/combat/visuals/blink_effect_spawner.gd")
+const CataclysmEventSpawner = preload("res://src/combat/visuals/cataclysm_event_spawner.gd")
 const MeleeWeaponDef = preload("res://src/combat/core/melee_weapon_def.gd")
 const MeleeDeckEvaluator = preload("res://src/combat/core/melee_deck_evaluator.gd")
 const MeleeAttackContext = preload("res://src/combat/core/melee_attack_context.gd")
@@ -495,12 +499,42 @@ func _spawn_card_slashes(cam: ThirdPersonCamera, contexts: Array[MeleeAttackCont
 		if ctx.execution_duration > max_duration:
 			max_duration = ctx.execution_duration
 
-	# Apply kinematic player lunge if card specifies (clamped to prevent out-of-bounds kinematic ejection)
+	# Director's Lens: Camera velocity pull-back for centrifugal force
+	if cam != null:
+		for ctx in contexts:
+			cam.apply_velocity_pullback(ctx.tip_velocity)
+
+	# Apply locomotion spectacle (Blink or Kinematic Lunge with Voxel Ghosting)
 	for ctx in contexts:
-		if ctx.player_lunge_distance > 0.0 and player_motor != null:
+		if ctx.is_blink and player_motor != null and is_inside_tree():
+			var b_dist = ctx.blink_distance if ctx.blink_distance > 0.0 else (ctx.player_lunge_distance if ctx.player_lunge_distance > 0.0 else 6.0)
+			var origin_pos = player_motor.global_position
+			var arrival_pos = origin_pos + cam_forward * b_dist
+			var world_3d = get_world_3d()
+			if world_3d != null:
+				var space = world_3d.direct_space_state
+				var q = PhysicsRayQueryParameters3D.create(origin_pos + Vector3.UP * 0.5, arrival_pos + Vector3.UP * 0.5)
+				q.exclude = [player_motor.get_rid()]
+				var ray_hit = space.intersect_ray(q)
+				if not ray_hit.is_empty():
+					arrival_pos = ray_hit.position - cam_forward * 0.4
+			var root_node = get_tree().root if get_tree() != null else get_parent()
+			if root_node != null:
+				BlinkEffectSpawner.spawn_blink(root_node, origin_pos, arrival_pos)
+			player_motor.global_position = arrival_pos
+		elif ctx.player_lunge_distance > 0.0 and player_motor != null:
 			var raw_speed = (ctx.player_lunge_distance / maxf(ctx.execution_duration, 0.1)) * 0.8
 			var lunge_speed = clampf(raw_speed, 0.0, 35.0)
-			player_motor.velocity += cam_forward * lunge_speed
+			if player_motor.has_method("apply_lunge_impulse"):
+				player_motor.apply_lunge_impulse(cam_forward * lunge_speed, ctx.execution_duration)
+			else:
+				player_motor.velocity += cam_forward * lunge_speed
+
+			# Locomotion Spectacle: Voxel Afterimage Ghosting (> 15 m/s)
+			if lunge_speed >= VoxelAfterimageSpawner.LUNGE_GHOSTING_THRESHOLD_SPEED and is_inside_tree():
+				var root_node = get_tree().root if get_tree() != null else get_parent()
+				if root_node != null:
+					VoxelAfterimageSpawner.spawn_lunge_sequence(root_node, player_motor, lunge_speed, 4, 0.03)
 
 	if not is_inside_tree():
 		return
@@ -526,6 +560,19 @@ func _spawn_card_slashes(cam: ThirdPersonCamera, contexts: Array[MeleeAttackCont
 			var hit_pos = hit.get("target_point", chest_pos + cam_forward * ctx.outer_radius)
 			var hit_norm = hit.get("normal", Vector3.UP)
 			HitImpactSpawner.spawn_hit_sparks(tree.root, hit_pos, hit_norm)
+
+			# Pillar A: Hitstop (Impact Freeze) for strikes >= 1M Joules (0.08s) or 1B Joules (0.12s)
+			HitstopManager.evaluate_kinetic_hitstop(tree, ctx.kinetic_energy, hit.get("collider") as Node3D, hit_norm)
+
+			# Pillar B: Director's Lens (Camera Impact Snap & Directional Screen Shake)
+			if cam != null:
+				cam.trigger_impact_snap(14.0, 0.08)
+				var shake_intensity = clampf(ctx.kinetic_energy / 250000.0, 0.25, 1.25)
+				cam.trigger_directional_shake(ctx.tilt_degrees, shake_intensity, 0.16)
+
+			# Tier 4 Cataclysm (1 Billion+ Joules): Invert flash, arena shockwave, gravitational implosion
+			if ctx.is_cataclysm:
+				CataclysmEventSpawner.trigger_cataclysm(tree.root, hit_pos, hit_norm)
 
 			if player_motor != null:
 				player_motor.fired.emit(hit)

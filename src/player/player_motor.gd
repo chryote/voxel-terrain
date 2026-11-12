@@ -27,6 +27,15 @@ var floating_sword: FloatingWeaponController:
 signal fired(raycast_hit: Dictionary)
 
 var _was_fire_held: bool = false
+var _lunge_impulse: Vector3 = Vector3.ZERO
+var _lunge_timer: float = 0.0
+var _lunge_duration: float = 0.20
+
+## Applies a decaying kinematic lunge impulse (e.g. from high-speed attack cards)
+func apply_lunge_impulse(impulse: Vector3, duration: float = 0.20) -> void:
+	_lunge_impulse = impulse
+	_lunge_duration = maxf(duration, 0.05)
+	_lunge_timer = _lunge_duration
 
 func _ready() -> void:
 	floor_snap_length = 0.4
@@ -77,6 +86,13 @@ func _physics_process(delta: float) -> void:
 	# Horizontal velocity
 	velocity.x = move_dir.x * target_speed
 	velocity.z = move_dir.z * target_speed
+
+	# Decay and apply active kinematic lunge impulse
+	if _lunge_timer > 0.0:
+		_lunge_timer -= delta
+		var fraction = clampf(_lunge_timer / _lunge_duration, 0.0, 1.0)
+		velocity.x += _lunge_impulse.x * fraction
+		velocity.z += _lunge_impulse.z * fraction
 
 	# Gravity & Jump with proper floor grounding
 	if is_on_floor():

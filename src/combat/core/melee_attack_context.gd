@@ -29,6 +29,25 @@ const MAX_PHYSICAL_VELOCITY: float = 25000.0
 ## Prevents extreme kinetic energy strikes from causing 300km/frame physics teleportation.
 const MAX_PHYSICAL_KNOCKBACK_FORCE: float = 120.0
 
+## Kinetic Tiers for visual and game-feel escalation (procedural_todo_combo_depth.md).
+enum KineticTier {
+	NORMAL = 0,      ## < 50k Joules: Clean ribbon with standard edge emission
+	SUPERSONIC = 1,  ## 50k - 1M Joules: Mach Shockwave & Vapor Ring
+	HYPERSONIC = 2,  ## 1M - 50M Joules: Negative Space (Void Inversion) & Hitstop
+	CATACLYSM = 3    ## 1B+ Joules: The 1-Billion Event (Micro-freeze, invert flash, shockwave)
+}
+
+const TIER_SUPERSONIC_THRESHOLD: float = 50000.0     # 50,000 Joules
+const TIER_HYPERSONIC_THRESHOLD: float = 1000000.0   # 1,000,000 Joules
+const TIER_CATACLYSM_THRESHOLD: float = 1000000000.0 # 1,000,000,000 Joules
+
+var kinetic_tier: KineticTier = KineticTier.NORMAL
+var has_mach_ring: bool = false
+var is_negative_space: bool = false
+var is_cataclysm: bool = false
+var is_blink: bool = false
+var blink_distance: float = 0.0
+
 ## Participating physical mass in kilograms (derived from weapon voxel structure * modifiers).
 var mass: float = 14.0
 
@@ -112,6 +131,31 @@ func compute_kinetic_metrics(weapon_mass: float = 14.0) -> void:
 	if not is_finite(momentum):
 		momentum = 0.0
 
+	# Classify kinetic tier and update visual flags
+	if kinetic_energy >= TIER_CATACLYSM_THRESHOLD:
+		kinetic_tier = KineticTier.CATACLYSM
+		has_mach_ring = true
+		is_negative_space = true
+		is_cataclysm = true
+	elif kinetic_energy >= TIER_HYPERSONIC_THRESHOLD:
+		kinetic_tier = KineticTier.HYPERSONIC
+		has_mach_ring = true
+		is_negative_space = true
+		is_cataclysm = false
+	elif kinetic_energy >= TIER_SUPERSONIC_THRESHOLD:
+		kinetic_tier = KineticTier.SUPERSONIC
+		has_mach_ring = true
+		is_negative_space = false
+		is_cataclysm = false
+	else:
+		kinetic_tier = KineticTier.NORMAL
+		has_mach_ring = false
+		is_negative_space = false
+		is_cataclysm = false
+
+func get_kinetic_tier() -> KineticTier:
+	return kinetic_tier
+
 func duplicate_context() -> RefCounted:
 	var c = (load("res://src/combat/core/melee_attack_context.gd") as GDScript).new()
 	c.execution_duration = execution_duration
@@ -132,6 +176,12 @@ func duplicate_context() -> RefCounted:
 	c.momentum_retention = momentum_retention
 	c.damage_multiplier = damage_multiplier
 	c.poise_multiplier = poise_multiplier
+	c.kinetic_tier = kinetic_tier
+	c.has_mach_ring = has_mach_ring
+	c.is_negative_space = is_negative_space
+	c.is_cataclysm = is_cataclysm
+	c.is_blink = is_blink
+	c.blink_distance = blink_distance
 	c.inner_radius = inner_radius
 	c.outer_radius = outer_radius
 	c.arc_sweep_degrees = arc_sweep_degrees

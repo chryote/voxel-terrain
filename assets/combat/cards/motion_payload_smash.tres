@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="MotionCard" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/combat/techniques/motions/motion_card.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+card_id = "payload_heavy_smash"
+card_name = "Payload Heavy Smash"
+description = "Overwhelming downward kinetic slam that channels all compounded velocity into a singular cataclysmic strike."
+stamina_cost = 22.0
+execution_duration = 0.18
+recovery_delay = 0.24
+inner_radius = 0.80
+outer_radius = 3.20
+arc_sweep_degrees = 160.0
+volume_thickness = 0.32
+outer_height = 0.04
+tilt_degrees = -85.0
+is_reversed_sweep = false
+core_color = Color(1.0, 0.95, 0.8, 1.0)
+edge_color = Color(1.0, 0.6, 0.1, 1.0)
+deep_color = Color(0.6, 0.05, 0.0, 1.0)
+emission_intensity = 6.0
+trail_dissolve_rate = 0.85
+player_lunge_distance = 3.5
+kinetic_efficiency = 1.25
+mass_multiplier = 1.5
+base_damage = 0.0
+

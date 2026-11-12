@@ -11,6 +11,7 @@ const MotionCard = preload("res://src/combat/techniques/motions/motion_card.gd")
 const ModifierCard = preload("res://src/combat/techniques/modifiers/modifier_card.gd")
 const MulticastCard = preload("res://src/combat/techniques/multicast/multicast_card.gd")
 const TriggerCard = preload("res://src/combat/techniques/triggers/trigger_card.gd")
+const MeleeAttackContext = preload("res://src/combat/core/melee_attack_context.gd")
 
 func test_weapon_as_data_container() -> void:
 	var weapon = MeleeWeaponDef.new()

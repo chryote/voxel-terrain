@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="MotionCard" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/combat/techniques/motions/motion_card.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+card_id = "accelerator_sweep"
+card_name = "Accelerator Sweep"
+description = "Lead-in hyper-angular sweep: rotates 360 degrees in 0.08s to build an initial 300+ m/s velocity reservoir."
+stamina_cost = 16.0
+execution_duration = 0.08
+recovery_delay = 0.06
+inner_radius = 0.70
+outer_radius = 2.80
+arc_sweep_degrees = 360.0
+volume_thickness = 0.18
+outer_height = 0.025
+tilt_degrees = -5.0
+is_reversed_sweep = false
+core_color = Color(1.0, 1.0, 1.0, 1.0)
+edge_color = Color(0.1, 0.9, 1.0, 1.0)
+deep_color = Color(0.01, 0.15, 0.65, 1.0)
+emission_intensity = 5.5
+trail_dissolve_rate = 0.80
+player_lunge_distance = 1.2
+kinetic_efficiency = 1.0
+mass_multiplier = 1.0
+base_damage = 0.0
+

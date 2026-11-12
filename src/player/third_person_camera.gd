@@ -24,6 +24,16 @@ var shoulder_side: float = 1.0 # 1.0 = right, -1.0 = left
 var _current_shoulder_x: float = 0.65
 var _current_pitch: float = 0.0
 
+# --- Director's Lens State ---
+var _current_tip_velocity: float = 0.0
+var _impact_snap_timer: float = 0.0
+var _impact_snap_duration: float = 0.08
+var _impact_snap_punch: float = 14.0
+var _shake_timer: float = 0.0
+var _shake_duration: float = 0.0
+var _shake_intensity: float = 0.0
+var _shake_tilt_deg: float = 0.0
+
 func _ready() -> void:
 	_setup_hierarchy()
 
@@ -70,13 +80,51 @@ func apply_intent(intent: PlayerIntent, delta: float) -> void:
 	# Target attributes
 	var target_arm_len = aim_arm_length if is_aiming else normal_arm_length
 	var target_fov = aim_fov if is_aiming else normal_fov
+
+	# Director's Lens: 1. Velocity Pull-back (FOV expands when tip velocity > 500 m/s)
+	if not is_aiming:
+		target_fov = CameraMath.compute_velocity_fov(target_fov, _current_tip_velocity, 88.0, 500.0)
+
+	# Director's Lens: 2. Impact Snap (punch inward, then spring back)
+	if _impact_snap_timer > 0.0:
+		_impact_snap_timer -= delta
+		target_fov = CameraMath.compute_impact_snap_fov(target_fov, _impact_snap_punch, _impact_snap_timer, _impact_snap_duration)
+
+	# Smoothly decay blade tip velocity
+	_current_tip_velocity = move_toward(_current_tip_velocity, 0.0, delta * 2500.0)
+
 	var target_shoulder_x = shoulder_side * (shoulder_offset_x * 0.7 if is_aiming else shoulder_offset_x)
 
 	# Smooth transitions
 	spring_arm.spring_length = CameraMath.lerp_arm_length(spring_arm.spring_length, target_arm_len, delta, lerp_speed)
 	camera.fov = CameraMath.lerp_fov(camera.fov, target_fov, delta, lerp_speed)
 	_current_shoulder_x = CameraMath.lerp_shoulder_x(_current_shoulder_x, target_shoulder_x, delta, lerp_speed)
-	camera.position = Vector3(_current_shoulder_x, shoulder_offset_y, 0.0)
+
+	# Director's Lens: 3. Directional Screen Shake along slash cutting plane
+	var shake_offset = Vector2.ZERO
+	if _shake_timer > 0.0:
+		_shake_timer -= delta
+		var decay = clampf(_shake_timer / maxf(_shake_duration, 0.001), 0.0, 1.0)
+		shake_offset = CameraMath.compute_directional_shake(_shake_tilt_deg, _shake_intensity * decay, _shake_timer)
+
+	camera.position = Vector3(_current_shoulder_x + shake_offset.x, shoulder_offset_y + shake_offset.y, 0.0)
+
+## Director's Lens: Informs camera of blade tip velocity for centrifugal pull-back
+func apply_velocity_pullback(tip_velocity: float) -> void:
+	_current_tip_velocity = maxf(_current_tip_velocity, tip_velocity)
+
+## Director's Lens: Inward FOV punch on impact
+func trigger_impact_snap(punch_degrees: float = 14.0, snap_duration: float = 0.08) -> void:
+	_impact_snap_punch = punch_degrees
+	_impact_snap_duration = snap_duration
+	_impact_snap_timer = snap_duration
+
+## Director's Lens: Directional camera shake along cutting plane
+func trigger_directional_shake(tilt_degrees: float, intensity: float = 0.28, shake_duration: float = 0.16) -> void:
+	_shake_tilt_deg = tilt_degrees
+	_shake_intensity = intensity
+	_shake_duration = shake_duration
+	_shake_timer = shake_duration
 
 func get_camera_yaw() -> float:
 	return yaw_pivot.global_rotation.y if yaw_pivot != null else 0.0

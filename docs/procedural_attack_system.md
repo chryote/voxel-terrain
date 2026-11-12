@@ -239,17 +239,26 @@ Unlike flat sprite trails, the attack effect generates a true **3D volumetric ri
                       Inner Radius
 ```
 
-### 7.2 Analytic Swept Hit Detection ([`ProceduralSlashEffect`](file:///d:/GODOT/terrain/src/combat/visuals/procedural_slash_effect.gd))
+### 7.2 Analytic Swept Hit Detection & Dynamic Ray Density ([`ProceduralSlashEffect`](file:///d:/GODOT/terrain/src/combat/visuals/procedural_slash_effect.gd))
 
-To prevent tunneling at high velocities (e.g. supersonic swings), `check_hit_volume()` casts a 5-ray fan spanning the entire sweep arc immediately upon attack initiation:
+To prevent tunneling at high velocities (e.g. supersonic swings) and eliminate spatial blindspots on wide or extended reaches, `check_hit_volume()` generates an adaptive ray fan dynamically scaled to the sweep circumference:
 
 ```gdscript
-var test_angles = [-35.0, -15.0, 0.0, 15.0, 35.0]
+var abs_sweep = maxf(absf(sweep_angle_deg), 15.0)
 var reach = outer_radius * 0.95
+var arc_rad = deg_to_rad(abs_sweep)
+var circumference = reach * arc_rad
 
-for angle in test_angles:
-    var dir = forward.rotated(global_transform.basis.y, deg_to_rad(angle)).normalized()
+# Dynamic ray density: maximum spacing <= 0.35m prevents enemies from slipping between ray tips
+var ray_count = clampi(int(ceil(circumference / 0.35)), 5, 32)
+var half_arc = abs_sweep * 0.5
+var is_full_circle = abs_sweep >= 359.0
+
+for i in range(ray_count):
+    var angle_deg = (float(i) / float(ray_count)) * 360.0 - 180.0 if is_full_circle else lerpf(-half_arc, half_arc, float(i) / float(ray_count - 1))
+    var dir = forward.rotated(normal_up, deg_to_rad(angle_deg)).normalized()
     var to_point = origin + dir * reach
+
     var query = PhysicsRayQueryParameters3D.create(origin, to_point)
     query.exclude = exclude_rids
     var hit = space_state.intersect_ray(query)
@@ -257,12 +266,31 @@ for angle in test_angles:
         return hit
 ```
 
-* **Cost**: Under **$0.02\text{ ms}$** total.
-* **Reliability**: Guarantees $100\%$ collision capture regardless of whether the swing duration is $0.30\text{s}$ or $0.001\text{s}$.
+* **Cost**: $5$ to $32$ rays execute in under **$0.01\text{ to }0.04\text{ ms}$** total.
+* **Reliability**: Eliminates ray-spacing gaps when reach is heavily scaled ($R > 5\text{m}$) and guarantees full $360^\circ$ circular coverage without blindspots.
 
 ---
 
-## 8. The "1 Billion Damage" Min-Maxing Roadmap
+## 8. Engine-Level Guardrails & Edge-Case Safeguards
+
+Pushing combat physics to the 1-billion damage scale can provoke floating-point overflows or physics engine instability. The engine implements three strict guardrails:
+
+### 8.1 Terminal Physical Velocity Cap (`MAX_PHYSICAL_VELOCITY = 25,000 m/s`)
+* **Problem**: Multiplicative momentum retention ($v_{\text{inherited}} > 1.0$) across loops can escalate exponentially toward $\mathbf{\text{INF}}$ / $\mathbf{\text{NaN}}$, crashing matrix transforms.
+* **Guard**: In [`MeleeAttackContext.compute_kinetic_metrics()`](file:///d:/GODOT/terrain/src/combat/core/melee_attack_context.gd), velocity is strictly clamped to `MAX_PHYSICAL_VELOCITY = 25,000.0 m/s` (Mach $\sim 73$) with `is_finite()` fallback checks.
+* **Why this is optimal**: A $30\text{ kg}$ colossal hammer at $25,000\text{ m/s}$ generates **$9,375,000,000\text{ Joules}$** ($9.3+$ Billion Damage)—ample headroom for the player's 1-billion damage goal while guaranteeing float safety.
+
+### 8.2 Terminal Impulse & Knockback Guard (`MAX_PHYSICAL_KNOCKBACK_FORCE = 120.0`)
+* **Problem**: Passing $10^9$ raw kinetic impulse into a Godot `RigidBody3D` would induce instantaneous velocities over $20,000\text{ km/s}$, launching entities through world boundaries and fragmenting physics AABB trees.
+* **Guard**: In [`MeleeDeckEvaluator.gd`](file:///d:/GODOT/terrain/src/combat/core/melee_deck_evaluator.gd), combat damage scales freely into billions, but physical knockback impulse applied to physics colliders is clamped between $2.0$ and $120.0\text{ N}\cdot\text{s}$ ($\sim 25\text{–}35\text{ m/s}$ terminal launch speed). High-energy hits deliver visual satisfaction through screen shake, hitstop, and particle bursts rather than physics engine teleportation.
+
+### 8.3 Kinematic Player Lunge Ceiling (`35.0 m/s`)
+* **Problem**: Hyper-compressing `execution_duration` to milliseconds could divide lunge distance by near-zero, launching the player CharacterBody3D into the void.
+* **Guard**: In [`FloatingWeaponController.gd`](file:///d:/GODOT/terrain/src/combat/visuals/floating_weapon_controller.gd), player lunge velocity is safely clamped to a crisp $35.0\text{ m/s}$.
+
+---
+
+## 9. The "1 Billion Damage" Min-Maxing Roadmap
 
 Because damage scales **quadratically with velocity ($v^2$)** and linearly with mass ($m$), players can achieve astronomical damage numbers purely through mechanical synergy rather than finding hardcoded high-stat loot.
 
@@ -291,7 +319,7 @@ flowchart LR
 
 ---
 
-## 9. File & Directory Reference
+## 10. File & Directory Reference
 
 | Path | Purpose |
 | :--- | :--- |

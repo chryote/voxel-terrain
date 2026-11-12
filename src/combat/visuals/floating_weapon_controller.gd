@@ -495,10 +495,11 @@ func _spawn_card_slashes(cam: ThirdPersonCamera, contexts: Array[MeleeAttackCont
 		if ctx.execution_duration > max_duration:
 			max_duration = ctx.execution_duration
 
-	# Apply kinematic player lunge if card specifies
+	# Apply kinematic player lunge if card specifies (clamped to prevent out-of-bounds kinematic ejection)
 	for ctx in contexts:
 		if ctx.player_lunge_distance > 0.0 and player_motor != null:
-			var lunge_speed = (ctx.player_lunge_distance / maxf(ctx.execution_duration, 0.1)) * 0.8
+			var raw_speed = (ctx.player_lunge_distance / maxf(ctx.execution_duration, 0.1)) * 0.8
+			var lunge_speed = clampf(raw_speed, 0.0, 35.0)
 			player_motor.velocity += cam_forward * lunge_speed
 
 	if not is_inside_tree():

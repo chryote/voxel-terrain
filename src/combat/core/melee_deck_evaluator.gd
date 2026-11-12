@@ -172,15 +172,19 @@ func evaluate_attack() -> Array[MeleeAttackContext]:
 				# Pure emergent kinetic energy damage
 				ctx.damage = ctx.kinetic_energy * ctx.kinetic_efficiency * ctx.damage_multiplier * weapon_dmg_mult
 				ctx.poise_damage = ctx.momentum * 0.15 * ctx.poise_multiplier
-				ctx.knockback_force = clampf(ctx.momentum * 0.05 * ctx.poise_multiplier, 2.0, 150.0)
+				ctx.knockback_force = clampf(ctx.momentum * 0.05 * ctx.poise_multiplier, 2.0, MeleeAttackContext.MAX_PHYSICAL_KNOCKBACK_FORCE)
 			else:
 				# Legacy manual override if test/card explicitly set base_damage
 				ctx.damage *= weapon_dmg_mult
+				ctx.knockback_force = clampf(ctx.knockback_force, 2.0, MeleeAttackContext.MAX_PHYSICAL_KNOCKBACK_FORCE)
+
+			if not is_finite(ctx.damage):
+				ctx.damage = 0.0
 
 			ctx.stamina_cost *= weapon_stam_mult
 
-			# Record exit velocity for combo chaining
-			_previous_tip_velocity = ctx.tip_velocity
+			# Record exit velocity for combo chaining (strictly capped to terminal physical velocity)
+			_previous_tip_velocity = clampf(ctx.tip_velocity, 0.0, MeleeAttackContext.MAX_PHYSICAL_VELOCITY)
 
 			# 7. Multicast formation adjustments (e.g. twin slash / cross cut)
 			if motion_count > 1:

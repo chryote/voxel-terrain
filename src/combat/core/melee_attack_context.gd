@@ -20,6 +20,15 @@ var knockback_force: float = 5.0
 var stamina_cost: float = 10.0
 
 # --- Kinetic Energy & Physics Metrics ---
+## Terminal physical speed cap (Mach ~73, 25,000 m/s).
+## Prevents infinite loops / multiplicative float overflows into INF or NaN,
+## while allowing kinetic energy to scale past 9 Billion Joules (0.5 * 30kg * 25,000^2).
+const MAX_PHYSICAL_VELOCITY: float = 25000.0
+
+## Maximum physical knockback impulse applied to physics bodies.
+## Prevents extreme kinetic energy strikes from causing 300km/frame physics teleportation.
+const MAX_PHYSICAL_KNOCKBACK_FORCE: float = 120.0
+
 ## Participating physical mass in kilograms (derived from weapon voxel structure * modifiers).
 var mass: float = 14.0
 
@@ -81,6 +90,7 @@ var source_card_id: String = ""
 
 ## Calculates all physical quantities: angular velocity, lunge speed, tip velocity,
 ## kinetic energy (E = 0.5 * m * v^2), and linear momentum (p = m * v).
+## Applies hard ceilings (MAX_PHYSICAL_VELOCITY) and NaN/INF guards to protect the physics engine.
 func compute_kinetic_metrics(weapon_mass: float = 14.0) -> void:
 	mass = maxf(weapon_mass * mass_multiplier, 0.1)
 	var dur = maxf(execution_duration, 0.001)
@@ -88,9 +98,19 @@ func compute_kinetic_metrics(weapon_mass: float = 14.0) -> void:
 	angular_velocity = arc_rad / dur
 	var rot_speed = outer_radius * angular_velocity
 	lunge_velocity = player_lunge_distance / dur
-	tip_velocity = rot_speed + lunge_velocity + inherited_velocity
+
+	var raw_velocity = rot_speed + lunge_velocity + inherited_velocity
+	if not is_finite(raw_velocity):
+		raw_velocity = 0.0
+	tip_velocity = clampf(raw_velocity, 0.0, MAX_PHYSICAL_VELOCITY)
+
 	kinetic_energy = 0.5 * mass * (tip_velocity * tip_velocity)
 	momentum = mass * tip_velocity
+
+	if not is_finite(kinetic_energy):
+		kinetic_energy = 0.0
+	if not is_finite(momentum):
+		momentum = 0.0
 
 func duplicate_context() -> RefCounted:
 	var c = (load("res://src/combat/core/melee_attack_context.gd") as GDScript).new()

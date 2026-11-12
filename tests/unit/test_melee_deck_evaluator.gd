@@ -309,4 +309,34 @@ func test_kinetic_combo_momentum_retention_and_high_damage_scaling() -> void:
 	# E = 0.5 * 60kg * (2500+ m/s)^2 > 100,000,000 Joules!
 	assert_gt(ctx2.damage, 100000000.0)
 
+func test_terminal_velocity_capping_and_knockback_guard() -> void:
+	var weapon = MeleeWeaponDef.new()
+	weapon.mass = 25.0
+
+	var extreme_mod = ModifierCard.new()
+	extreme_mod.execution_duration_multiplier = 0.00001 # Extreme compression!
+	extreme_mod.momentum_retention = 999.0             # Huge retention multiplier!
+
+	var motion = MotionCard.new()
+	motion.outer_radius = 10.0
+	motion.arc_sweep_degrees = 720.0
+	motion.execution_duration = 0.01
+
+	weapon.slotted_techniques = [extreme_mod, motion]
+	var evaluator = MeleeDeckEvaluator.new(weapon)
+	var attacks = evaluator.evaluate_attack()
+	assert_eq(attacks.size(), 1)
+
+	var ctx = attacks[0]
+	# Must not exceed terminal velocity cap
+	assert_lte(ctx.tip_velocity, MeleeAttackContext.MAX_PHYSICAL_VELOCITY)
+	assert_true(is_finite(ctx.tip_velocity))
+	assert_true(is_finite(ctx.kinetic_energy))
+	assert_true(is_finite(ctx.damage))
+
+	# Knockback impulse must not exceed terminal physical knockback ceiling
+	assert_lte(ctx.knockback_force, MeleeAttackContext.MAX_PHYSICAL_KNOCKBACK_FORCE)
+	assert_gte(ctx.knockback_force, 2.0)
+
+
 

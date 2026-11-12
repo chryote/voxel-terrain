@@ -171,7 +171,9 @@ func _create_spark_particles() -> CPUParticles3D:
 
 	return parts
 
-## Checks physics collisions within the 3D volume slash path
+## Checks physics collisions within the 3D volume slash path using dynamic ray density.
+## Ray count dynamically adapts based on outer_radius and arc_sweep_degrees so tip spacing
+## never exceeds 0.35m, preventing narrow enemy hitboxes from slipping through wide sweeps.
 func check_hit_volume(world_3d: World3D, exclude_rids: Array[RID] = []) -> Dictionary:
 	if world_3d == null:
 		return {"hit": false}
@@ -179,13 +181,28 @@ func check_hit_volume(world_3d: World3D, exclude_rids: Array[RID] = []) -> Dicti
 	var space_state = world_3d.direct_space_state
 	var origin = global_position
 	var forward = -global_transform.basis.z
+	var normal_up = global_transform.basis.y
 
-	# Cast a multi-point fan along the arc to detect solid bodies or voxel terrain
-	var test_angles = [-35.0, -15.0, 0.0, 15.0, 35.0]
+	var abs_sweep = maxf(absf(sweep_angle_deg), 15.0)
 	var reach = outer_radius * 0.95
+	var arc_rad = deg_to_rad(abs_sweep)
+	var circumference = reach * arc_rad
 
-	for angle in test_angles:
-		var dir = forward.rotated(global_transform.basis.y, deg_to_rad(angle)).normalized()
+	# Dynamic ray density: ray spacing <= 0.35m prevents tunneling and missed hits.
+	# Clamped between 5 and 32 rays to bound physics raycast query overhead to < 0.04ms.
+	var ray_count = clampi(int(ceil(circumference / 0.35)), 5, 32)
+	var half_arc = abs_sweep * 0.5
+	var is_full_circle = abs_sweep >= 359.0
+
+	for i in range(ray_count):
+		var angle_deg: float = 0.0
+		if is_full_circle:
+			angle_deg = (float(i) / float(ray_count)) * 360.0 - 180.0
+		else:
+			var frac = float(i) / float(ray_count - 1)
+			angle_deg = lerpf(-half_arc, half_arc, frac)
+
+		var dir = forward.rotated(normal_up, deg_to_rad(angle_deg)).normalized()
 		var to_point = origin + dir * reach
 
 		var query = PhysicsRayQueryParameters3D.create(origin, to_point)

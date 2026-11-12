@@ -165,19 +165,6 @@ static func _generate_card_icon(card_id: String, card_type: String) -> Texture2D
 					_draw_pixel(img, ox, oy, Color(0.4, 1.0, 0.6))
 					_draw_pixel(img, ox - 1, oy, Color(0.15, 0.7, 0.3, 0.7))
 
-		"mod_flame_edge":
-			# Orange/red flickering flame tongues
-			var flame_coords = [
-				Vector2i(12, 5), Vector2i(11, 7), Vector2i(13, 8),
-				Vector2i(9, 11), Vector2i(12, 11), Vector2i(14, 12),
-				Vector2i(8, 14), Vector2i(11, 14), Vector2i(15, 15),
-				Vector2i(9, 17), Vector2i(12, 17), Vector2i(14, 17)
-			]
-			for pt in flame_coords:
-				_draw_pixel(img, pt.x, pt.y, Color(1.0, 0.85, 0.2))
-				_draw_pixel(img, pt.x, pt.y + 1, Color(1.0, 0.45, 0.1))
-				_draw_pixel(img, pt.x - 1, pt.y + 1, Color(0.85, 0.2, 0.1))
-
 		"mod_heavy_impact":
 			# Golden/amber impact shockwave ring
 			for ang_i in range(16):

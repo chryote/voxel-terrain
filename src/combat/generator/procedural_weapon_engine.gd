@@ -166,6 +166,25 @@ const PALETTES: Array[Dictionary] = [
 	}
 ]
 
+## Computes physical frame mass (in kilograms) directly from 3D voxel structure and voxel material roles.
+## Heavier compositions (porous cellular hive, heavy frame alloy) generate high mass;
+## Slender caduceus/helix staffs generate lower mass for rapid agility.
+static func compute_voxel_mass(grid_3d: Array, w: int, h: int, d: int) -> float:
+	var total_mass: float = 0.0
+	for x in range(w):
+		for y in range(h):
+			for z in range(d):
+				var v = grid_3d[x][y][z]
+				match v:
+					VoxelType.HANDLE: total_mass += 0.8
+					VoxelType.JUNCTION: total_mass += 1.6
+					VoxelType.BODY: total_mass += 1.3
+					VoxelType.EDGE: total_mass += 1.1
+					VoxelType.ENERGY: total_mass += 0.4
+					VoxelType.ACCENT: total_mass += 1.5
+	# Scale so typical weapons range from ~8.0 kg (slender) to ~35.0 kg (colossal heavy)
+	return maxf(total_mass * 0.045, 5.0)
+
 ## Primary generation method: produces a fully functional MeleeWeaponDef with 3D voxel mesh and 2D icon.
 static func generate_weapon(seed_val: int = -1, params: Dictionary = {}) -> MeleeWeaponDef:
 	if seed_val < 0:
@@ -203,6 +222,10 @@ static func generate_weapon(seed_val: int = -1, params: Dictionary = {}) -> Mele
 	weapon_def.float_offset_height = stats["float_offset_height"]
 	weapon_def.float_offset_forward = stats["float_offset_forward"]
 	weapon_def.float_tilt_degrees = stats["float_tilt_degrees"]
+	var calculated_mass: float = compute_voxel_mass(voxel_data["grid_3d"], voxel_data["width"], voxel_data["height"], voxel_data["depth"])
+	weapon_def.mass = params.get("mass", calculated_mass)
+	voxel_data["mass"] = weapon_def.mass
+
 	weapon_def.procedural_data = voxel_data
 	weapon_def.set_meta("voxel_data", voxel_data)
 	weapon_def.set_meta("seed", seed_val)

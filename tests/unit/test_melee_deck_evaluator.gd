@@ -220,3 +220,93 @@ func test_reset_sequence_returns_to_first_card() -> void:
 	assert_eq(a2[0].source_card_id, "card_alpha")
 	assert_eq(evaluator.get_current_index(), 1)
 
+func test_kinetic_energy_damage_and_velocity_squaring() -> void:
+	# Weapon frame mass = 20.0 kg
+	var weapon = MeleeWeaponDef.new()
+	weapon.mass = 20.0
+	weapon.base_damage_multiplier = 1.0
+
+	# Motion: radius 2.0m, arc 180 deg (PI rad), duration 0.20s
+	# Rotational speed = (2.0 * PI) / 0.20 = 31.4159 m/s
+	# Kinetic energy = 0.5 * 20.0 * (31.4159)^2 = 10.0 * 986.96 = 9869.6 Joules
+	var motion = MotionCard.new()
+	motion.card_id = "kinetic_strike"
+	motion.outer_radius = 2.0
+	motion.arc_sweep_degrees = 180.0
+	motion.execution_duration = 0.20
+	motion.base_damage = 0.0 # Pure kinetic energy!
+
+	weapon.slotted_techniques = [motion]
+	var evaluator = MeleeDeckEvaluator.new(weapon)
+	var attacks = evaluator.evaluate_attack()
+	assert_eq(attacks.size(), 1)
+
+	var ctx = attacks[0]
+	assert_almost_eq(ctx.mass, 20.0)
+	assert_almost_eq(ctx.tip_velocity, 2.0 * PI / 0.20, 0.05)
+	var expected_energy = 0.5 * 20.0 * pow(2.0 * PI / 0.20, 2)
+	assert_almost_eq(ctx.kinetic_energy, expected_energy, 1.0)
+	assert_almost_eq(ctx.damage, expected_energy, 1.0)
+
+	# Velocity squaring: Halving execution duration doubles velocity and quadruples damage!
+	var fast_motion = MotionCard.new()
+	fast_motion.outer_radius = 2.0
+	fast_motion.arc_sweep_degrees = 180.0
+	fast_motion.execution_duration = 0.10 # 2x speed!
+	fast_motion.base_damage = 0.0
+
+	weapon.slotted_techniques = [fast_motion]
+	evaluator.rebuild_deck()
+	var fast_attacks = evaluator.evaluate_attack()
+	var fast_ctx = fast_attacks[0]
+	# Kinetic energy should be 4x of prior (2^2)
+	assert_almost_eq(fast_ctx.kinetic_energy, expected_energy * 4.0, 5.0)
+
+func test_kinetic_combo_momentum_retention_and_high_damage_scaling() -> void:
+	var weapon = MeleeWeaponDef.new()
+	weapon.mass = 30.0 # Heavy 30kg frame
+
+	# Card 1: Accelerator slash that builds momentum
+	var m1 = MotionCard.new()
+	m1.card_id = "prep_sweep"
+	m1.outer_radius = 3.0
+	m1.arc_sweep_degrees = 360.0
+	m1.execution_duration = 0.10
+	m1.recovery_delay = 0.05
+
+	# Card 2: Momentum Retention mod + Hyper Speed Mod
+	var hyper_mod = ModifierCard.new()
+	hyper_mod.execution_duration_multiplier = 0.10 # Hyper compression to 0.015s!
+	hyper_mod.momentum_retention = 1.0            # Inherits 100% velocity from m1
+	hyper_mod.mass_multiplier = 2.0               # Compaction doubles effective mass to 60kg
+	hyper_mod.radius_multiplier = 1.8             # Extends radius to 5.4m
+
+	# Card 3: Colossal Downcleave
+	var m2 = MotionCard.new()
+	m2.card_id = "colossal_smash"
+	m2.outer_radius = 3.0
+	m2.arc_sweep_degrees = 540.0 # 1.5 full turns
+	m2.execution_duration = 0.15 # Reduced by hyper_mod to 0.015s
+	m2.player_lunge_distance = 5.0
+
+	weapon.slotted_techniques = [m1, hyper_mod, m2]
+	var evaluator = MeleeDeckEvaluator.new(weapon)
+
+	# Execute m1
+	var a1 = evaluator.evaluate_attack()
+	assert_eq(a1.size(), 1)
+	var v1 = a1[0].tip_velocity
+	assert_gt(v1, 100.0) # > 100 m/s
+
+	evaluator.update(0.1)
+
+	# Execute m2 (with hyper_mod and inherited velocity)
+	var a2 = evaluator.evaluate_attack()
+	assert_eq(a2.size(), 1)
+	var ctx2 = a2[0]
+	assert_gt(ctx2.inherited_velocity, 100.0)
+	assert_gt(ctx2.tip_velocity, 2500.0) # Hyper-velocity!
+	# E = 0.5 * 60kg * (2500+ m/s)^2 > 100,000,000 Joules!
+	assert_gt(ctx2.damage, 100000000.0)
+
+

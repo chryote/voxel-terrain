@@ -22,8 +22,6 @@ edge_color = Color(0.15, 0.75, 1, 1)
 deep_color = Color(0.02, 0.18, 0.75, 1)
 emission_intensity = 4.5
 trail_dissolve_rate = 0.65
-base_damage = 25.0
-poise_damage = 15.0
-knockback_force = 6.0
-elemental_type = 0
+player_lunge_distance = 0.0
+kinetic_efficiency = 1.00
 

@@ -32,6 +32,14 @@ const ProceduralWeaponEngine = preload("res://src/combat/generator/procedural_we
 ## If true, cards in sockets are shuffled randomly on each full cycle rather than sequential.
 @export var is_shuffle: bool = false
 
+@export_group("Physical & Kinetic Frame Properties")
+## Physical mass of the weapon frame in kilograms, derived from voxel composition.
+## Serves as the base mass (m) in kinetic energy calculations: E = 0.5 * m * v^2.
+@export var mass: float = 14.0
+
+## Moment of inertia resistance multiplier. Heavier weapons resist rotational acceleration.
+@export var inertia_resistance: float = 1.0
+
 @export_group("Deck Timing & Multipliers")
 ## Cooldown after all slotted cards have been cast before resetting to slot 0.
 @export var deck_recharge_time: float = 0.55

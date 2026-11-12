@@ -89,7 +89,6 @@ func _init_weapons_and_inventory() -> void:
 	# Starter unslotted inventory cards
 	if inventory_cards.is_empty():
 		var starter_card_paths = [
-			"res://assets/combat/cards/mod_flame_edge.tres",
 			"res://assets/combat/cards/mod_heavy_impact.tres",
 			"res://assets/combat/cards/mod_swift_edge.tres",
 			"res://assets/combat/cards/motion_piercing_thrust.tres",

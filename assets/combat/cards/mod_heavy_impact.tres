@@ -6,13 +6,13 @@
 script = ExtResource("1_script")
 card_id = "heavy_impact"
 card_name = "Heavy Impact"
-description = "Massive kinetic weight: +60% damage and larger arc, with slower execution and longer recovery."
+description = "Massive kinetic weight: +60% strike mass and extended reach, carrying immense kinetic weight into impact."
 stamina_cost = 14.0
+mass_multiplier = 1.60
 execution_duration_multiplier = 1.35
 recovery_delay_multiplier = 1.45
 damage_multiplier = 1.60
 poise_multiplier = 1.80
-elemental_override = -1
 color_tint = Color(1.0, 0.85, 0.45, 1)
 emission_multiplier = 1.35
 radius_multiplier = 1.25

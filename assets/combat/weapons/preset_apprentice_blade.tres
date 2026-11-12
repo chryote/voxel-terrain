@@ -17,6 +17,7 @@ float_offset_height = 0.95
 float_offset_forward = -0.12
 float_tilt_degrees = Vector3(18, -12, 10)
 slot_capacity = 5
+mass = 14.0
 slotted_techniques = [ExtResource("3_sweep"), ExtResource("4_upswing"), ExtResource("5_downcleave")]
 is_shuffle = false
 deck_recharge_time = 0.55

@@ -1651,19 +1651,24 @@ func _show_card_tooltip(card: TechniqueCard) -> void:
 
 	if card is ModifierCard:
 		_tooltip_title.add_theme_color_override("font_color", Color(0.4, 0.95, 0.6))
-		_tooltip_type.text = "[MODIFIER] Blade Infusion"
+		_tooltip_type.text = "[MODIFIER] Kinetic & Blade Infusion"
 		_tooltip_type.add_theme_color_override("font_color", Color(0.5, 0.9, 0.6))
 		var speed_pct = int((card.execution_duration_multiplier - 1.0) * 100.0)
 		var freq_pct = int((card.recovery_delay_multiplier - 1.0) * 100.0)
-		_tooltip_stats.text = "Speed: %+d%%  |  Recovery: %+d%%  |  Dmg: %.2fx" % [
-			speed_pct, freq_pct, card.damage_multiplier
-		]
+		var stats_str = "Speed: %+d%%  |  Recovery: %+d%%" % [speed_pct, freq_pct]
+		if card.mass_multiplier != 1.0:
+			stats_str += "  |  Mass: %.2fx" % card.mass_multiplier
+		if card.momentum_retention > 0.0:
+			stats_str += "  |  Momentum: +%d%%" % int(card.momentum_retention * 100.0)
+		if card.radius_multiplier != 1.0:
+			stats_str += "  |  Reach: %.2fx" % card.radius_multiplier
+		_tooltip_stats.text = stats_str
 	elif card is MotionCard:
 		_tooltip_title.add_theme_color_override("font_color", Color(0.85, 0.95, 1.0))
-		_tooltip_type.text = "[MOTION] Base Strike Action"
+		_tooltip_type.text = "[MOTION] Kinetic Strike Action"
 		_tooltip_type.add_theme_color_override("font_color", Color(0.5, 0.8, 1.0))
-		_tooltip_stats.text = "Execution Speed: %.2fs  |  Recovery: %.2fs  |  Dmg: %.0f  |  Reach: %.1fm" % [
-			card.execution_duration, card.recovery_delay, card.base_damage, card.outer_radius
+		_tooltip_stats.text = "Duration: %.2fs  |  Sweep: %.0f°  |  Reach: %.1fm  |  Lunge: %.1fm" % [
+			card.execution_duration, card.arc_sweep_degrees, card.outer_radius, card.player_lunge_distance
 		]
 	elif card is MulticastCard:
 		_tooltip_title.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))

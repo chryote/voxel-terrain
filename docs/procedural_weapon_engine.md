@@ -29,7 +29,7 @@ flowchart TD
 ```
 
 ### Key Principles:
-1. **Decoupled Combat Mechanics**: The weapon definition ([`MeleeWeaponDef`](file:///d:/GODOT/terrain/src/combat/core/melee_weapon_def.gd)) does **not** contain hardcoded attack animations or damage values. All combat behaviors (slashes, thrusts, lunges, projectile casts) are driven dynamically by slotted [`TechniqueCard`](file:///d:/GODOT/terrain/src/combat/core/technique_card.gd)s.
+1. **Decoupled Combat Mechanics**: The weapon definition ([`MeleeWeaponDef`](file:///d:/GODOT/terrain/src/combat/core/melee_weapon_def.gd)) does **not** contain hardcoded attack animations or damage values. All combat behaviors (slashes, thrusts, lunges) and Kinetic Energy damage are driven dynamically by slotted [`TechniqueCard`](file:///d:/GODOT/terrain/src/combat/core/technique_card.gd)s (see detailed combat documentation in [`docs/procedural_attack_system.md`](file:///d:/GODOT/terrain/docs/procedural_attack_system.md)).
 2. **Unified Triple Output**: A single call to `ProceduralWeaponEngine.generate_weapon()` creates:
    - A **3D voxel ArrayMesh** with dual-material shading and face culling.
    - A **2D pixel-art ImageTexture** with directional shading for UI/HUDs.

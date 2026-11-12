@@ -3,7 +3,8 @@
 This directory contains the procedural synthesis engine for modular melee weapons.
 
 - **Primary Script**: [`procedural_weapon_engine.gd`](file:///d:/GODOT/terrain/src/combat/generator/procedural_weapon_engine.gd)
-- **Full Architecture & Technical Documentation**: [`docs/procedural_weapon_engine.md`](file:///d:/GODOT/terrain/docs/procedural_weapon_engine.md)
+- **Weapon Generation Technical Documentation**: [`docs/procedural_weapon_engine.md`](file:///d:/GODOT/terrain/docs/procedural_weapon_engine.md)
+- **Procedural Attack & Kinetic Combat Documentation**: [`docs/procedural_attack_system.md`](file:///d:/GODOT/terrain/docs/procedural_attack_system.md)
 
 ## Quick Overview
 

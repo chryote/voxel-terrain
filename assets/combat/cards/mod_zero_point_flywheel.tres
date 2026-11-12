@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="ModifierCard" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/combat/techniques/modifiers/modifier_card.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+card_id = "zero_point_flywheel"
+card_name = "Zero-Point Flywheel"
+description = "Internal centrifugal accumulator: Replaces stamina cost with stored kinetic momentum (0 Stamina) and retains +35% exit velocity."
+stamina_cost = 0.0
+stamina_multiplier = 0.0
+execution_duration_multiplier = 0.90
+recovery_delay_multiplier = 0.80
+deck_recharge_multiplier = 1.0
+mass_multiplier = 1.0
+momentum_retention = 0.35
+damage_multiplier = 1.15
+poise_multiplier = 1.10
+color_tint = Color(0.25, 0.90, 1.0, 1.0)
+emission_multiplier = 1.35
+radius_multiplier = 1.0
+arc_sweep_multiplier = 1.0
+thickness_multiplier = 1.0
+player_lunge_distance = 0.0
+override_locomotion_mode = false
+locomotion_mode = 0
+locomotion_vertical_impulse = 0.0
+allows_free_movement = false
+move_speed_multiplier = 1.0
+is_implosion = false
+

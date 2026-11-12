@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="ModifierCard" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/combat/techniques/modifiers/modifier_card.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+card_id = "mass_densifier"
+card_name = "Mass Densifier"
+description = "Cyclotron Stage 2 Compactor: Magnetically densifies weapon lattice, scaling effective mass by +150% (2.5x mass multiplier) to supercharge kinetic energy."
+stamina_cost = 5.0
+stamina_multiplier = 1.0
+execution_duration_multiplier = 1.05
+recovery_delay_multiplier = 1.0
+deck_recharge_multiplier = 1.0
+mass_multiplier = 2.5
+momentum_retention = 0.50
+damage_multiplier = 1.20
+poise_multiplier = 1.60
+color_tint = Color(0.95, 0.40, 0.25, 1.0)
+emission_multiplier = 1.40
+radius_multiplier = 1.0
+arc_sweep_multiplier = 1.0
+thickness_multiplier = 1.25
+player_lunge_distance = 0.0
+override_locomotion_mode = false
+locomotion_mode = 0
+locomotion_vertical_impulse = 0.0
+allows_free_movement = false
+move_speed_multiplier = 1.0
+is_implosion = false
+

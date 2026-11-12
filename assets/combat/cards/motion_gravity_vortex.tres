@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="MotionCard" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/combat/techniques/motions/motion_card.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+card_id = "gravity_vortex"
+card_name = "Gravity Vortex"
+description = "Gravitational Implosion: Sweeps a 360-degree radial event horizon with negative knockback (-28 N), pulling all surrounding entities into a tight clump."
+stamina_cost = 22.0
+execution_duration = 0.18
+recovery_delay = 0.12
+inner_radius = 0.90
+outer_radius = 4.20
+arc_sweep_degrees = 360.0
+volume_thickness = 0.30
+outer_height = 0.040
+tilt_degrees = 0.0
+is_reversed_sweep = false
+is_blink = false
+blink_distance = 0.0
+player_lunge_distance = 0.0
+locomotion_mode = 0
+locomotion_vertical_impulse = 0.0
+allows_free_movement = false
+move_speed_multiplier = 1.0
+is_implosion = true
+knockback_force = -28.0
+core_color = Color(0.95, 0.60, 1.0, 1.0)
+edge_color = Color(0.65, 0.15, 0.95, 1.0)
+deep_color = Color(0.18, 0.02, 0.35, 1.0)
+emission_intensity = 5.5
+trail_dissolve_rate = 0.70
+kinetic_efficiency = 1.25
+mass_multiplier = 1.20
+base_damage = 0.0
+

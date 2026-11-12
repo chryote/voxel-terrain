@@ -53,6 +53,8 @@ var _hover_time: float = 0.0
 var _smoothed_yaw: float = 0.0
 var _reappear_tween: Tween
 var _active_slashes: Array[ProceduralSlashEffect] = []
+var _active_free_movement: bool = false
+var _active_move_speed_mult: float = 1.0
 
 ## Compatibility alias for code checking _sword_root
 var _sword_root: Node3D:
@@ -481,6 +483,7 @@ func attack(target_camera: ThirdPersonCamera = null) -> bool:
 func _spawn_card_slashes(cam: ThirdPersonCamera, contexts: Array[MeleeAttackContext]) -> void:
 	var cam_yaw = cam.get_camera_yaw() if cam != null else 0.0
 	var cam_forward = -Vector3(sin(cam_yaw), 0.0, cos(cam_yaw))
+	var cam_right = Vector3(cos(cam_yaw), 0.0, -sin(cam_yaw))
 
 	var pitch = 0.0
 	if cam != null and cam.pitch_pivot != null:
@@ -499,17 +502,46 @@ func _spawn_card_slashes(cam: ThirdPersonCamera, contexts: Array[MeleeAttackCont
 		if ctx.execution_duration > max_duration:
 			max_duration = ctx.execution_duration
 
+	# Update active free movement and speed multipliers
+	_active_free_movement = false
+	_active_move_speed_mult = 1.0
+	for ctx in contexts:
+		if ctx.allows_free_movement:
+			_active_free_movement = true
+		if ctx.move_speed_multiplier != 1.0:
+			_active_move_speed_mult = maxf(_active_move_speed_mult, ctx.move_speed_multiplier)
+
 	# Director's Lens: Camera velocity pull-back for centrifugal force
 	if cam != null:
 		for ctx in contexts:
 			cam.apply_velocity_pullback(ctx.tip_velocity)
 
-	# Apply locomotion spectacle (Blink or Kinematic Lunge with Voxel Ghosting)
+	# Apply locomotion spectacle (Blink or Kinematic Lunge with Voxel Ghosting & Decoupled Trajectory)
 	for ctx in contexts:
+		var move_dir = cam_forward
+		match ctx.locomotion_mode:
+			MeleeAttackContext.LocomotionVectorMode.FORWARD:
+				move_dir = cam_forward
+			MeleeAttackContext.LocomotionVectorMode.BACKWARD:
+				move_dir = -cam_forward
+			MeleeAttackContext.LocomotionVectorMode.LATERAL_LEFT:
+				move_dir = -cam_right
+			MeleeAttackContext.LocomotionVectorMode.LATERAL_RIGHT:
+				move_dir = cam_right
+			MeleeAttackContext.LocomotionVectorMode.INPUT_RELATIVE:
+				var input_vec = Vector2.ZERO
+				if player_motor != null and player_motor.player_input != null:
+					input_vec = player_motor.player_input.get_intent().move_vector
+				var raw_dir = cam_forward * -input_vec.y + cam_right * input_vec.x
+				if raw_dir.length_squared() > 0.01:
+					move_dir = raw_dir.normalized()
+				else:
+					move_dir = cam_forward
+
 		if ctx.is_blink and player_motor != null and is_inside_tree():
 			var b_dist = ctx.blink_distance if ctx.blink_distance > 0.0 else (ctx.player_lunge_distance if ctx.player_lunge_distance > 0.0 else 6.0)
 			var origin_pos = player_motor.global_position
-			var arrival_pos = origin_pos + cam_forward * b_dist
+			var arrival_pos = origin_pos + move_dir * b_dist
 			var world_3d = get_world_3d()
 			if world_3d != null:
 				var space = world_3d.direct_space_state
@@ -517,7 +549,7 @@ func _spawn_card_slashes(cam: ThirdPersonCamera, contexts: Array[MeleeAttackCont
 				q.exclude = [player_motor.get_rid()]
 				var ray_hit = space.intersect_ray(q)
 				if not ray_hit.is_empty():
-					arrival_pos = ray_hit.position - cam_forward * 0.4
+					arrival_pos = ray_hit.position - move_dir * 0.4
 			var root_node = get_tree().root if get_tree() != null else get_parent()
 			if root_node != null:
 				BlinkEffectSpawner.spawn_blink(root_node, origin_pos, arrival_pos)
@@ -526,9 +558,11 @@ func _spawn_card_slashes(cam: ThirdPersonCamera, contexts: Array[MeleeAttackCont
 			var raw_speed = (ctx.player_lunge_distance / maxf(ctx.execution_duration, 0.1)) * 0.8
 			var lunge_speed = clampf(raw_speed, 0.0, 35.0)
 			if player_motor.has_method("apply_lunge_impulse"):
-				player_motor.apply_lunge_impulse(cam_forward * lunge_speed, ctx.execution_duration)
+				player_motor.apply_lunge_impulse(move_dir * lunge_speed, ctx.execution_duration, ctx.locomotion_vertical_impulse)
 			else:
-				player_motor.velocity += cam_forward * lunge_speed
+				player_motor.velocity += move_dir * lunge_speed
+				if ctx.locomotion_vertical_impulse > 0.0:
+					player_motor.velocity.y = maxf(player_motor.velocity.y, ctx.locomotion_vertical_impulse)
 
 			# Locomotion Spectacle: Voxel Afterimage Ghosting (> 15 m/s)
 			if lunge_speed >= VoxelAfterimageSpawner.LUNGE_GHOSTING_THRESHOLD_SPEED and is_inside_tree():
@@ -610,6 +644,8 @@ func _resolve_hit_triggers(ctx: MeleeAttackContext, hit: Dictionary) -> void:
 
 func _on_slash_completed() -> void:
 	_is_attacking = false
+	_active_free_movement = false
+	_active_move_speed_mult = 1.0
 	attack_finished.emit()
 
 	# 3. RESTORE / UNHIDE THE WEAPON WITH DYNAMIC REAPPEAR
@@ -619,6 +655,12 @@ func _on_slash_completed() -> void:
 
 		_reappear_tween = create_tween()
 		_reappear_tween.tween_property(_weapon_root, "scale", Vector3.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+func has_free_movement() -> bool:
+	return _active_free_movement
+
+func get_move_speed_multiplier() -> float:
+	return _active_move_speed_mult
 
 func get_evaluator() -> MeleeDeckEvaluator:
 	return _evaluator
@@ -648,9 +690,15 @@ func generate_debug_weapons() -> Array[MeleeWeaponDef]:
 	for i in range(4):
 		var topo = stylized_topos[i % stylized_topos.size()]
 		var seed_val = int(Time.get_ticks_usec()) + i * 1337 + (randi() % 9999)
-		var w = ProceduralWeaponEngine.generate_weapon(seed_val, {
+		var params_dict: Dictionary = {
 			"topology": topo
-		})
+		}
+		# Slot 3 is forged as an Apex 20-slot Cyclotron frame!
+		if i == 3:
+			params_dict["crafting_tier"] = 3
+			params_dict["slot_capacity"] = 20
+			params_dict["name"] = "Cyclotron Supercomputer #%d" % (seed_val % 1000)
+		var w = ProceduralWeaponEngine.generate_weapon(seed_val, params_dict)
 		# Populate starter slotted technique cards on primary weapon if needed
 		if i == 0:
 			var default_motion_paths = [

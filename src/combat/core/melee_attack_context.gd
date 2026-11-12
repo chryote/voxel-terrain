@@ -20,10 +20,10 @@ var knockback_force: float = 5.0
 var stamina_cost: float = 10.0
 
 # --- Kinetic Energy & Physics Metrics ---
-## Terminal physical speed cap (Mach ~73, 25,000 m/s).
+## Terminal physical speed cap (Mach ~147, 50,000 m/s).
 ## Prevents infinite loops / multiplicative float overflows into INF or NaN,
-## while allowing kinetic energy to scale past 9 Billion Joules (0.5 * 30kg * 25,000^2).
-const MAX_PHYSICAL_VELOCITY: float = 25000.0
+## while allowing multi-stage cyclotron kinetic energy to scale past 100 Billion to Trillions of Joules.
+const MAX_PHYSICAL_VELOCITY: float = 50000.0
 
 ## Maximum physical knockback impulse applied to physics bodies.
 ## Prevents extreme kinetic energy strikes from causing 300km/frame physics teleportation.
@@ -34,17 +34,20 @@ enum KineticTier {
 	NORMAL = 0,      ## < 50k Joules: Clean ribbon with standard edge emission
 	SUPERSONIC = 1,  ## 50k - 1M Joules: Mach Shockwave & Vapor Ring
 	HYPERSONIC = 2,  ## 1M - 50M Joules: Negative Space (Void Inversion) & Hitstop
-	CATACLYSM = 3    ## 1B+ Joules: The 1-Billion Event (Micro-freeze, invert flash, shockwave)
+	CATACLYSM = 3,   ## 1B - 100B Joules: The 1-Billion Event (Micro-freeze, invert flash, shockwave)
+	SINGULARITY = 4  ## 100B+ Joules: The 20-Slot Cyclotron Cosmic Singularity Event
 }
 
-const TIER_SUPERSONIC_THRESHOLD: float = 50000.0     # 50,000 Joules
-const TIER_HYPERSONIC_THRESHOLD: float = 1000000.0   # 1,000,000 Joules
-const TIER_CATACLYSM_THRESHOLD: float = 1000000000.0 # 1,000,000,000 Joules
+const TIER_SUPERSONIC_THRESHOLD: float = 50000.0          # 50,000 Joules
+const TIER_HYPERSONIC_THRESHOLD: float = 1000000.0        # 1,000,000 Joules
+const TIER_CATACLYSM_THRESHOLD: float = 1000000000.0      # 1,000,000,000 Joules (1 Billion)
+const TIER_SINGULARITY_THRESHOLD: float = 100000000000.0  # 100,000,000,000 Joules (100 Billion)
 
 var kinetic_tier: KineticTier = KineticTier.NORMAL
 var has_mach_ring: bool = false
 var is_negative_space: bool = false
 var is_cataclysm: bool = false
+var is_singularity: bool = false
 var is_blink: bool = false
 var blink_distance: float = 0.0
 
@@ -98,8 +101,24 @@ var deep_color: Color = Color(0.02, 0.18, 0.75, 1.0)
 var emission_intensity: float = 4.5
 var trail_dissolve_rate: float = 0.65
 
-# --- Kinematic Impulses ---
+# --- Kinematic & Locomotion Dynamics (Decoupled Movement) ---
+enum LocomotionVectorMode {
+	FORWARD = 0,         ## Traditional aim-forward lunge/blink
+	BACKWARD = 1,        ## Evasive retreat (opposite to camera forward)
+	INPUT_RELATIVE = 2,  ## Decoupled: follows player's WASD movement input vector
+	LATERAL_LEFT = 3,    ## Evasive side-step left relative to camera
+	LATERAL_RIGHT = 4    ## Evasive side-step right relative to camera
+}
+
+var locomotion_mode: LocomotionVectorMode = LocomotionVectorMode.FORWARD
+var locomotion_vertical_impulse: float = 0.0
+var allows_free_movement: bool = false
+var move_speed_multiplier: float = 1.0
 var player_lunge_distance: float = 0.0
+
+# --- Passive Engine Overclocks & Dynamics ---
+var deck_recharge_multiplier: float = 1.0
+var is_implosion: bool = false
 
 # --- Trigger Payloads ---
 var nested_triggers: Array = []
@@ -132,26 +151,36 @@ func compute_kinetic_metrics(weapon_mass: float = 14.0) -> void:
 		momentum = 0.0
 
 	# Classify kinetic tier and update visual flags
-	if kinetic_energy >= TIER_CATACLYSM_THRESHOLD:
+	if kinetic_energy >= TIER_SINGULARITY_THRESHOLD:
+		kinetic_tier = KineticTier.SINGULARITY
+		has_mach_ring = true
+		is_negative_space = true
+		is_cataclysm = true
+		is_singularity = true
+	elif kinetic_energy >= TIER_CATACLYSM_THRESHOLD:
 		kinetic_tier = KineticTier.CATACLYSM
 		has_mach_ring = true
 		is_negative_space = true
 		is_cataclysm = true
+		is_singularity = false
 	elif kinetic_energy >= TIER_HYPERSONIC_THRESHOLD:
 		kinetic_tier = KineticTier.HYPERSONIC
 		has_mach_ring = true
 		is_negative_space = true
 		is_cataclysm = false
+		is_singularity = false
 	elif kinetic_energy >= TIER_SUPERSONIC_THRESHOLD:
 		kinetic_tier = KineticTier.SUPERSONIC
 		has_mach_ring = true
 		is_negative_space = false
 		is_cataclysm = false
+		is_singularity = false
 	else:
 		kinetic_tier = KineticTier.NORMAL
 		has_mach_ring = false
 		is_negative_space = false
 		is_cataclysm = false
+		is_singularity = false
 
 func get_kinetic_tier() -> KineticTier:
 	return kinetic_tier
@@ -180,6 +209,7 @@ func duplicate_context() -> RefCounted:
 	c.has_mach_ring = has_mach_ring
 	c.is_negative_space = is_negative_space
 	c.is_cataclysm = is_cataclysm
+	c.is_singularity = is_singularity
 	c.is_blink = is_blink
 	c.blink_distance = blink_distance
 	c.inner_radius = inner_radius
@@ -195,6 +225,12 @@ func duplicate_context() -> RefCounted:
 	c.emission_intensity = emission_intensity
 	c.trail_dissolve_rate = trail_dissolve_rate
 	c.player_lunge_distance = player_lunge_distance
+	c.locomotion_mode = locomotion_mode
+	c.locomotion_vertical_impulse = locomotion_vertical_impulse
+	c.allows_free_movement = allows_free_movement
+	c.move_speed_multiplier = move_speed_multiplier
+	c.deck_recharge_multiplier = deck_recharge_multiplier
+	c.is_implosion = is_implosion
 	c.nested_triggers = nested_triggers.duplicate()
 	c.source_card_id = source_card_id
 	return c

@@ -172,11 +172,20 @@ func evaluate_attack() -> Array[MeleeAttackContext]:
 				# Pure emergent kinetic energy damage
 				ctx.damage = ctx.kinetic_energy * ctx.kinetic_efficiency * ctx.damage_multiplier * weapon_dmg_mult
 				ctx.poise_damage = ctx.momentum * 0.15 * ctx.poise_multiplier
-				ctx.knockback_force = clampf(ctx.momentum * 0.05 * ctx.poise_multiplier, 2.0, MeleeAttackContext.MAX_PHYSICAL_KNOCKBACK_FORCE)
+				if ctx.is_implosion or card.knockback_force < 0.0:
+					var neg_force = -absf(ctx.momentum * 0.05 * ctx.poise_multiplier)
+					if card.knockback_force < 0.0:
+						neg_force = card.knockback_force
+					ctx.knockback_force = clampf(neg_force, -MeleeAttackContext.MAX_PHYSICAL_KNOCKBACK_FORCE, -2.0)
+				else:
+					ctx.knockback_force = clampf(ctx.momentum * 0.05 * ctx.poise_multiplier, 2.0, MeleeAttackContext.MAX_PHYSICAL_KNOCKBACK_FORCE)
 			else:
 				# Legacy manual override if test/card explicitly set base_damage
 				ctx.damage *= weapon_dmg_mult
-				ctx.knockback_force = clampf(ctx.knockback_force, 2.0, MeleeAttackContext.MAX_PHYSICAL_KNOCKBACK_FORCE)
+				if ctx.is_implosion or card.knockback_force < 0.0:
+					ctx.knockback_force = clampf(ctx.knockback_force, -MeleeAttackContext.MAX_PHYSICAL_KNOCKBACK_FORCE, -2.0)
+				else:
+					ctx.knockback_force = clampf(ctx.knockback_force, 2.0, MeleeAttackContext.MAX_PHYSICAL_KNOCKBACK_FORCE)
 
 			if not is_finite(ctx.damage):
 				ctx.damage = 0.0
@@ -210,8 +219,19 @@ func evaluate_attack() -> Array[MeleeAttackContext]:
 
 		if _current_index >= _active_deck.size():
 			var recharge = weapon.deck_recharge_time if weapon != null else 0.5
-			_state = State.RECHARGING
+			var recharge_mult = 1.0
+			for c in results:
+				recharge_mult = minf(recharge_mult, c.deck_recharge_multiplier)
+			for mod in _accumulated_modifiers:
+				recharge_mult = minf(recharge_mult, mod.deck_recharge_multiplier)
+			recharge *= recharge_mult
+
 			_timer = maxf(max_recovery, recharge)
+			if _timer <= 0.001:
+				_state = State.READY
+				_timer = 0.0
+			else:
+				_state = State.RECHARGING
 			_on_deck_cycle_completed()
 		else:
 			_state = State.RECOVERING

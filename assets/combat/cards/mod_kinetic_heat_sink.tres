@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="ModifierCard" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/combat/techniques/modifiers/modifier_card.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+card_id = "kinetic_heat_sink"
+card_name = "Kinetic Heat Sink"
+description = "Superconducting thermal radiator: Flushes all weapon heat dissipation delay, nullifying deck recharge time to 0.0s for instantaneous combo cycling."
+stamina_cost = 0.0
+stamina_multiplier = 0.85
+execution_duration_multiplier = 0.95
+recovery_delay_multiplier = 0.50
+deck_recharge_multiplier = 0.0
+mass_multiplier = 1.0
+momentum_retention = 0.15
+damage_multiplier = 1.0
+poise_multiplier = 1.0
+color_tint = Color(0.40, 0.75, 1.0, 1.0)
+emission_multiplier = 1.30
+radius_multiplier = 1.0
+arc_sweep_multiplier = 1.0
+thickness_multiplier = 1.0
+player_lunge_distance = 0.0
+override_locomotion_mode = false
+locomotion_mode = 0
+locomotion_vertical_impulse = 0.0
+allows_free_movement = false
+move_speed_multiplier = 1.0
+is_implosion = false
+

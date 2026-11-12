@@ -51,6 +51,14 @@ enum TopologyType {
 	CARNIVOROUS_BOTANICAL = 9
 }
 
+## Weapon Crafting & Frame Capacity Tiers (procedural_todo_20_slots.md)
+enum FrameTier {
+	STANDARD = 0,    ## 4 - 8 slots: The Direct Weapon
+	RESONANT = 1,    ## 8 - 12 slots: The Combo Engine
+	APEX = 2,        ## 13 - 16 slots: Deep Cascade Architecture
+	CYCLOTRON = 3    ## 18 - 20 slots: The Modular Physical Supercomputer (Cyclotron OS)
+}
+
 const DEFAULT_VOXEL_SIZE: float = 0.05 # 40 voxels * 0.05m = 2.00m (~2 world blocks height, Monster Hunter scale)
 const TARGET_WEAPON_HEIGHT_VOXELS: int = 40
 const DEFAULT_GRID_WIDTH: int = 11
@@ -1619,6 +1627,22 @@ static func _generate_deck_stats(rng: RandomNumberGenerator, profile: WeaponProf
 			dmg_mult = rng.randf_range(1.00, 1.10)
 			stam_mult = 1.0
 
+	# Frame tier crafting logic (procedural_todo_20_slots.md)
+	var tier_val = params.get("crafting_tier", params.get("tier", -1))
+	if tier_val is int and tier_val >= 0:
+		match tier_val:
+			FrameTier.STANDARD:
+				slot_capacity = rng.randi_range(4, 7)
+			FrameTier.RESONANT:
+				slot_capacity = rng.randi_range(8, 12)
+				deck_recharge = rng.randf_range(0.35, 0.48)
+			FrameTier.APEX:
+				slot_capacity = rng.randi_range(13, 16)
+				deck_recharge = rng.randf_range(0.28, 0.38)
+			FrameTier.CYCLOTRON:
+				slot_capacity = rng.randi_range(18, 20)
+				deck_recharge = rng.randf_range(0.22, 0.32)
+
 	# Param overrides
 	if params.has("slot_capacity"):
 		slot_capacity = params["slot_capacity"]
@@ -1642,3 +1666,14 @@ static func _generate_deck_stats(rng: RandomNumberGenerator, profile: WeaponProf
 		"float_offset_forward": -0.12,
 		"float_tilt_degrees": Vector3(18.0, -12.0, 10.0)
 	}
+
+## Dedicated crafting function for forging a 20-slot Cyclotron frame.
+## Serves as the pinnacle kinetic accelerator supercomputer frame (procedural_todo_20_slots.md).
+static func craft_cyclotron_frame(seed_val: int = -1, params: Dictionary = {}) -> MeleeWeaponDef:
+	var craft_params = params.duplicate()
+	craft_params["crafting_tier"] = FrameTier.CYCLOTRON
+	craft_params["slot_capacity"] = 20
+	if not craft_params.has("name"):
+		var id_num = (seed_val if seed_val >= 0 else int(Time.get_ticks_usec())) % 10000
+		craft_params["name"] = "Cyclotron Singularity Frame #%d" % id_num
+	return generate_weapon(seed_val, craft_params)

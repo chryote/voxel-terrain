@@ -11,6 +11,9 @@ extends "res://src/combat/core/technique_card.gd"
 ## Multiplier on recovery_delay (< 1.0 increases attack frequency, > 1.0 reduces attack frequency)
 @export var recovery_delay_multiplier: float = 1.0
 
+## Multiplier on weapon deck recharge time (e.g. 0.0 for instant reset in Kinetic Heat Sink)
+@export var deck_recharge_multiplier: float = 1.0
+
 @export_group("Kinetic Mass & Momentum Multipliers")
 ## Multiplies the effective mass of the strike (e.g. Densifier mods, weighted edge).
 ## Directly scales kinetic energy: E = 0.5 * (mass * mass_multiplier) * v^2.
@@ -31,10 +34,16 @@ extends "res://src/combat/core/technique_card.gd"
 @export var arc_sweep_multiplier: float = 1.0
 @export var thickness_multiplier: float = 1.0
 
-@export_group("Kinematics")
+@export_group("Kinematics & Decoupled Locomotion")
 @export var player_lunge_distance: float = 0.0
 @export var is_blink: bool = false
 @export var blink_distance: float = 0.0
+@export var override_locomotion_mode: bool = false
+@export var locomotion_mode: int = MeleeAttackContext.LocomotionVectorMode.FORWARD
+@export var locomotion_vertical_impulse: float = 0.0
+@export var allows_free_movement: bool = false
+@export var move_speed_multiplier: float = 1.0
+@export var is_implosion: bool = false
 
 @export_group("Resource Cost / Inertia Mitigation")
 ## Multiplier on stamina cost (e.g. 0.3 for Inertia Compensator or 0.0 for Zero-Point Flywheel)
@@ -46,6 +55,7 @@ func get_card_kind() -> CardKind:
 func apply_to_context(ctx: MeleeAttackContext) -> void:
 	ctx.execution_duration *= execution_duration_multiplier
 	ctx.recovery_delay *= recovery_delay_multiplier
+	ctx.deck_recharge_multiplier *= deck_recharge_multiplier
 	ctx.mass_multiplier *= mass_multiplier
 	ctx.momentum_retention += momentum_retention
 	ctx.damage_multiplier *= damage_multiplier
@@ -61,6 +71,15 @@ func apply_to_context(ctx: MeleeAttackContext) -> void:
 	if is_blink:
 		ctx.is_blink = true
 		ctx.blink_distance = maxf(ctx.blink_distance, blink_distance)
+
+	if override_locomotion_mode:
+		ctx.locomotion_mode = locomotion_mode as MeleeAttackContext.LocomotionVectorMode
+	ctx.locomotion_vertical_impulse += locomotion_vertical_impulse
+	if allows_free_movement:
+		ctx.allows_free_movement = true
+	ctx.move_speed_multiplier *= move_speed_multiplier
+	if is_implosion:
+		ctx.is_implosion = true
 
 	if color_tint != Color.WHITE:
 		ctx.core_color = ctx.core_color.lerp(color_tint, 0.65)

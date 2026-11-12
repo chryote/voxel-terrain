@@ -32,10 +32,12 @@ var _lunge_timer: float = 0.0
 var _lunge_duration: float = 0.20
 
 ## Applies a decaying kinematic lunge impulse (e.g. from high-speed attack cards)
-func apply_lunge_impulse(impulse: Vector3, duration: float = 0.20) -> void:
+func apply_lunge_impulse(impulse: Vector3, duration: float = 0.20, vertical_impulse: float = 0.0) -> void:
 	_lunge_impulse = impulse
 	_lunge_duration = maxf(duration, 0.05)
 	_lunge_timer = _lunge_duration
+	if vertical_impulse > 0.0:
+		velocity.y = maxf(velocity.y, vertical_impulse)
 
 func _ready() -> void:
 	floor_snap_length = 0.4
@@ -76,12 +78,18 @@ func _physics_process(delta: float) -> void:
 	if move_dir.length_squared() > 1.0:
 		move_dir = move_dir.normalized()
 
-	# Speed determination
+	# Speed determination (supports decoupled free movement & gyroscopic stance)
 	var target_speed = walk_speed
-	if camera_rig.is_aiming:
+	var free_move = floating_weapon != null and floating_weapon.has_free_movement()
+	if free_move:
+		target_speed = sprint_speed
+	elif camera_rig.is_aiming:
 		target_speed = aim_speed
 	elif intent.sprint_requested:
 		target_speed = sprint_speed
+
+	if floating_weapon != null:
+		target_speed *= floating_weapon.get_move_speed_multiplier()
 
 	# Horizontal velocity
 	velocity.x = move_dir.x * target_speed

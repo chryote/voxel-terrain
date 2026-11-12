@@ -44,6 +44,23 @@ extends "res://src/combat/core/technique_card.gd"
 ## Multiplier on effective mass participating in this specific motion (default 1.0).
 @export var mass_multiplier: float = 1.0
 
+@export_group("Decoupled Player Locomotion")
+## Locomotion vector mode (0: FORWARD, 1: BACKWARD, 2: INPUT_RELATIVE, 3: LATERAL_LEFT, 4: LATERAL_RIGHT).
+## Decouples player locomotion from swing aim.
+@export var locomotion_mode: int = MeleeAttackContext.LocomotionVectorMode.FORWARD
+
+## Vertical leap or hop impulse applied during motion.
+@export var locomotion_vertical_impulse: float = 0.0
+
+## If true, player can steer and sprint freely during execution.
+@export var allows_free_movement: bool = false
+
+## Player movement speed multiplier during motion.
+@export var move_speed_multiplier: float = 1.0
+
+## If true or knockback is negative, produces negative knockback (implosion / gravity vacuum).
+@export var is_implosion: bool = false
+
 @export_group("Legacy / Manual Override (Optional)")
 ## Optional fixed base damage override. If <= 0.0 (default), damage is derived
 ## purely from physical kinetic energy: E = 0.5 * m * v^2.
@@ -65,13 +82,21 @@ func apply_to_context(ctx: MeleeAttackContext) -> void:
 	ctx.blink_distance = blink_distance
 	ctx.stamina_cost += stamina_cost
 
+	ctx.locomotion_mode = locomotion_mode as MeleeAttackContext.LocomotionVectorMode
+	ctx.locomotion_vertical_impulse = locomotion_vertical_impulse
+	ctx.allows_free_movement = allows_free_movement
+	ctx.move_speed_multiplier = move_speed_multiplier
+	ctx.is_implosion = is_implosion
+
 	# If explicit base_damage is set (> 0.0), preserve for legacy test compatibility
 	if base_damage > 0.0:
 		ctx.damage = base_damage
 	if poise_damage > 0.0:
 		ctx.poise_damage = poise_damage
-	if knockback_force > 0.0:
+	if knockback_force != 0.0:
 		ctx.knockback_force = knockback_force
+	elif is_implosion:
+		ctx.knockback_force = -15.0
 
 	ctx.inner_radius = inner_radius
 	ctx.outer_radius = outer_radius

@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="MotionCard" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/combat/techniques/motions/motion_card.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+card_id = "phase_shift_dash"
+card_name = "Phase Shift Dash"
+description = "Decoupled Omnidirectional Warp: Translocates instantaneously 8.0m along player's input movement vector while slashing along camera aim."
+stamina_cost = 18.0
+execution_duration = 0.12
+recovery_delay = 0.08
+inner_radius = 0.75
+outer_radius = 2.60
+arc_sweep_degrees = 135.0
+volume_thickness = 0.22
+outer_height = 0.025
+tilt_degrees = -12.0
+is_reversed_sweep = false
+is_blink = true
+blink_distance = 8.0
+player_lunge_distance = 8.0
+locomotion_mode = 2
+locomotion_vertical_impulse = 0.0
+allows_free_movement = true
+move_speed_multiplier = 1.20
+is_implosion = false
+core_color = Color(1.0, 1.0, 1.0, 1.0)
+edge_color = Color(0.40, 0.90, 1.0, 1.0)
+deep_color = Color(0.08, 0.12, 0.75, 1.0)
+emission_intensity = 5.2
+trail_dissolve_rate = 0.80
+kinetic_efficiency = 1.15
+mass_multiplier = 1.0
+base_damage = 0.0
+

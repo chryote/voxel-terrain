@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="MotionCard" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/combat/techniques/motions/motion_card.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+card_id = "evasive_backstep"
+card_name = "Evasive Back-Hop Cut"
+description = "Decoupled Evasion: Reverses player locomotion 6.0m backwards into safety while painting a defensive glowing crescent arc forward."
+stamina_cost = 14.0
+execution_duration = 0.16
+recovery_delay = 0.10
+inner_radius = 0.70
+outer_radius = 2.80
+arc_sweep_degrees = 150.0
+volume_thickness = 0.20
+outer_height = 0.025
+tilt_degrees = -8.0
+is_reversed_sweep = false
+is_blink = false
+blink_distance = 0.0
+player_lunge_distance = 6.0
+locomotion_mode = 1
+locomotion_vertical_impulse = 2.5
+allows_free_movement = false
+move_speed_multiplier = 1.0
+is_implosion = false
+core_color = Color(0.92, 0.96, 1.0, 1.0)
+edge_color = Color(0.35, 0.85, 1.0, 1.0)
+deep_color = Color(0.04, 0.15, 0.60, 1.0)
+emission_intensity = 4.8
+trail_dissolve_rate = 0.70
+kinetic_efficiency = 1.10
+mass_multiplier = 1.0
+base_damage = 0.0
+

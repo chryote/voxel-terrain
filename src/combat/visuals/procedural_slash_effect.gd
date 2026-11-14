@@ -150,6 +150,51 @@ func _set_progress(val: float) -> void:
 	if _slash_material != null:
 		_slash_material.set_shader_parameter("progress", val)
 
+## Triggers an impact freeze animation on the slash effect:
+## 1. High-frequency micro-shudder (jitter) along the impact normal
+## 2. Incandescent emissive flash (flare) on the slash shader material
+func trigger_hitstop(hitstop_duration: float, hit_norm: Vector3 = Vector3.UP) -> void:
+	if not _is_active or _slash_material == null:
+		return
+
+	var orig_pos = position
+	var jitter_axis = hit_norm.normalized() if hit_norm.length_squared() > 0.001 else Vector3.UP
+	var jitter_mag = 0.05
+
+	# Emissive flash: boost emission during hitstop
+	var is_void = (_slash_material.shader == SLASH_VOID_SHADER)
+	var emission_param = "void_emission" if is_void else "emission_intensity"
+	var orig_emission: float = 4.5
+	if _slash_material.get_shader_parameter(emission_param) != null:
+		orig_emission = float(_slash_material.get_shader_parameter(emission_param))
+		_slash_material.set_shader_parameter(emission_param, orig_emission * 2.2)
+
+	var tree = get_tree() if is_inside_tree() else null
+	if tree != null:
+		# Rapid 3-pulse vibration in wall-clock time
+		var t1 = tree.create_timer(hitstop_duration * 0.25, true, false, true)
+		t1.timeout.connect(func():
+			if is_instance_valid(self):
+				position = orig_pos + jitter_axis * jitter_mag
+		)
+		var t2 = tree.create_timer(hitstop_duration * 0.50, true, false, true)
+		t2.timeout.connect(func():
+			if is_instance_valid(self):
+				position = orig_pos - jitter_axis * (jitter_mag * 0.7)
+		)
+		var t3 = tree.create_timer(hitstop_duration * 0.75, true, false, true)
+		t3.timeout.connect(func():
+			if is_instance_valid(self):
+				position = orig_pos + jitter_axis * (jitter_mag * 0.35)
+		)
+		var t_end = tree.create_timer(hitstop_duration, true, false, true)
+		t_end.timeout.connect(func():
+			if is_instance_valid(self):
+				position = orig_pos
+				if _slash_material != null:
+					_slash_material.set_shader_parameter(emission_param, orig_emission)
+		)
+
 func _on_completed() -> void:
 	_is_active = false
 	slash_finished.emit()
@@ -197,7 +242,7 @@ func _create_spark_particles() -> CPUParticles3D:
 ## Checks physics collisions within the 3D volume slash path using dynamic ray density.
 ## Ray count dynamically adapts based on outer_radius and arc_sweep_degrees so tip spacing
 ## never exceeds 0.35m, preventing narrow enemy hitboxes from slipping through wide sweeps.
-func check_hit_volume(world_3d: World3D, exclude_rids: Array[RID] = []) -> Dictionary:
+func check_hit_volume(world_3d: World3D, exclude_rids: Array[RID] = [], collision_mask: int = 0xFFFFFFFF) -> Dictionary:
 	if world_3d == null:
 		return {"hit": false}
 
@@ -228,15 +273,55 @@ func check_hit_volume(world_3d: World3D, exclude_rids: Array[RID] = []) -> Dicti
 		var dir = forward.rotated(normal_up, deg_to_rad(angle_deg)).normalized()
 		var to_point = origin + dir * reach
 
-		var query = PhysicsRayQueryParameters3D.create(origin, to_point)
+		var query = PhysicsRayQueryParameters3D.create(origin, to_point, collision_mask)
 		query.exclude = exclude_rids
-		query.collide_with_areas = false
+		query.collide_with_areas = true
 		query.collide_with_bodies = true
 
 		var hit = space_state.intersect_ray(query)
 		if not hit.is_empty():
+			var collider = hit.get("collider")
+			var norm: Vector3 = hit.get("normal", Vector3.UP)
+			var hit_pos: Vector3 = hit.get("position", Vector3.ZERO)
+
+			# Discard downward ground floor grazes beneath the player (prevents air sweeps from false-triggering on terrain floor)
+			if _is_floor_graze(collider, norm, hit_pos, origin, dir):
+				continue
+
 			hit["hit"] = true
 			hit["target_point"] = hit.position
 			return hit
 
 	return {"hit": false, "target_point": origin + forward * reach}
+
+## Determines if a raycast impact is merely a downward floor graze on static terrain beneath the player,
+## rather than a deliberate strike on an enemy, dynamic entity, or vertical obstacle.
+static func is_floor_graze(
+	collider: Object,
+	normal: Vector3,
+	hit_pos: Vector3,
+	origin: Vector3,
+	ray_dir: Vector3
+) -> bool:
+	if collider is StaticBody3D:
+		# Explicit target / enemy metadata check: targets are never considered a floor graze
+		if collider.is_in_group("targets") or collider.is_in_group("enemies") \
+			or collider.is_in_group("combat_targets") or collider.is_in_group("damageable") \
+			or collider.is_in_group("destructible") \
+			or collider.has_method("take_damage") or collider.has_method("apply_hit") \
+			or collider.has_method("damage"):
+			return false
+
+		# If the ray is directed downward or near-horizontal (<= +0.05):
+		if ray_dir.y <= 0.05:
+			# Case A: Top/walkable surface of the ground (slopes, flat floor)
+			if normal.y >= 0.55 and hit_pos.y <= origin.y - 0.35:
+				return true
+			# Case B: Low voxel ground steps/edges near feet/floor level
+			if hit_pos.y <= origin.y - 0.65:
+				return true
+
+	return false
+
+func _is_floor_graze(collider: Object, normal: Vector3, hit_pos: Vector3, origin: Vector3, ray_dir: Vector3) -> bool:
+	return is_floor_graze(collider, normal, hit_pos, origin, ray_dir)

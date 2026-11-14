@@ -37,7 +37,8 @@ static func request_hitstop(
 	tree: SceneTree,
 	duration: float = 0.08,
 	target_node: Node3D = null,
-	impact_normal: Vector3 = Vector3.UP
+	impact_normal: Vector3 = Vector3.UP,
+	attacker_node: Node3D = null
 ) -> void:
 	if tree == null or duration <= 0.0:
 		return
@@ -48,9 +49,14 @@ static func request_hitstop(
 
 	Engine.time_scale = 0.02
 
-	# Target mesh jitter along impact normal
+	# Target mesh jitter along impact normal (skip static world terrain)
 	if target_node != null and is_instance_valid(target_node):
-		_apply_target_jitter(tree, target_node, impact_normal, duration)
+		if not (target_node is StaticBody3D):
+			_apply_target_jitter(tree, target_node, impact_normal, duration)
+
+	# Attacker mesh micro-shudder along impact normal
+	if attacker_node != null and is_instance_valid(attacker_node):
+		_apply_attacker_jitter(tree, attacker_node, impact_normal, duration)
 
 	# SceneTreeTimer with ignore_time_scale = true runs in unscaled real wall-clock seconds!
 	var timer = tree.create_timer(duration, true, false, true)
@@ -92,6 +98,42 @@ static func _apply_target_jitter(tree: SceneTree, target: Node3D, normal: Vector
 	t_end.timeout.connect(func():
 		if is_instance_valid(target):
 			target.position = orig_pos
+	)
+
+## Applies subtle micro-shudder to the attacker along impact normal during freeze
+static func _apply_attacker_jitter(tree: SceneTree, attacker: Node3D, normal: Vector3, freeze_duration: float) -> void:
+	if not is_instance_valid(attacker):
+		return
+
+	var jitter_target: Node3D = attacker
+	if "visual_assembler" in attacker and attacker.get("visual_assembler") != null:
+		jitter_target = attacker.get("visual_assembler") as Node3D
+	elif attacker.has_node("VisualsRoot"):
+		jitter_target = attacker.get_node("VisualsRoot") as Node3D
+
+	var orig_pos = jitter_target.position
+	var jitter_axis = normal.normalized() if normal.length_squared() > 0.001 else Vector3.UP
+	var jitter_mag = 0.035
+
+	var t1 = tree.create_timer(freeze_duration * 0.25, true, false, true)
+	t1.timeout.connect(func():
+		if is_instance_valid(jitter_target):
+			jitter_target.position = orig_pos - jitter_axis * jitter_mag
+	)
+	var t2 = tree.create_timer(freeze_duration * 0.50, true, false, true)
+	t2.timeout.connect(func():
+		if is_instance_valid(jitter_target):
+			jitter_target.position = orig_pos + jitter_axis * (jitter_mag * 0.6)
+	)
+	var t3 = tree.create_timer(freeze_duration * 0.75, true, false, true)
+	t3.timeout.connect(func():
+		if is_instance_valid(jitter_target):
+			jitter_target.position = orig_pos - jitter_axis * (jitter_mag * 0.3)
+	)
+	var t_end = tree.create_timer(freeze_duration, true, false, true)
+	t_end.timeout.connect(func():
+		if is_instance_valid(jitter_target):
+			jitter_target.position = orig_pos
 	)
 
 ## Cleans up hitstop immediately (e.g. on scene unload or death)

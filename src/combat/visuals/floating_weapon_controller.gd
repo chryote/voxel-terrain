@@ -681,9 +681,16 @@ func _spawn_card_slashes(cam: ThirdPersonCamera, contexts: Array[MeleeAttackCont
 			var hit_norm = hit.get("normal", Vector3.UP)
 			HitImpactSpawner.spawn_hit_sparks(tree.root, hit_pos, hit_norm)
 
-			# Pillar A: Hitstop (Impact Freeze) - Explicitly Card-Driven
-			if ctx.hitstop_duration > 0.0:
-				HitstopManager.request_hitstop(tree, ctx.hitstop_duration, hit.get("collider") as Node3D, hit_norm)
+			# Pillar A: Hitstop (Impact Freeze & Animation) - Card-Driven with Kinetic Fallback
+			var hitstop_dur = ctx.hitstop_duration
+			if hitstop_dur <= 0.0:
+				hitstop_dur = HitstopManager.evaluate_kinetic_hitstop(tree, ctx.kinetic_energy, hit.get("collider") as Node3D, hit_norm)
+			if hitstop_dur <= 0.0:
+				hitstop_dur = 0.04 # Baseline tactile hitstop for any landed strike
+
+			if hitstop_dur > 0.0:
+				HitstopManager.request_hitstop(tree, hitstop_dur, hit.get("collider") as Node3D, hit_norm, player_motor)
+				slash.trigger_hitstop(hitstop_dur, hit_norm)
 
 			# Pillar B: Director's Lens (Camera Impact Snap & Directional Screen Shake) - Explicitly Card-Driven
 			if cam != null:

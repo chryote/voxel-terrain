@@ -10,6 +10,7 @@ const MotionCard = preload("res://src/combat/techniques/motions/motion_card.gd")
 const ModifierCard = preload("res://src/combat/techniques/modifiers/modifier_card.gd")
 const ProceduralSlashEffect = preload("res://src/combat/visuals/procedural_slash_effect.gd")
 const VoxelAfterimageSpawner = preload("res://src/combat/visuals/voxel_afterimage_spawner.gd")
+const HitstopManager = preload("res://src/combat/visuals/hitstop_manager.gd")
 
 func test_motion_card_explicit_visual_identity_on_low_energy_weapon() -> void:
 	# Even on a lightweight, low-mass dagger (< 50k Joules / NORMAL tier),
@@ -387,5 +388,141 @@ func test_afterimage_weapon_dynamic_move_snapshot() -> void:
 
 	player.free()
 	root_parent.free()
+
+func test_hitstop_animation_on_motion_card_impact() -> void:
+	var effect = ProceduralSlashEffect.new()
+	effect._ready()
+
+	var ctx = MeleeAttackContext.new()
+	ctx.execution_duration = 0.24
+	ctx.hitstop_duration = 0.08
+	effect.play_context(Transform3D.IDENTITY, ctx)
+
+	var normal = Vector3(0.0, 1.0, 0.0)
+
+	# Trigger hitstop animation on the slash effect
+	effect.trigger_hitstop(0.08, normal)
+
+	# Verify emission flare during hitstop animation
+	var mat = effect._slash_material
+	var emission = mat.get_shader_parameter("emission_intensity")
+	assert_gt(emission, 4.5 * 1.5)
+
+	# Test HitstopManager engine time-scale freeze and cleanup
+	HitstopManager.force_end_hitstop()
+	assert_almost_eq(Engine.time_scale, 1.0)
+
+	effect.free()
+
+func test_floor_graze_classification() -> void:
+	var floor_body = StaticBody3D.new()
+	var origin = Vector3(0.0, 1.05, 0.0)
+
+	# 1. Floor directly below player waist with upward normal and downward ray -> floor graze (IGNORED)
+	var is_floor = ProceduralSlashEffect.is_floor_graze(
+		floor_body,
+		Vector3.UP,
+		Vector3(0.0, 0.0, -2.0),
+		origin,
+		Vector3(0.0, -0.2, -1.0).normalized()
+	)
+	assert_true(is_floor, "Downward ray hitting ground floor must be classified as a floor graze")
+
+	# 2. Sloped ground below player -> floor graze (IGNORED)
+	var is_slope = ProceduralSlashEffect.is_floor_graze(
+		floor_body,
+		Vector3(0.0, 0.85, 0.15).normalized(),
+		Vector3(0.0, 0.2, -3.0),
+		origin,
+		Vector3(0.0, -0.15, -1.0).normalized()
+	)
+	assert_true(is_slope, "Sloped walkable terrain under player must be classified as a floor graze")
+
+	# 3. Vertical stone wall in front of player -> NOT a floor graze (VALID HIT)
+	var is_wall = ProceduralSlashEffect.is_floor_graze(
+		floor_body,
+		Vector3(0.0, 0.0, 1.0), # Horizontal normal facing player
+		Vector3(0.0, 1.05, -2.0),
+		origin,
+		Vector3(0.0, 0.0, -1.0)
+	)
+	assert_false(is_wall, "Vertical wall in front of player must not be a floor graze")
+
+	# 4. Target entity (CharacterBody3D or group 'targets') -> NEVER a floor graze (VALID HIT)
+	var enemy_body = CharacterBody3D.new()
+	var is_enemy = ProceduralSlashEffect.is_floor_graze(
+		enemy_body,
+		Vector3.UP,
+		Vector3(0.0, 0.0, -2.0),
+		origin,
+		Vector3(0.0, -0.2, -1.0).normalized()
+	)
+	assert_false(is_enemy, "CharacterBody3D enemy must never be discarded as a floor graze")
+
+	var dummy_static = StaticBody3D.new()
+	dummy_static.add_to_group("targets")
+	var is_dummy = ProceduralSlashEffect.is_floor_graze(
+		dummy_static,
+		Vector3.UP,
+		Vector3(0.0, 0.0, -2.0),
+		origin,
+		Vector3(0.0, -0.2, -1.0).normalized()
+	)
+	assert_false(is_dummy, "Combat target dummy must never be discarded as a floor graze")
+
+	floor_body.free()
+	enemy_body.free()
+	dummy_static.free()
+
+func test_twenty_slot_cyclotron_time_freeze_gated_to_actual_impacts() -> void:
+	# Verifies the 20-slot Cyclotron 3rd strike (Cataclysm Singularity: 10.76m radius, 360 deg, -5 deg tilt)
+	# cleanly distinguishes between empty air/floor grazing and valid target impacts.
+	var sing_card = load("res://assets/combat/cards/motion_cataclysm_singularity.tres") as MotionCard
+	assert_not_null(sing_card)
+
+	var ctx = MeleeAttackContext.new()
+	sing_card.apply_to_context(ctx)
+	# Simulate 20-slot frame compounding (radius extender 1.8x, relativistic compression 1.3x)
+	ctx.outer_radius *= (1.8 * 1.3) # 10.76m reach
+	ctx.hitstop_duration = 0.24
+	assert_almost_eq(ctx.outer_radius, 4.60 * 1.8 * 1.3, 0.01)
+
+	var effect = ProceduralSlashEffect.new()
+	effect._ready()
+
+	var slash_xform = Transform3D()
+	slash_xform.origin = Vector3(0.0, 1.05, 0.0) # Chest height
+	effect.play_context(slash_xform, ctx)
+
+	# Verify helper correctly discards the downward ground hits that 360 deg sweeps produce
+	var ground_contact = Vector3(2.5, 0.0, -3.0)
+	var ray_dir = (ground_contact - slash_xform.origin).normalized()
+	var terrain_body = StaticBody3D.new()
+
+	var is_graze = ProceduralSlashEffect.is_floor_graze(
+		terrain_body,
+		Vector3.UP,
+		ground_contact,
+		slash_xform.origin,
+		ray_dir
+	)
+	assert_true(is_graze, "Air swing over terrain floor must be recognized as floor graze so time freeze does not fire")
+
+	# Verify actual enemy target at the same location is NOT a floor graze
+	var enemy = CharacterBody3D.new()
+	var is_enemy_graze = ProceduralSlashEffect.is_floor_graze(
+		enemy,
+		Vector3.UP,
+		ground_contact,
+		slash_xform.origin,
+		ray_dir
+	)
+	assert_false(is_enemy_graze, "Enemy target at ground level must be hit to trigger time freeze")
+
+	terrain_body.free()
+	enemy.free()
+	effect.free()
+
+
 
 

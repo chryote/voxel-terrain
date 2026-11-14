@@ -283,10 +283,23 @@ static func spawn_lunge_sequence(
 
 static func _extract_mesh_data(source_node: Node3D) -> Array[Dictionary]:
 	var mesh_data: Array[Dictionary] = []
-	var mesh_instances = _find_all_mesh_instances(source_node)
+	if source_node == null:
+		return mesh_data
+
+	# Prefer extracting purely from visual_assembler (pawn body) if available on player
+	var search_root: Node = source_node
+	if "visual_assembler" in source_node and source_node.get("visual_assembler") != null:
+		search_root = source_node.get("visual_assembler")
+	elif source_node.has_node("PawnVisualAssembler"):
+		search_root = source_node.get_node("PawnVisualAssembler")
+
+	var mesh_instances = _find_all_mesh_instances(search_root)
 	var inv_source_xform = (source_node.global_transform if source_node.is_inside_tree() else source_node.transform).affine_inverse()
 	for mi in mesh_instances:
-		if mi.visible and mi.mesh != null:
+		var is_vis = mi.is_visible_in_tree() if mi.is_inside_tree() else mi.visible
+		if is_vis and mi.mesh != null:
+			if _is_weapon_or_accessory(mi):
+				continue
 			var mi_xform = mi.global_transform if mi.is_inside_tree() else mi.transform
 			mesh_data.append({
 				"mesh": mi.mesh,
@@ -305,9 +318,23 @@ static func _extract_mesh_data(source_node: Node3D) -> Array[Dictionary]:
 
 static func _find_all_mesh_instances(node: Node) -> Array[MeshInstance3D]:
 	var result: Array[MeshInstance3D] = []
+	if node == null:
+		return result
 	if node is MeshInstance3D:
-		result.append(node as MeshInstance3D)
+		if not _is_weapon_or_accessory(node):
+			result.append(node as MeshInstance3D)
 	for child in node.get_children():
+		if _is_weapon_or_accessory(child):
+			continue
 		result.append_array(_find_all_mesh_instances(child))
 	return result
+
+static func _is_weapon_or_accessory(node: Node) -> bool:
+	var curr: Node = node
+	while curr != null:
+		var name_lower = curr.name.to_lower()
+		if name_lower.contains("weapon") or name_lower.contains("sword") or name_lower.contains("floating") or name_lower.contains("camera"):
+			return true
+		curr = curr.get_parent()
+	return false
 

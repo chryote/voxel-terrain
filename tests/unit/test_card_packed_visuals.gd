@@ -256,3 +256,35 @@ func test_prismatic_rainbow_dispersion_spectrum() -> void:
 	# Tail color shifts substantially along the chromatic wheel
 	assert_ne(anchored_palette[0].h, anchored_palette[anchored_palette.size() - 1].h)
 
+func test_afterimage_filters_out_floating_weapon_square() -> void:
+	var player = Node3D.new()
+	player.name = "Player"
+
+	# 1. Body mesh
+	var body_mesh_instance = MeshInstance3D.new()
+	body_mesh_instance.name = "FallbackCapsule"
+	var cap = CapsuleMesh.new()
+	body_mesh_instance.mesh = cap
+	player.add_child(body_mesh_instance)
+
+	# 2. Floating weapon mesh (the voxel weapon box/square)
+	var weapon_ctrl = Node3D.new()
+	weapon_ctrl.name = "FloatingWeaponController"
+	var weapon_root = Node3D.new()
+	weapon_root.name = "WeaponVisualRoot"
+	var weapon_mesh_instance = MeshInstance3D.new()
+	weapon_mesh_instance.name = "WeaponMeshInstance"
+	var box = BoxMesh.new()
+	box.size = Vector3(0.5, 0.5, 0.5)
+	weapon_mesh_instance.mesh = box
+	weapon_root.add_child(weapon_mesh_instance)
+	weapon_ctrl.add_child(weapon_root)
+	player.add_child(weapon_ctrl)
+
+	var extracted = VoxelAfterimageSpawner._extract_mesh_data(player)
+	# Should only extract the body mesh (1 mesh), completely ignoring the floating weapon box/square
+	assert_eq(extracted.size(), 1)
+	assert_eq(extracted[0]["mesh"], cap)
+
+	player.free()
+

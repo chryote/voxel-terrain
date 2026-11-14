@@ -288,3 +288,104 @@ func test_afterimage_filters_out_floating_weapon_square() -> void:
 
 	player.free()
 
+func test_afterimage_weapon_dynamic_move_snapshot() -> void:
+	var ctx = MeleeAttackContext.new()
+	ctx.arc_sweep_degrees = 140.0
+	ctx.inner_radius = 0.8
+	ctx.outer_radius = 2.5
+	ctx.tilt_degrees = -15.0
+	ctx.is_reversed_sweep = false
+
+	# 1. Transform calculations along the slash arc
+	var xform_start = VoxelAfterimageSpawner.compute_dynamic_weapon_transform(ctx, 0.15)
+	var xform_mid = VoxelAfterimageSpawner.compute_dynamic_weapon_transform(ctx, 0.50)
+	var xform_end = VoxelAfterimageSpawner.compute_dynamic_weapon_transform(ctx, 0.85)
+
+	# Verify progressive spatial sweeping across the arc
+	assert_ne(xform_start.origin, xform_mid.origin)
+	assert_ne(xform_mid.origin, xform_end.origin)
+	assert_ne(xform_start.origin, xform_end.origin)
+
+	# Verify basis orientation rotates along with the arc
+	assert_ne(xform_start.basis, xform_mid.basis)
+	assert_ne(xform_mid.basis, xform_end.basis)
+
+	# Right-handed orthonormal bases (determinant ~ 1.0, no flipped normals)
+	assert_almost_eq(xform_start.basis.determinant(), 1.0, 0.01)
+	assert_almost_eq(xform_mid.basis.determinant(), 1.0, 0.01)
+	assert_almost_eq(xform_end.basis.determinant(), 1.0, 0.01)
+
+	# 2. Spawn ghost instance includes body mesh and GhostWeaponSnapshot
+	var root_parent = Node3D.new()
+	var dummy_cap = CapsuleMesh.new()
+	var dummy_weapon = BoxMesh.new()
+	var mesh_data = [{
+		"mesh": dummy_cap,
+		"local_transform": Transform3D(Basis(), Vector3(0.0, 0.7, 0.0))
+	}]
+
+	var ghost = VoxelAfterimageSpawner._spawn_ghost_instance(
+		root_parent,
+		mesh_data,
+		Transform3D.IDENTITY,
+		Color(1.0, 0.5, 0.2, 0.8),
+		0.3,
+		dummy_weapon,
+		xform_mid
+	)
+
+	assert_not_null(ghost)
+	assert_eq(ghost.get_child_count(), 2)
+
+	var weapon_snapshot = ghost.get_node_or_null("GhostWeaponSnapshot") as MeshInstance3D
+	assert_not_null(weapon_snapshot)
+	assert_eq(weapon_snapshot.mesh, dummy_weapon)
+	assert_almost_eq(weapon_snapshot.transform.origin.x, xform_mid.origin.x, 0.001)
+	assert_almost_eq(weapon_snapshot.transform.origin.y, xform_mid.origin.y, 0.001)
+	assert_almost_eq(weapon_snapshot.transform.origin.z, xform_mid.origin.z, 0.001)
+
+	# Both body and weapon snapshot share the same unshaded additive material
+	var body_mi = ghost.get_child(0) as MeshInstance3D
+	assert_not_null(body_mi)
+	assert_eq(body_mi.material_override, weapon_snapshot.material_override)
+
+	# 3. Trajectory sequence automatically equips weapon snapshots across all ghosts
+	var player = Node3D.new()
+	var cap_inst = MeshInstance3D.new()
+	cap_inst.mesh = dummy_cap
+	player.add_child(cap_inst)
+
+	VoxelAfterimageSpawner.spawn_trajectory_sequence(
+		root_parent,
+		player,
+		Vector3.ZERO,
+		Vector3(0.0, 0.0, -8.0),
+		0.04, # Instantaneous
+		4,
+		Color.MAGENTA,
+		0.28,
+		dummy_weapon,
+		ctx
+	)
+
+	var ghost_nodes: Array[Node3D] = []
+	for child in root_parent.get_children():
+		if child != ghost and child != player and child is Node3D:
+			ghost_nodes.append(child as Node3D)
+
+	assert_eq(ghost_nodes.size(), 4)
+	for g in ghost_nodes:
+		var snap = g.get_node_or_null("GhostWeaponSnapshot") as MeshInstance3D
+		assert_not_null(snap)
+		assert_eq(snap.mesh, dummy_weapon)
+
+	# Verify progressive dynamic snapshot poses across trajectory ghosts
+	var snap0 = ghost_nodes[0].get_node("GhostWeaponSnapshot") as MeshInstance3D
+	var snap3 = ghost_nodes[3].get_node("GhostWeaponSnapshot") as MeshInstance3D
+	assert_ne(snap0.transform.origin, snap3.transform.origin)
+	assert_ne(snap0.transform.basis, snap3.transform.basis)
+
+	player.free()
+	root_parent.free()
+
+

@@ -432,6 +432,18 @@ func _create_weapon() -> void:
 func _create_sword() -> void:
 	_create_weapon()
 
+## Retrieves the active weapon's 3D mesh for afterimage move snapshots and VFX rendering.
+func get_weapon_mesh() -> Mesh:
+	if _weapon_root == null:
+		return null
+	var mi = _weapon_root.get_node_or_null("WeaponMeshInstance")
+	if mi is MeshInstance3D and mi.mesh != null:
+		return mi.mesh
+	for child in _weapon_root.get_children():
+		if child is MeshInstance3D and child.mesh != null:
+			return child.mesh
+	return null
+
 func _process(delta: float) -> void:
 	_hover_time += delta
 
@@ -609,7 +621,10 @@ func _spawn_card_slashes(cam: ThirdPersonCamera, contexts: Array[MeleeAttackCont
 						arrival_pos,
 						0.04,
 						ctx.afterimage_count,
-						ctx.edge_color
+						ctx.edge_color,
+						0.28,
+						get_weapon_mesh(),
+						ctx
 					)
 			player_motor.global_position = arrival_pos
 		elif ctx.player_lunge_distance > 0.0 and player_motor != null:
@@ -636,7 +651,9 @@ func _spawn_card_slashes(cam: ThirdPersonCamera, contexts: Array[MeleeAttackCont
 						ctx.edge_color,
 						VoxelAfterimageSpawner.MIN_GHOST_SPATIAL_SPACING,
 						0.35,
-						lunge_dest
+						lunge_dest,
+						get_weapon_mesh(),
+						ctx
 					)
 
 	if not is_inside_tree():

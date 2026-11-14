@@ -79,7 +79,7 @@ func _ready() -> void:
 	inventory_updated.emit()
 
 func _init_weapons_and_inventory() -> void:
-	# Default procedurally generated weapons list
+	# Default procedurally generated weapons list (includes 20-slot Singularity weapon as 4th slot)
 	if weapons.is_empty():
 		var w0 = ProceduralWeaponEngine.generate_weapon(101, {
 			"profile": ProceduralWeaponEngine.WeaponProfile.BALANCED,
@@ -89,21 +89,65 @@ func _init_weapons_and_inventory() -> void:
 			"profile": ProceduralWeaponEngine.WeaponProfile.SLENDER,
 			"name": "Slender Weapon #202"
 		})
+		var w2 = ProceduralWeaponEngine.generate_weapon(303, {
+			"profile": ProceduralWeaponEngine.WeaponProfile.HEAVY,
+			"name": "Heavy Frame #303"
+		})
+		var w3 = ProceduralWeaponEngine.craft_cyclotron_frame(404, {
+			"name": "Cyclotron Singularity Weapon Frame #404"
+		})
+		_fill_weapon_with_singularity_combo(w3)
 		weapons.append(w0)
 		weapons.append(w1)
+		weapons.append(w2)
+		weapons.append(w3)
 
-	# Starter unslotted inventory cards
+	# Starter unslotted inventory cards: Make all technique cards available on inventory
 	if inventory_cards.is_empty():
-		var starter_card_paths = [
+		var all_card_paths = [
+			"res://assets/combat/cards/motion_horizontal_sweep.tres",
+			"res://assets/combat/cards/motion_upswing.tres",
+			"res://assets/combat/cards/motion_downcleave.tres",
+			"res://assets/combat/cards/motion_piercing_thrust.tres",
+			"res://assets/combat/cards/motion_accelerator_sweep.tres",
+			"res://assets/combat/cards/motion_whirlwind_arc.tres",
+			"res://assets/combat/cards/motion_payload_smash.tres",
+			"res://assets/combat/cards/motion_blink_strike.tres",
+			"res://assets/combat/cards/motion_evasive_backstep.tres",
+			"res://assets/combat/cards/motion_phase_shift_dash.tres",
+			"res://assets/combat/cards/motion_gravity_vortex.tres",
+			"res://assets/combat/cards/motion_cataclysm_singularity.tres",
 			"res://assets/combat/cards/mod_heavy_impact.tres",
 			"res://assets/combat/cards/mod_swift_edge.tres",
-			"res://assets/combat/cards/motion_piercing_thrust.tres",
+			"res://assets/combat/cards/mod_radius_extender.tres",
+			"res://assets/combat/cards/mod_momentum_relay.tres",
+			"res://assets/combat/cards/mod_relativistic_compression.tres",
+			"res://assets/combat/cards/mod_mass_densifier.tres",
+			"res://assets/combat/cards/mod_inertia_compensator.tres",
+			"res://assets/combat/cards/mod_zero_point_flywheel.tres",
+			"res://assets/combat/cards/mod_kinetic_heat_sink.tres",
+			"res://assets/combat/cards/mod_gravitational_gyroscope.tres",
+			"res://assets/combat/cards/mod_void_inversion.tres",
+			"res://assets/combat/cards/mod_sonic_condenser.tres",
 			"res://assets/combat/cards/multi_double_slash.tres",
 			"res://assets/combat/cards/trigger_on_hit.tres"
 		]
-		for path in starter_card_paths:
+		for path in all_card_paths:
 			if ResourceLoader.exists(path):
 				inventory_cards.append(load(path))
+
+		# Dynamically discover any other custom cards in the folder
+		var dir = DirAccess.open("res://assets/combat/cards")
+		if dir != null:
+			dir.list_dir_begin()
+			var fname = dir.get_next()
+			while fname != "":
+				if not dir.current_is_dir() and fname.ends_with(".tres"):
+					var fpath = "res://assets/combat/cards/".path_join(fname)
+					if not all_card_paths.has(fpath) and ResourceLoader.exists(fpath):
+						inventory_cards.append(load(fpath))
+				fname = dir.get_next()
+			dir.list_dir_end()
 
 	# Starter slotted cards for active weapon if empty
 	if not weapons.is_empty():
@@ -511,12 +555,14 @@ func _spawn_card_slashes(cam: ThirdPersonCamera, contexts: Array[MeleeAttackCont
 		if ctx.move_speed_multiplier != 1.0:
 			_active_move_speed_mult = maxf(_active_move_speed_mult, ctx.move_speed_multiplier)
 
-	# Director's Lens: Camera velocity pull-back for centrifugal force
+	# Director's Lens: Camera velocity pull-back for centrifugal force (Card-driven)
 	if cam != null:
 		for ctx in contexts:
-			cam.apply_velocity_pullback(ctx.tip_velocity)
+			if ctx.camera_velocity_pullback:
+				cam.apply_velocity_pullback(ctx.tip_velocity)
 
 	# Apply locomotion spectacle (Blink or Kinematic Lunge with Voxel Ghosting & Decoupled Trajectory)
+	var afterimages_spawned_this_cycle: bool = false
 	for ctx in contexts:
 		var move_dir = cam_forward
 		match ctx.locomotion_mode:
@@ -538,9 +584,10 @@ func _spawn_card_slashes(cam: ThirdPersonCamera, contexts: Array[MeleeAttackCont
 				else:
 					move_dir = cam_forward
 
+		var origin_pos = player_motor.global_position if player_motor != null else Vector3.ZERO
+
 		if ctx.is_blink and player_motor != null and is_inside_tree():
 			var b_dist = ctx.blink_distance if ctx.blink_distance > 0.0 else (ctx.player_lunge_distance if ctx.player_lunge_distance > 0.0 else 6.0)
-			var origin_pos = player_motor.global_position
 			var arrival_pos = origin_pos + move_dir * b_dist
 			var world_3d = get_world_3d()
 			if world_3d != null:
@@ -553,6 +600,17 @@ func _spawn_card_slashes(cam: ThirdPersonCamera, contexts: Array[MeleeAttackCont
 			var root_node = get_tree().root if get_tree() != null else get_parent()
 			if root_node != null:
 				BlinkEffectSpawner.spawn_blink(root_node, origin_pos, arrival_pos)
+				if ctx.has_afterimages and not afterimages_spawned_this_cycle:
+					afterimages_spawned_this_cycle = true
+					VoxelAfterimageSpawner.spawn_trajectory_sequence(
+						root_node,
+						player_motor,
+						origin_pos,
+						arrival_pos,
+						0.04,
+						ctx.afterimage_count,
+						ctx.edge_color
+					)
 			player_motor.global_position = arrival_pos
 		elif ctx.player_lunge_distance > 0.0 and player_motor != null:
 			var raw_speed = (ctx.player_lunge_distance / maxf(ctx.execution_duration, 0.1)) * 0.8
@@ -564,11 +622,22 @@ func _spawn_card_slashes(cam: ThirdPersonCamera, contexts: Array[MeleeAttackCont
 				if ctx.locomotion_vertical_impulse > 0.0:
 					player_motor.velocity.y = maxf(player_motor.velocity.y, ctx.locomotion_vertical_impulse)
 
-			# Locomotion Spectacle: Voxel Afterimage Ghosting (> 15 m/s)
-			if lunge_speed >= VoxelAfterimageSpawner.LUNGE_GHOSTING_THRESHOLD_SPEED and is_inside_tree():
+			# Locomotion Spectacle: Voxel Afterimage Ghosting (Prismatic Wake Trailing)
+			if ctx.has_afterimages and not afterimages_spawned_this_cycle and is_inside_tree():
 				var root_node = get_tree().root if get_tree() != null else get_parent()
-				if root_node != null:
-					VoxelAfterimageSpawner.spawn_lunge_sequence(root_node, player_motor, lunge_speed, 4, 0.03)
+				if root_node != null and player_motor != null:
+					afterimages_spawned_this_cycle = true
+					var lunge_dest = origin_pos + move_dir * ctx.player_lunge_distance
+					VoxelAfterimageSpawner.spawn_wake_trail(
+						root_node,
+						player_motor,
+						ctx.execution_duration,
+						ctx.afterimage_count,
+						ctx.edge_color,
+						VoxelAfterimageSpawner.MIN_GHOST_SPATIAL_SPACING,
+						0.35,
+						lunge_dest
+					)
 
 	if not is_inside_tree():
 		return
@@ -595,18 +664,27 @@ func _spawn_card_slashes(cam: ThirdPersonCamera, contexts: Array[MeleeAttackCont
 			var hit_norm = hit.get("normal", Vector3.UP)
 			HitImpactSpawner.spawn_hit_sparks(tree.root, hit_pos, hit_norm)
 
-			# Pillar A: Hitstop (Impact Freeze) for strikes >= 1M Joules (0.08s) or 1B Joules (0.12s)
-			HitstopManager.evaluate_kinetic_hitstop(tree, ctx.kinetic_energy, hit.get("collider") as Node3D, hit_norm)
+			# Pillar A: Hitstop (Impact Freeze) - Explicitly Card-Driven
+			if ctx.hitstop_duration > 0.0:
+				HitstopManager.request_hitstop(tree, ctx.hitstop_duration, hit.get("collider") as Node3D, hit_norm)
 
-			# Pillar B: Director's Lens (Camera Impact Snap & Directional Screen Shake)
+			# Pillar B: Director's Lens (Camera Impact Snap & Directional Screen Shake) - Explicitly Card-Driven
 			if cam != null:
-				cam.trigger_impact_snap(14.0, 0.08)
-				var shake_intensity = clampf(ctx.kinetic_energy / 250000.0, 0.25, 1.25)
-				cam.trigger_directional_shake(ctx.tilt_degrees, shake_intensity, 0.16)
+				if ctx.camera_impact_snap > 0.0:
+					cam.trigger_impact_snap(ctx.camera_impact_snap, 0.08)
+				if ctx.screen_shake_intensity > 0.0:
+					cam.trigger_directional_shake(ctx.tilt_degrees, ctx.screen_shake_intensity, 0.16)
 
-			# Tier 4 Cataclysm (1 Billion+ Joules): Invert flash, arena shockwave, gravitational implosion
+			# Visual Escalation Spawners (Cataclysm, Screen Flash, Arena Shockwave, Gravitational Implosion)
 			if ctx.is_cataclysm:
 				CataclysmEventSpawner.trigger_cataclysm(tree.root, hit_pos, hit_norm)
+			else:
+				if ctx.triggers_screen_flash:
+					CataclysmEventSpawner.spawn_screen_flash(tree.root)
+				if ctx.triggers_arena_shockwave:
+					CataclysmEventSpawner.spawn_radial_shockwave(tree.root, hit_pos, hit_norm)
+				if ctx.triggers_gravitational_implosion:
+					CataclysmEventSpawner.spawn_gravitational_implosion(tree.root, hit_pos)
 
 			if player_motor != null:
 				player_motor.fired.emit(hit)
@@ -693,12 +771,15 @@ func generate_debug_weapons() -> Array[MeleeWeaponDef]:
 		var params_dict: Dictionary = {
 			"topology": topo
 		}
-		# Slot 3 is forged as an Apex 20-slot Cyclotron frame!
+		# Slot 3 is forged as an Apex 20-slot Cyclotron frame pre-filled with Singularity combo
 		if i == 3:
 			params_dict["crafting_tier"] = 3
 			params_dict["slot_capacity"] = 20
-			params_dict["name"] = "Cyclotron Supercomputer #%d" % (seed_val % 1000)
+			params_dict["name"] = "Cyclotron Weapon Supercomputer #%d" % (seed_val % 1000)
 		var w = ProceduralWeaponEngine.generate_weapon(seed_val, params_dict)
+		if i == 3:
+			_fill_weapon_with_singularity_combo(w)
+
 		# Populate starter slotted technique cards on primary weapon if needed
 		if i == 0:
 			var default_motion_paths = [
@@ -719,6 +800,30 @@ func generate_debug_weapons() -> Array[MeleeWeaponDef]:
 	weapon_equipped.emit(weapon_def)
 	inventory_updated.emit()
 	return new_weapons
+
+## Fills a 20-slot weapon with the complete Cyclotron combo cards that compound into Singularity Tier.
+static func _fill_weapon_with_singularity_combo(w: MeleeWeaponDef) -> void:
+	if w == null:
+		return
+	w.slotted_techniques.clear()
+	var combo_paths = [
+		"res://assets/combat/cards/motion_accelerator_sweep.tres",
+		"res://assets/combat/cards/mod_momentum_relay.tres",
+		"res://assets/combat/cards/mod_mass_densifier.tres",
+		"res://assets/combat/cards/motion_gravity_vortex.tres",
+		"res://assets/combat/cards/mod_momentum_relay.tres",
+		"res://assets/combat/cards/mod_mass_densifier.tres",
+		"res://assets/combat/cards/mod_radius_extender.tres",
+		"res://assets/combat/cards/mod_relativistic_compression.tres",
+		"res://assets/combat/cards/mod_zero_point_flywheel.tres",
+		"res://assets/combat/cards/mod_kinetic_heat_sink.tres",
+		"res://assets/combat/cards/mod_gravitational_gyroscope.tres",
+		"res://assets/combat/cards/motion_cataclysm_singularity.tres",
+		"res://assets/combat/cards/motion_evasive_backstep.tres"
+	]
+	for path in combo_paths:
+		if ResourceLoader.exists(path):
+			w.slotted_techniques.append(load(path))
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:

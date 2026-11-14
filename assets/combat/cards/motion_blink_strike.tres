@@ -28,4 +28,10 @@ trail_dissolve_rate = 0.75
 kinetic_efficiency = 1.15
 mass_multiplier = 1.0
 base_damage = 0.0
+has_mach_ring = true
+has_afterimages = true
+afterimage_count = 4
+hitstop_duration = 0.08
+screen_shake_intensity = 0.7
+camera_impact_snap = 14.0
 

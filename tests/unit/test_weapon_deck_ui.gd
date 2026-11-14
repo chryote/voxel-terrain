@@ -68,8 +68,8 @@ func test_grid_and_accordion_slots() -> void:
 
 	ui.open_inventory()
 
-	# Verify extensive inventory grid slots (4 rows of 8 = 32 slots)
-	assert_eq(ui._inventory_boxes.size(), 32)
+	# Verify extensive inventory grid slots (6 rows of 8 = 48 slots)
+	assert_eq(ui._inventory_boxes.size(), 48)
 
 	# Verify accordion has entries for player weapons
 	assert_true(ui._accordion_container.get_child_count() > 0)
@@ -212,17 +212,17 @@ func test_drag_and_drop_slot_swap() -> void:
 	var initial_card = sword_ctrl.inventory_cards[0]
 	assert_not_null(initial_card)
 
-	# Simulate dropping inventory slot 0 onto empty inventory slot 7
+	# Simulate dropping inventory slot 0 onto empty inventory slot 30
 	var drop_data = {
 		"source": "inventory",
 		"weapon_idx": -1,
 		"slot_idx": 0,
 		"card": initial_card
 	}
-	var target_box = ui._inventory_boxes[7]
+	var target_box = ui._inventory_boxes[30]
 	ui.handle_slot_drop(drop_data, target_box)
 
-	assert_eq(sword_ctrl.inventory_cards[7], initial_card)
+	assert_eq(sword_ctrl.inventory_cards[30], initial_card)
 	assert_null(sword_ctrl.inventory_cards[0])
 
 	ui.close_inventory()
@@ -284,9 +284,9 @@ func test_long_weapon_slot_wrapping_and_item_col_stability() -> void:
 
 	# Verify accordion wraps at 10 columns for long weapon
 	var acc_panels = ui._accordion_container.get_children()
-	assert_eq(acc_panels.size(), 3) # 2 starter weapons + 1 colossal blade
+	assert_eq(acc_panels.size(), 5) # 4 starter weapons + 1 colossal blade
 
-	var long_panel = acc_panels[2]
+	var long_panel = acc_panels[acc_panels.size() - 1]
 	var sockets_grid = long_panel.find_child("SocketsGrid", true, false) as GridContainer
 	assert_not_null(sockets_grid)
 	assert_eq(sockets_grid.columns, 10)
@@ -384,7 +384,8 @@ func test_weapon_icon_drag_drop_and_fly_back() -> void:
 	assert_eq(sword_ctrl.weapons[0], w0)
 	assert_eq(sword_ctrl.weapons[1], w1)
 
-	# Grab weapon 0 from accordion weapon icon box and drop onto top-bar weapon slot 2 (empty weapon slot!)
+	# Grab weapon 0 from accordion weapon icon box and drop onto top-bar weapon slot 2
+	var w2 = sword_ctrl.weapons[2]
 	var acc_w0_box = ui._accordion_weapon_boxes[0]
 	var started_valid = ui.start_slot_drag(acc_w0_box, Vector2(40, 120))
 	assert_true(started_valid)
@@ -393,7 +394,7 @@ func test_weapon_icon_drag_drop_and_fly_back() -> void:
 	var valid_drop = ui.end_slot_drag_on_target(ui._hud_weapon_boxes[2], Vector2(100, 40))
 	assert_true(valid_drop)
 	assert_false(ui.is_flying_back())
-	assert_null(sword_ctrl.weapons[0])
+	assert_eq(sword_ctrl.weapons[0], w2)
 	assert_eq(sword_ctrl.weapons[1], w1)
 	assert_eq(sword_ctrl.weapons[2], w0)
 	assert_eq(sword_ctrl.active_weapon_index, 2)
@@ -413,14 +414,14 @@ func test_scene_instantiated_weapon_deck_ui_drag_and_fly_back() -> void:
 	ui._ready()
 	ui.open_inventory()
 
-	# Drag card from weapon 0 socket 0 onto inventory slot 15
+	# Drag card from weapon 0 socket 0 onto empty inventory slot 30
 	var w0_card0 = sword_ctrl.weapons[0].slotted_techniques[0]
 	assert_not_null(w0_card0)
 	var socket0 = ui._accordion_socket_boxes[0]
 	assert_true(ui.start_slot_drag(socket0, Vector2(40, 150)))
 	ui.update_slot_drag(Vector2(450, 120))
-	assert_true(ui.end_slot_drag_on_target(ui._inventory_boxes[15], Vector2(450, 120)))
-	assert_eq(sword_ctrl.inventory_cards[15], w0_card0)
+	assert_true(ui.end_slot_drag_on_target(ui._inventory_boxes[30], Vector2(450, 120)))
+	assert_eq(sword_ctrl.inventory_cards[30], w0_card0)
 	assert_null(sword_ctrl.weapons[0].slotted_techniques[0])
 
 	# Drag weapon 1 from quickbar slot 1 onto empty space (null target) -> flies back!

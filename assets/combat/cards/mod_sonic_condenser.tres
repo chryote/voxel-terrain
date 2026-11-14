@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="ModifierCard" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/combat/techniques/modifiers/modifier_card.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+card_id = "sonic_condenser"
+card_name = "Sonic Condenser"
+description = "Supersonic Aerodynamic Focus: Attaches a conical Mach vapor shockwave collar (Prandtl-Glauert singularity) and camera impact snap to any motion."
+stamina_cost = 8.0
+stamina_multiplier = 1.0
+execution_duration_multiplier = 0.95
+recovery_delay_multiplier = 0.95
+deck_recharge_multiplier = 1.0
+mass_multiplier = 1.0
+momentum_retention = 0.20
+damage_multiplier = 1.10
+poise_multiplier = 1.15
+color_tint = Color(0.7, 0.95, 1.2, 1.0)
+emission_multiplier = 1.4
+override_shader_mode = false
+visual_shader_mode = 0
+infuse_mach_ring = true
+infuse_screen_flash = false
+infuse_arena_shockwave = false
+infuse_gravitational_implosion = false
+infuse_cataclysm = false
+infuse_singularity = false
+add_hitstop_duration = 0.03
+screen_shake_multiplier = 1.2
+add_camera_impact_snap = 8.0
+radius_multiplier = 1.05
+arc_sweep_multiplier = 1.0
+thickness_multiplier = 1.0
+player_lunge_distance = 0.5
+override_locomotion_mode = false
+locomotion_mode = 0
+locomotion_vertical_impulse = 0.0
+allows_free_movement = false
+move_speed_multiplier = 1.0
+is_implosion = false
+

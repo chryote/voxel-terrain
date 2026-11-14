@@ -29,6 +29,46 @@ extends "res://src/combat/core/technique_card.gd"
 @export var color_tint: Color = Color.WHITE
 @export var emission_multiplier: float = 1.0
 
+@export_group("Visual & VFX Infusion (Explicit)")
+## Override motion shader mode: 0 = PLASMA, 1 = VOID_INVERSION
+@export var override_shader_mode: bool = false
+@export var visual_shader_mode: int = 0
+
+## Infuse a supersonic conical Mach vapor ring into the strike
+@export var infuse_mach_ring: bool = false
+
+## Infuse a 1-frame full-screen incandescent/invert flash on hit
+@export var infuse_screen_flash: bool = false
+
+## Infuse a 24m ground arena shockwave ring on hit
+@export var infuse_arena_shockwave: bool = false
+
+## Infuse a lingering gravitational black hole implosion on hit
+@export var infuse_gravitational_implosion: bool = false
+
+## Infuse the full 1-Billion Cataclysm Event on hit
+@export var infuse_cataclysm: bool = false
+
+## Infuse Singularity Apex Event
+@export var infuse_singularity: bool = false
+
+@export_group("Impact & Juice Infusion")
+## Additional hitstop freeze duration in seconds added to the strike
+@export var add_hitstop_duration: float = 0.0
+
+## Multiplier on screen shake intensity
+@export var screen_shake_multiplier: float = 1.0
+
+## Additional camera impact snap (FOV punch degrees)
+@export var add_camera_impact_snap: float = 0.0
+
+## Infuse voxel afterimage ghost trail during motion execution
+@export var infuse_afterimages: bool = false
+
+## Override camera velocity pull-back
+@export var override_camera_pullback: bool = false
+@export var camera_velocity_pullback: bool = true
+
 @export_group("Scale & Reach")
 @export var radius_multiplier: float = 1.0
 @export var arc_sweep_multiplier: float = 1.0
@@ -88,3 +128,42 @@ func apply_to_context(ctx: MeleeAttackContext) -> void:
 
 	ctx.emission_intensity *= emission_multiplier
 	ctx.player_lunge_distance += player_lunge_distance
+
+	# Explicit visual & VFX infusion
+	if override_shader_mode:
+		ctx.visual_shader_mode = visual_shader_mode as MeleeAttackContext.VisualShaderMode
+		ctx.is_negative_space = (visual_shader_mode == 1)
+
+	if infuse_mach_ring:
+		ctx.has_mach_ring = true
+	if infuse_screen_flash:
+		ctx.triggers_screen_flash = true
+	if infuse_arena_shockwave:
+		ctx.triggers_arena_shockwave = true
+	if infuse_gravitational_implosion:
+		ctx.triggers_gravitational_implosion = true
+	if infuse_cataclysm:
+		ctx.is_cataclysm = true
+		ctx.triggers_screen_flash = true
+		ctx.triggers_arena_shockwave = true
+		ctx.triggers_gravitational_implosion = true
+	if infuse_singularity:
+		ctx.is_singularity = true
+		ctx.is_cataclysm = true
+		ctx.has_mach_ring = true
+		ctx.visual_shader_mode = MeleeAttackContext.VisualShaderMode.VOID_INVERSION
+		ctx.is_negative_space = true
+		ctx.triggers_screen_flash = true
+		ctx.triggers_arena_shockwave = true
+		ctx.triggers_gravitational_implosion = true
+
+	# Explicit impact & juice infusion
+	ctx.hitstop_duration += add_hitstop_duration
+	ctx.screen_shake_intensity *= screen_shake_multiplier
+	ctx.camera_impact_snap += add_camera_impact_snap
+
+	if infuse_afterimages:
+		ctx.has_afterimages = true
+
+	if override_camera_pullback:
+		ctx.camera_velocity_pullback = camera_velocity_pullback

@@ -24,4 +24,7 @@ emission_intensity = 4.5
 trail_dissolve_rate = 0.65
 player_lunge_distance = 0.0
 kinetic_efficiency = 1.00
+hitstop_duration = 0.02
+screen_shake_intensity = 0.25
+camera_impact_snap = 0.0
 

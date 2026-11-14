@@ -25,4 +25,7 @@ trail_dissolve_rate = 0.75
 player_lunge_distance = 0.5
 kinetic_efficiency = 1.25
 mass_multiplier = 1.20
+hitstop_duration = 0.04
+screen_shake_intensity = 0.6
+camera_impact_snap = 8.0
 

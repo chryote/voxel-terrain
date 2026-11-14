@@ -34,4 +34,9 @@ trail_dissolve_rate = 0.70
 kinetic_efficiency = 1.25
 mass_multiplier = 1.20
 base_damage = 0.0
+visual_shader_mode = 1
+triggers_gravitational_implosion = true
+hitstop_duration = 0.06
+screen_shake_intensity = 0.8
+camera_impact_snap = 10.0
 

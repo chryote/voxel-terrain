@@ -82,8 +82,8 @@ func play_context(start_transform: Transform3D, ctx: MeleeAttackContext) -> void
 		36
 	)
 
-	# Select shader based on whether this is a Void Inversion strike (Tier 3+)
-	if ctx.is_negative_space:
+	# Select shader based on whether this is a Void Inversion strike (Card explicit or Tier 3+)
+	if ctx.is_negative_space or ctx.visual_shader_mode == MeleeAttackContext.VisualShaderMode.VOID_INVERSION:
 		_slash_material.shader = SLASH_VOID_SHADER
 		_slash_material.set_shader_parameter("core_color", ctx.core_color)
 		_slash_material.set_shader_parameter("edge_color", ctx.edge_color)

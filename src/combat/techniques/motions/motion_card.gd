@@ -29,6 +29,40 @@ extends "res://src/combat/core/technique_card.gd"
 @export var emission_intensity: float = 4.5
 @export var trail_dissolve_rate: float = 0.65
 
+@export_group("Visual & VFX Escalation (Explicit)")
+## Visual shader mode: 0 = PLASMA (slash_volume.gdshader), 1 = VOID_INVERSION (slash_void_inversion.gdshader)
+@export var visual_shader_mode: int = 0
+## If true, spawns a supersonic conical Mach vapor ring perpendicular to the swing arc
+@export var has_mach_ring: bool = false
+## If true, triggers a 1-frame full-screen incandescent/invert flash on hit
+@export var triggers_screen_flash: bool = false
+## If true, triggers a 24m ground radial shockwave expanding across the arena on hit
+@export var triggers_arena_shockwave: bool = false
+## If true, triggers a lingering black hole micro-sphere with inward suction particles on hit
+@export var triggers_gravitational_implosion: bool = false
+## If true, triggers the full 1-Billion Cataclysm Event (flash + shockwave + black hole)
+@export var is_cataclysm: bool = false
+## If true, marks as Singularity Apex Tier
+@export var is_singularity: bool = false
+
+@export_group("Impact & Juice Escalation")
+## Explicit impact freeze duration in seconds (Hitstop, e.g. 0.04s for cleave, 0.08s for hypersonic, 0.12s for cataclysm)
+@export var hitstop_duration: float = 0.0
+## Screen shake intensity on hit (0.0 to 2.5+)
+@export var screen_shake_intensity: float = 0.35
+## Camera FOV punch angle on hit in degrees (e.g. 10.0 to 20.0)
+@export var camera_impact_snap: float = 0.0
+## Enable camera centrifugal FOV pull-back during swing
+@export var camera_velocity_pullback: bool = true
+
+@export_group("Locomotion Spectacle")
+## Spawn voxel afterimage ghost trail during motion execution
+@export var has_afterimages: bool = false
+## Number of ghost silhouettes spawned
+@export var afterimage_count: int = 4
+## Time interval between ghost spawns (seconds)
+@export var afterimage_interval: float = 0.03
+
 @export_group("Kinetic Motion Dynamics")
 ## Forward kinetic lunge distance (meters) covered during execution duration.
 @export var player_lunge_distance: float = 0.0
@@ -111,3 +145,24 @@ func apply_to_context(ctx: MeleeAttackContext) -> void:
 	ctx.deep_color = deep_color
 	ctx.emission_intensity = emission_intensity
 	ctx.trail_dissolve_rate = trail_dissolve_rate
+
+	# Explicit visual & VFX escalation
+	ctx.visual_shader_mode = visual_shader_mode as MeleeAttackContext.VisualShaderMode
+	ctx.is_negative_space = (visual_shader_mode == 1)
+	ctx.has_mach_ring = has_mach_ring
+	ctx.triggers_screen_flash = triggers_screen_flash
+	ctx.triggers_arena_shockwave = triggers_arena_shockwave
+	ctx.triggers_gravitational_implosion = triggers_gravitational_implosion
+	ctx.is_cataclysm = is_cataclysm
+	ctx.is_singularity = is_singularity
+
+	# Explicit impact & juice escalation
+	ctx.hitstop_duration = hitstop_duration
+	ctx.screen_shake_intensity = screen_shake_intensity
+	ctx.camera_impact_snap = camera_impact_snap
+	ctx.camera_velocity_pullback = camera_velocity_pullback
+
+	# Explicit locomotion spectacle
+	ctx.has_afterimages = has_afterimages
+	ctx.afterimage_count = afterimage_count
+	ctx.afterimage_interval = afterimage_interval

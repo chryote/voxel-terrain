@@ -76,6 +76,7 @@ func test_tier_2_resonator_combo() -> void:
 	smash.arc_sweep_degrees = 270.0
 	smash.execution_duration = 0.12
 	smash.player_lunge_distance = 2.5
+	smash.has_mach_ring = true
 
 	weapon.slotted_techniques = [acc_sweep, rad_mod, relay_mod, smash]
 	var evaluator = MeleeDeckEvaluator.new(weapon)
@@ -128,6 +129,9 @@ func test_tier_3_1_billion_god_engine() -> void:
 	apex_cleave.arc_sweep_degrees = 360.0
 	apex_cleave.execution_duration = 0.12 # Compressed by mod to ~0.0048s
 	apex_cleave.player_lunge_distance = 6.0
+	apex_cleave.visual_shader_mode = MeleeAttackContext.VisualShaderMode.VOID_INVERSION
+	apex_cleave.has_mach_ring = true
+	apex_cleave.is_cataclysm = true
 
 	weapon.slotted_techniques = [spinup, relay_mod, comp_mod, apex_cleave]
 	var evaluator = MeleeDeckEvaluator.new(weapon)

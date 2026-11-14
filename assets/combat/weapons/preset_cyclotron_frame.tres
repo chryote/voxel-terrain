@@ -2,15 +2,15 @@
 
 [ext_resource type="Script" path="res://src/combat/core/melee_weapon_def.gd" id="1_def"]
 [ext_resource type="Script" path="res://src/combat/generator/procedural_weapon_engine.gd" id="2_mesh"]
-[ext_resource type="Resource" path="res://assets/combat/cards/motion_blink_strike.tres" id="3_blink"]
-[ext_resource type="Resource" path="res://assets/combat/cards/mod_inertia_compensator.tres" id="4_inertia"]
-[ext_resource type="Resource" path="res://assets/combat/cards/motion_accelerator_sweep.tres" id="5_accel"]
+[ext_resource type="Resource" path="res://assets/combat/cards/motion_accelerator_sweep.tres" id="3_accel"]
+[ext_resource type="Resource" path="res://assets/combat/cards/mod_momentum_relay.tres" id="4_relay"]
+[ext_resource type="Resource" path="res://assets/combat/cards/mod_mass_densifier.tres" id="5_densifier"]
 [ext_resource type="Resource" path="res://assets/combat/cards/motion_gravity_vortex.tres" id="6_vortex"]
-[ext_resource type="Resource" path="res://assets/combat/cards/mod_mass_densifier.tres" id="7_mass"]
-[ext_resource type="Resource" path="res://assets/combat/cards/mod_radius_extender.tres" id="8_radius"]
-[ext_resource type="Resource" path="res://assets/combat/cards/mod_momentum_relay.tres" id="9_relay"]
-[ext_resource type="Resource" path="res://assets/combat/cards/mod_zero_point_flywheel.tres" id="10_flywheel"]
-[ext_resource type="Resource" path="res://assets/combat/cards/mod_relativistic_compression.tres" id="11_compress"]
+[ext_resource type="Resource" path="res://assets/combat/cards/mod_radius_extender.tres" id="7_radius"]
+[ext_resource type="Resource" path="res://assets/combat/cards/mod_relativistic_compression.tres" id="8_compress"]
+[ext_resource type="Resource" path="res://assets/combat/cards/mod_zero_point_flywheel.tres" id="9_flywheel"]
+[ext_resource type="Resource" path="res://assets/combat/cards/mod_kinetic_heat_sink.tres" id="10_heatsink"]
+[ext_resource type="Resource" path="res://assets/combat/cards/mod_gravitational_gyroscope.tres" id="11_gyro"]
 [ext_resource type="Resource" path="res://assets/combat/cards/motion_cataclysm_singularity.tres" id="12_cataclysm"]
 [ext_resource type="Resource" path="res://assets/combat/cards/motion_evasive_backstep.tres" id="13_evasive"]
 
@@ -26,9 +26,8 @@ float_offset_forward = -0.12
 float_tilt_degrees = Vector3(18, -12, 10)
 slot_capacity = 20
 mass = 35.0
-slotted_techniques = [ExtResource("3_blink"), ExtResource("4_inertia"), ExtResource("5_accel"), ExtResource("6_vortex"), ExtResource("7_mass"), ExtResource("8_radius"), ExtResource("9_relay"), ExtResource("10_flywheel"), ExtResource("11_compress"), ExtResource("12_cataclysm"), ExtResource("13_evasive")]
+slotted_techniques = [ExtResource("3_accel"), ExtResource("4_relay"), ExtResource("5_densifier"), ExtResource("6_vortex"), ExtResource("4_relay"), ExtResource("5_densifier"), ExtResource("7_radius"), ExtResource("8_compress"), ExtResource("9_flywheel"), ExtResource("10_heatsink"), ExtResource("11_gyro"), ExtResource("12_cataclysm"), ExtResource("13_evasive")]
 is_shuffle = false
 deck_recharge_time = 0.20
 base_damage_multiplier = 1.25
 stamina_cost_multiplier = 0.85
-

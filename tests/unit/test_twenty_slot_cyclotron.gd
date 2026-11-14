@@ -193,6 +193,10 @@ func test_20_slot_cyclotron_full_particle_accelerator_pipeline() -> void:
 	apex_singularity.player_lunge_distance = 6.0
 	apex_singularity.mass_multiplier = 3.0
 	apex_singularity.kinetic_efficiency = 1.6
+	apex_singularity.visual_shader_mode = MeleeAttackContext.VisualShaderMode.VOID_INVERSION
+	apex_singularity.has_mach_ring = true
+	apex_singularity.is_cataclysm = true
+	apex_singularity.is_singularity = true
 
 	# Slot cards across the 20-slot frame
 	weapon.slotted_techniques = [
@@ -235,3 +239,118 @@ func test_20_slot_cyclotron_full_particle_accelerator_pipeline() -> void:
 	assert_true(final_ctx.is_cataclysm)
 	assert_true(final_ctx.is_negative_space)
 	assert_true(final_ctx.has_mach_ring)
+
+func test_actual_resource_singularity_pipeline() -> void:
+	var weapon = MeleeWeaponDef.new()
+	weapon.slot_capacity = 20
+	weapon.mass = 35.0
+
+	var c_accel = load("res://assets/combat/cards/motion_accelerator_sweep.tres")
+	var c_relay = load("res://assets/combat/cards/mod_momentum_relay.tres")
+	var c_densifier = load("res://assets/combat/cards/mod_mass_densifier.tres")
+	var c_vortex = load("res://assets/combat/cards/motion_gravity_vortex.tres")
+	var c_radius = load("res://assets/combat/cards/mod_radius_extender.tres")
+	var c_compress = load("res://assets/combat/cards/mod_relativistic_compression.tres")
+	var c_flywheel = load("res://assets/combat/cards/mod_zero_point_flywheel.tres")
+	var c_heatsink = load("res://assets/combat/cards/mod_kinetic_heat_sink.tres")
+	var c_gyro = load("res://assets/combat/cards/mod_gravitational_gyroscope.tres")
+	var c_singularity = load("res://assets/combat/cards/motion_cataclysm_singularity.tres")
+	var c_backstep = load("res://assets/combat/cards/motion_evasive_backstep.tres")
+
+	weapon.slotted_techniques = [
+		c_accel,
+		c_relay,
+		c_densifier,
+		c_vortex,
+		c_relay,
+		c_densifier,
+		c_radius,
+		c_compress,
+		c_flywheel,
+		c_heatsink,
+		c_gyro,
+		c_singularity,
+		c_backstep
+	]
+
+	var evaluator = MeleeDeckEvaluator.new(weapon)
+
+	# Strike 1: Spin-up RPM
+	var a1 = evaluator.evaluate_attack()
+	assert_eq(a1.size(), 1)
+	assert_gt(a1[0].tip_velocity, 150.0)
+
+	evaluator.update(0.20)
+
+	# Strike 2: Gravity Vortex
+	var a2 = evaluator.evaluate_attack()
+	assert_eq(a2.size(), 1)
+	assert_lt(a2[0].knockback_force, 0.0) # Implosion
+	assert_eq(a2[0].visual_shader_mode, MeleeAttackContext.VisualShaderMode.VOID_INVERSION)
+	assert_true(a2[0].triggers_gravitational_implosion)
+	assert_almost_eq(a2[0].hitstop_duration, 0.10) # 0.06 (vortex) + 0.04 (densifier)
+	assert_almost_eq(a2[0].camera_impact_snap, 14.0) # 10.0 + 4.0
+
+	evaluator.update(0.20)
+
+	# Strike 3: Singularity Strike
+	var a3 = evaluator.evaluate_attack()
+	assert_eq(a3.size(), 1)
+	var sing_ctx = a3[0]
+
+	assert_gte(sing_ctx.kinetic_energy, 100000000000.0)
+	assert_eq(sing_ctx.get_kinetic_tier(), MeleeAttackContext.KineticTier.SINGULARITY)
+	assert_true(sing_ctx.is_singularity)
+	assert_true(sing_ctx.is_cataclysm)
+	assert_true(sing_ctx.is_negative_space)
+	assert_true(sing_ctx.has_mach_ring)
+	assert_eq(sing_ctx.visual_shader_mode, MeleeAttackContext.VisualShaderMode.VOID_INVERSION)
+	assert_true(sing_ctx.triggers_screen_flash)
+	assert_true(sing_ctx.triggers_arena_shockwave)
+	assert_true(sing_ctx.triggers_gravitational_implosion)
+	assert_almost_eq(sing_ctx.hitstop_duration, 0.24) # 0.14 (singularity) + 0.06 (compression) + 0.04 (densifier)
+	assert_almost_eq(sing_ctx.camera_impact_snap, 34.0) # 22.0 (singularity) + 8.0 (compression) + 4.0 (densifier)
+	assert_almost_eq(sing_ctx.stamina_cost, 0.0) # Zero-point flywheel nullifies stamina cost!
+
+func test_controller_fourth_generated_weapon_has_card_packed_visuals() -> void:
+	var FloatingSwordController = preload("res://src/combat/visuals/floating_sword_controller.gd")
+	var sword_ctrl = FloatingSwordController.new()
+	sword_ctrl._ready()
+
+	assert_gte(sword_ctrl.weapons.size(), 4)
+	var w3 = sword_ctrl.weapons[3]
+	assert_not_null(w3)
+	assert_eq(w3.slot_capacity, 20)
+	assert_eq(w3.slotted_techniques.size(), 13)
+
+	var evaluator = MeleeDeckEvaluator.new(w3)
+
+	# Strike 1: Accelerator sweep
+	var a1 = evaluator.evaluate_attack()
+	assert_eq(a1.size(), 1)
+	evaluator.update(0.20)
+
+	# Strike 2: Gravity Vortex (Card-packed Void Inversion + Implosion + Densifier hitstop)
+	var a2 = evaluator.evaluate_attack()
+	assert_eq(a2.size(), 1)
+	assert_eq(a2[0].visual_shader_mode, MeleeAttackContext.VisualShaderMode.VOID_INVERSION)
+	assert_true(a2[0].triggers_gravitational_implosion)
+	assert_almost_eq(a2[0].hitstop_duration, 0.10)
+	evaluator.update(0.20)
+
+	# Strike 3: Singularity Apex (Full Card-packed Singularity Event)
+	var a3 = evaluator.evaluate_attack()
+	assert_eq(a3.size(), 1)
+	var ctx = a3[0]
+	assert_eq(ctx.visual_shader_mode, MeleeAttackContext.VisualShaderMode.VOID_INVERSION)
+	assert_true(ctx.is_singularity)
+	assert_true(ctx.is_cataclysm)
+	assert_true(ctx.has_mach_ring)
+	assert_true(ctx.triggers_screen_flash)
+	assert_true(ctx.triggers_arena_shockwave)
+	assert_true(ctx.triggers_gravitational_implosion)
+	assert_almost_eq(ctx.hitstop_duration, 0.24)
+	assert_almost_eq(ctx.camera_impact_snap, 34.0)
+
+	sword_ctrl.free()
+

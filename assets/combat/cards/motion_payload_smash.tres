@@ -26,4 +26,8 @@ player_lunge_distance = 3.5
 kinetic_efficiency = 1.25
 mass_multiplier = 1.5
 base_damage = 0.0
+triggers_arena_shockwave = true
+hitstop_duration = 0.10
+screen_shake_intensity = 1.2
+camera_impact_snap = 16.0
 

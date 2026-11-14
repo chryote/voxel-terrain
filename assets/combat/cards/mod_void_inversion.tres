@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="ModifierCard" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/combat/techniques/modifiers/modifier_card.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+card_id = "void_inversion_lens"
+card_name = "Void Inversion Lens"
+description = "Reality Tear Infusion: Converts subsequent motion slash into a pitch-black (#000000) void tear with an incandescent rim and gravitational micro-implosion on impact."
+stamina_cost = 10.0
+stamina_multiplier = 1.0
+execution_duration_multiplier = 1.0
+recovery_delay_multiplier = 1.0
+deck_recharge_multiplier = 1.0
+mass_multiplier = 1.0
+momentum_retention = 0.0
+damage_multiplier = 1.15
+poise_multiplier = 1.25
+color_tint = Color(0.2, 0.05, 0.4, 1.0)
+emission_multiplier = 1.6
+override_shader_mode = true
+visual_shader_mode = 1
+infuse_gravitational_implosion = true
+add_hitstop_duration = 0.06
+screen_shake_multiplier = 1.25
+add_camera_impact_snap = 6.0
+radius_multiplier = 1.0
+arc_sweep_multiplier = 1.0
+thickness_multiplier = 1.15
+player_lunge_distance = 0.0
+override_locomotion_mode = false
+locomotion_mode = 0
+locomotion_vertical_impulse = 0.0
+allows_free_movement = false
+move_speed_multiplier = 1.0
+is_implosion = true
+

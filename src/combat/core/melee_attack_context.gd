@@ -38,18 +38,38 @@ enum KineticTier {
 	SINGULARITY = 4  ## 100B+ Joules: The 20-Slot Cyclotron Cosmic Singularity Event
 }
 
+enum VisualShaderMode {
+	PLASMA = 0,        ## Additive high-frequency plasma ribbon (slash_volume.gdshader)
+	VOID_INVERSION = 1 ## Negative-space reality tear: pitch black core with glowing rim (slash_void_inversion.gdshader)
+}
+
 const TIER_SUPERSONIC_THRESHOLD: float = 50000.0          # 50,000 Joules
 const TIER_HYPERSONIC_THRESHOLD: float = 1000000.0        # 1,000,000 Joules
 const TIER_CATACLYSM_THRESHOLD: float = 1000000000.0      # 1,000,000,000 Joules (1 Billion)
 const TIER_SINGULARITY_THRESHOLD: float = 100000000000.0  # 100,000,000,000 Joules (100 Billion)
 
 var kinetic_tier: KineticTier = KineticTier.NORMAL
+var visual_shader_mode: VisualShaderMode = VisualShaderMode.PLASMA
 var has_mach_ring: bool = false
 var is_negative_space: bool = false
+var triggers_screen_flash: bool = false
+var triggers_arena_shockwave: bool = false
+var triggers_gravitational_implosion: bool = false
 var is_cataclysm: bool = false
 var is_singularity: bool = false
 var is_blink: bool = false
 var blink_distance: float = 0.0
+
+# --- Impact Escalation & Juice (Card-Driven) ---
+var hitstop_duration: float = 0.0
+var screen_shake_intensity: float = 0.35
+var camera_impact_snap: float = 0.0
+var camera_velocity_pullback: bool = true
+
+# --- Locomotion Spectacle (Card-Driven) ---
+var has_afterimages: bool = false
+var afterimage_count: int = 4
+var afterimage_interval: float = 0.03
 
 ## Participating physical mass in kilograms (derived from weapon voxel structure * modifiers).
 var mass: float = 14.0
@@ -150,37 +170,18 @@ func compute_kinetic_metrics(weapon_mass: float = 14.0) -> void:
 	if not is_finite(momentum):
 		momentum = 0.0
 
-	# Classify kinetic tier and update visual flags
+	# Classify kinetic tier strictly for physical telemetry and damage scaling.
+	# Visual and impact effects are explicitly driven by cards.
 	if kinetic_energy >= TIER_SINGULARITY_THRESHOLD:
 		kinetic_tier = KineticTier.SINGULARITY
-		has_mach_ring = true
-		is_negative_space = true
-		is_cataclysm = true
-		is_singularity = true
 	elif kinetic_energy >= TIER_CATACLYSM_THRESHOLD:
 		kinetic_tier = KineticTier.CATACLYSM
-		has_mach_ring = true
-		is_negative_space = true
-		is_cataclysm = true
-		is_singularity = false
 	elif kinetic_energy >= TIER_HYPERSONIC_THRESHOLD:
 		kinetic_tier = KineticTier.HYPERSONIC
-		has_mach_ring = true
-		is_negative_space = true
-		is_cataclysm = false
-		is_singularity = false
 	elif kinetic_energy >= TIER_SUPERSONIC_THRESHOLD:
 		kinetic_tier = KineticTier.SUPERSONIC
-		has_mach_ring = true
-		is_negative_space = false
-		is_cataclysm = false
-		is_singularity = false
 	else:
 		kinetic_tier = KineticTier.NORMAL
-		has_mach_ring = false
-		is_negative_space = false
-		is_cataclysm = false
-		is_singularity = false
 
 func get_kinetic_tier() -> KineticTier:
 	return kinetic_tier
@@ -206,12 +207,23 @@ func duplicate_context() -> RefCounted:
 	c.damage_multiplier = damage_multiplier
 	c.poise_multiplier = poise_multiplier
 	c.kinetic_tier = kinetic_tier
+	c.visual_shader_mode = visual_shader_mode
 	c.has_mach_ring = has_mach_ring
 	c.is_negative_space = is_negative_space
+	c.triggers_screen_flash = triggers_screen_flash
+	c.triggers_arena_shockwave = triggers_arena_shockwave
+	c.triggers_gravitational_implosion = triggers_gravitational_implosion
 	c.is_cataclysm = is_cataclysm
 	c.is_singularity = is_singularity
 	c.is_blink = is_blink
 	c.blink_distance = blink_distance
+	c.hitstop_duration = hitstop_duration
+	c.screen_shake_intensity = screen_shake_intensity
+	c.camera_impact_snap = camera_impact_snap
+	c.camera_velocity_pullback = camera_velocity_pullback
+	c.has_afterimages = has_afterimages
+	c.afterimage_count = afterimage_count
+	c.afterimage_interval = afterimage_interval
 	c.inner_radius = inner_radius
 	c.outer_radius = outer_radius
 	c.arc_sweep_degrees = arc_sweep_degrees

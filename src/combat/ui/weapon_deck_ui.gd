@@ -105,7 +105,7 @@ var _fly_back_origin_box: Control = null
 
 # Constants
 const INVENTORY_GRID_COLS: int = 8
-const INVENTORY_GRID_ROWS: int = 4 # 32 slots total
+const INVENTORY_GRID_ROWS: int = 6 # 48 slots total (expanded from 32)
 const ACCORDION_SLOTS_PER_ROW: int = 10 # Break weapon accordion slots per 10 slots
 
 # Visual Color Palette
@@ -204,8 +204,17 @@ func _bind_scene_nodes() -> void:
 	_inventory_column = get_node("TopBarContainer/InventoryColumn") as VBoxContainer
 	_inventory_label = get_node("TopBarContainer/InventoryColumn/HeaderHBox/InventoryLabel") as Label
 	_inventory_hint_label = get_node("TopBarContainer/InventoryColumn/HeaderHBox/InventoryHint") as Label
+	var target_total = INVENTORY_GRID_COLS * INVENTORY_GRID_ROWS
+	if _inventory_hint_label != null:
+		_inventory_hint_label.text = "(%d SLOTS)  • Click/Drag to Swap • Right-Click Quick Slot" % target_total
 
 	_grid_container = get_node("TopBarContainer/InventoryColumn/GridContainer") as GridContainer
+	while _grid_container.get_child_count() < target_total:
+		var new_idx = _grid_container.get_child_count()
+		var slot_box = _create_slot_box(Vector2(34, 34), "inventory", -1, new_idx)
+		slot_box.name = "InvSlot_%d" % new_idx
+		_grid_container.add_child(slot_box)
+
 	_inventory_boxes.clear()
 	var slot_i = 0
 	for child in _grid_container.get_children():
@@ -454,7 +463,7 @@ func _setup_top_bar() -> void:
 
 	_inventory_hint_label = Label.new()
 	_inventory_hint_label.name = "InventoryHint"
-	_inventory_hint_label.text = "(32 SLOTS)  • Click/Drag to Swap • Right-Click Quick Slot"
+	_inventory_hint_label.text = "(%d SLOTS)  • Click/Drag to Swap • Right-Click Quick Slot" % (INVENTORY_GRID_COLS * INVENTORY_GRID_ROWS)
 	_inventory_hint_label.add_theme_font_size_override("font_size", 9)
 	_inventory_hint_label.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85, 0.8))
 	header_hbox.add_child(_inventory_hint_label)
@@ -465,7 +474,7 @@ func _setup_top_bar() -> void:
 	inv_ind_spacer.mouse_filter = MOUSE_FILTER_IGNORE
 	_inventory_column.add_child(inv_ind_spacer)
 
-	# 32-Slot Grid (8 columns x 4 rows)
+	# Expanded Grid (8 columns x 6 rows = 48 slots)
 	_grid_container = GridContainer.new()
 	_grid_container.name = "GridContainer"
 	_grid_container.columns = INVENTORY_GRID_COLS
